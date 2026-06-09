@@ -182,13 +182,15 @@ def build_checkpoints(n_pairs, seed, scale, teleport, spacing=CKPT_SPACING, warm
 
     print(f"\n[Phase A] Building {n_pairs} checkpoints for seed {seed} ...")
     port = _free_port()
-    horizon_s = int((warmup + n_pairs * spacing) * 0.25) + 3600
+    # add 86400 (24h) to ensure the end time exceeds the sumocfg begin time (e.g. 28800)
+    horizon_s = 86400 + int((warmup + n_pairs * spacing) * 0.25) + 3600
     cmd = [
-        SUMO_BIN, "-c", CONFIG_FILE, "--remote-port", str(port),
+        SUMO_BIN, "-c", CONFIG_FILE,
         "--seed", str(seed), "--scale", str(scale),
         "--time-to-teleport", str(teleport),
         "--no-step-log", "true", "--no-warnings", "true",
-        "--end", str(horizon_s)
+        "--end", str(horizon_s),
+        "--output-prefix", ""
     ]
     
     traci.start(cmd, port=port)
@@ -246,12 +248,11 @@ def run_scenario(mode, od_list, traffic_seed, tag, warmup_steps=WARMUP_STEPS,
     # LP-2: size --end to the campaign instead of a fixed 100000 that can fire
     # mid-run for large N. step-length is 0.25 s, so steps * 0.25 = sim-seconds;
     # add the scenario begin time and a generous buffer.
-    horizon_s = int((warmup_steps + len(od_list) * PER_TRIP_TIMEOUT) * 0.25) + 20000
+    horizon_s = 86400 + int((warmup_steps + len(od_list) * PER_TRIP_TIMEOUT) * 0.25) + 20000
 
     port = _free_port()
     sumo_cmd = [
         SUMO_BIN, "-c", CONFIG_FILE,
-        "--remote-port", str(port),           # CR-1: explicit distinct port per worker
         "--seed", str(traffic_seed),
         "--scale", str(scale),                # HP-2: configurable demand
         "--no-step-log", "true",
