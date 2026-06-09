@@ -1,0 +1,96 @@
+import sumolib
+import networkx as nx
+
+class NetworkBuilder:
+    def __init__(self, net_file="MoSTScenario/scenario/in/most.net.xml"):
+        self.net_file = net_file
+        self.net = sumolib.net.readNet(net_file)
+        # MultiDiGraph preserves parallel edges (multiple road segments that share
+        # the same from/to intersection pair) — a requirement for real networks like
+        # MoST. A DiGraph would silently drop duplicates, corrupting edge_id lookups.
+        self.graph = nx.MultiDiGraph()
+        self._build_graph()
+
+    def _build_graph(self):
+        """
+        Builds a NetworkX directed graph from the SUMO network for routing.
+        Nodes are intersections, edges are road segments.
+        Internal/special edges (IDs starting with ':') are skipped because
+        traci.vehicle.setRoute rejects routes containing them.
+        """
+        for edge in self.net.getEdges():
+            # Skip internal edges (within intersections) and special edges.
+            # These have IDs starting with ':' and are rejected by setRoute.
+            if edge.isSpecial() or edge.getFunction() == "internal":
+                continue
+            from_node = edge.getFromNode().getID()
+            to_node = edge.getToNode().getID()
+            edge_id = edge.getID()
+            length = edge.getLength()
+            speed_limit = edge.getSpeed()
+
+            # Initial setup: Base weight is just the distance (free-flow)
+            self.graph.add_edge(from_node, to_node,
+                                edge_id=edge_id,
+                                length=length,
+                                speed_limit=speed_limit,
+                                weight=length, # This will be overwritten dynamically
+                                fuel_tier=1)
+
+    def update_graph_weights(self, global_map):
+        """
+        Pulls dynamic weights from the GlobalMap and updates the NetworkX graph.
+        Run this every time you update your GlobalMap weights.
+        Iterates with keys=True because self.graph is a MultiDiGraph (parallel
+        edges between the same node pair each have a distinct integer key).
+        """
+        for u, v, k, data in self.graph.edges(keys=True, data=True):
+            edge_id = data['edge_id']
+
+            # Fetch the calculated formula weight from map_global.py
+            dynamic_weight = global_map.get_weight(edge_id)
+
+            # If the edge hasn't been evaluated yet (returns infinity),
+            # fall back to the static physical length.
+            if dynamic_weight == float('inf'):
+                dynamic_weight = data['length']
+
+            # Update this specific parallel edge's weight
+            self.graph[u][v][k]['weight'] = dynamic_weight
+
+    def get_dijkstra_route(self, source_node, target_node):
+        """
+        Runs Dijkstra's algorithm based on current dynamic weights.
+        Returns a list of EDGE IDs (TraCI requires edges, not nodes, for routing).
+        When multiple parallel edges exist between a node pair, the minimum-weight
+        one is chosen, consistent with how Dijkstra selected that pair.
+        """
+        try:
+            # 1. Get the path of nodes using Dijkstra
+            node_path = nx.dijkstra_path(self.graph, source=source_node, target=target_node, weight='weight')
+
+            # 2. Convert the node path into an edge path for SUMO.
+            # For each consecutive node pair, pick the cheapest parallel edge so
+            # the chosen edge_id matches the weight Dijkstra relied on.
+            edge_path = []
+            for u, v in zip(node_path[:-1], node_path[1:]):
+                # choose the cheapest parallel edge u->v
+                best_key = min(self.graph[u][v], key=lambda kk: self.graph[u][v][kk]['weight'])
+                edge_path.append(self.graph[u][v][best_key]['edge_id'])
+
+            return edge_path
+
+        except nx.NetworkXNoPath:
+            print(f"Warning: No valid path found between {source_node} and {target_node}")
+            return []
+
+    # --- Utility Methods ---
+
+    def get_graph(self):
+        return self.graph
+
+    def get_intersections(self):
+        return [node.getID() for node in self.net.getNodes() if node.getType() != "dead_end"]
+
+    def get_all_edges(self):
+        return [edge.getID() for edge in self.net.getEdges() if edge.getFunction() != "internal"]
