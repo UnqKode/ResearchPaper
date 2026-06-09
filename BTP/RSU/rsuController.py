@@ -74,7 +74,13 @@ class RSUManager:
         not the departed vehicles).
     """
 
-    def __init__(self, intersections, edges):
+    def __init__(self, intersections, edges, window_size=240):
+        # window_size is in SIMULATION STEPS, not seconds. With the MoST
+        # step-length of 0.25 s, 240 steps == 60 s of rolling history (was 60
+        # steps == 15 s, loophole #11: too short to see peak-hour macro cycles,
+        # so the router reacted to noise and routes oscillated). Tune via the
+        # Simulation(..., rsu_window=...) argument; 240-1200 (1-5 min) is sane.
+        self.window_size = max(1, int(window_size))
         # RSU objects are built in initialize_from_network once TraCI is live.
         self.rsus:               dict = {}
         self.edge_to_rsu:        dict = {}
@@ -115,7 +121,7 @@ class RSUManager:
 
         # Create RSUs for intersection nodes.
         for node in intersections:
-            rsu = RSU(node, incoming[node], window_size=60)
+            rsu = RSU(node, incoming[node], window_size=self.window_size)
             self.rsus[node] = rsu
             for eid in incoming[node]:
                 self.edge_to_rsu[eid] = rsu

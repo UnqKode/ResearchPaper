@@ -27,6 +27,9 @@ and the SAME traffic seed, and the only difference between the two runs is who
 routes the ego. The driver script compare_routing.py does exactly that.
 """
 
+import os
+import csv
+
 import traci
 
 from Routing.routingManager import NetworkBuilder
@@ -174,7 +177,8 @@ class Simulation:
     # =================================================================
     # A/B campaign: one ego through all OD pairs, in sequence
     # =================================================================
-    def run_od_campaign(self, per_trip_timeout=3000, warmup_steps=300, verbose=True):
+    def run_od_campaign(self, per_trip_timeout=3000, warmup_steps=300, verbose=True,
+                        progress_log_path=None, log_every=1):
         """
         Run ONE ego vehicle through every (origin, dest) pair in self.ego_od_list,
         one trip after another, inside the single already-started simulation.
@@ -190,6 +194,16 @@ class Simulation:
         ego trip. Both the "ours" and "sumo" scenarios receive the SAME warm-up,
         preserving A/B fairness; only the ego's controller differs.
 
+        LIVE PROGRESS LOG:
+        If `progress_log_path` is given, one CSV row is written and flushed to disk
+        after every completed trip (skipped trips included), so the file fills up
+        trip-by-trip and can be `tail -f`'d while the campaign is still running --
+        useful because in parallel mode stdout is buffered until the run finishes.
+        `log_every` throttles how often the buffer is flushed to disk (the row is
+        always written; default 1 = flush every trip). The fuel/duration recorded
+        here are the LIVE TraCI-integrated values; the authoritative SUMO tripinfo
+        numbers are merged into comparison_results.csv at the very end.
+
         Returns a list of per-trip dicts:
             {trip, origin, dest, arrived, depart_time, arrive_time,
              duration_s, fuel_mg, reroutes, skipped}
@@ -198,7 +212,49 @@ class Simulation:
         dt = traci.simulation.getDeltaT()
         results = []
 
-        # Activate TraCI subscriptions (must happen after traci.start, before first step).
+        # --- open the live per-trip progress log (one row per completed trip) ---
+        log_fh = None
+        log_writer = None
+        if progress_log_path:
+            log_fh = open(progress_log_path, "w", newline="")
+            log_writer = csv.writer(log_fh)
+            log_writer.writerow([
+                "routing", "trip", "origin", "dest", "arrived",
+                "depart_time", "arrive_time", "duration_s", "fuel_mg",
+                "reroutes", "skipped",
+            ])
+            log_fh.flush()
+
+        n_total = len(self.ego_od_list)
+
+        def _log_rec(rec):
+            """Append one trip's row and flush every `log_every` trips."""
+            if log_writer is None:
+                return
+            log_writer.writerow([
+                self.ego_routing, rec["trip"], rec["origin"], rec["dest"],
+                rec["arrived"], rec["depart_time"], rec["arrive_time"],
+                rec["duration_s"], rec["fuel_mg"], rec["reroutes"], rec["skipped"],
+            ])
+            if ((rec["trip"] + 1) % max(1, log_every) == 0
+                    or rec["trip"] == n_total - 1):
+                log_fh.flush()
+
+        try:
+            return self._run_od_campaign_inner(
+                dt, results, per_trip_timeout, warmup_steps, verbose, _log_rec
+            )
+        finally:
+            if log_fh is not None:
+                log_fh.flush()
+                log_fh.close()
+                if verbose:
+                    print(f"[log] per-trip progress written to {progress_log_path}")
+
+    # -----------------------------------------------------------------
+    def _run_od_campaign_inner(self, dt, results, per_trip_timeout,
+                               warmup_steps, verbose, _log_rec):
+        """Body of run_od_campaign, split out so the log file is always closed."""
         self.rsu_manager.subscribe_edges()
 
         # --- Q2: warm-up phase (no ego, background traffic only) ---
@@ -214,16 +270,21 @@ class Simulation:
                 break
 
         for k, (origin, dest) in enumerate(self.ego_od_list):
+            # CR-5 (defensive): reset per-trip metrics BEFORE injection. The ego
+            # is only inserted on the next simulationStep, so _track_ego can't run
+            # before this point today -- but resetting first makes the code robust
+            # to any future reordering that could otherwise wipe a just-set
+            # depart_time.
+            self.ego_metrics = {"depart_time": None, "arrive_time": None,
+                                "fuel_mg": 0.0, "reroutes": 0}
             injected = self._inject_ego_trip(origin, dest, k)
             if not injected:
-                results.append(self._trip_record(k, origin, dest, skipped=True))
+                rec = self._trip_record(k, origin, dest, skipped=True)
+                results.append(rec)
+                _log_rec(rec)
                 if verbose:
                     print(f"[trip {k}] SKIPPED (no route {origin} -> {dest})")
                 continue
-
-            # Fresh per-trip metrics (reuses the same schema _track_ego writes to).
-            self.ego_metrics = {"depart_time": None, "arrive_time": None,
-                                "fuel_mg": 0.0, "reroutes": 0}
 
             step = 0
             while True:
@@ -257,6 +318,7 @@ class Simulation:
 
             rec = self._trip_record(k, origin, dest, skipped=False)
             results.append(rec)
+            _log_rec(rec)
             if verbose:
                 n_total = len(self.ego_od_list)
                 arrived = [r for r in results if r.get("arrived")]
@@ -417,6 +479,16 @@ class Simulation:
                 return
 
             new_route = [cur_edge] + onward
+            # MP-5: only count a reroute when the route actually CHANGES. Calling
+            # setRoute every interval and incrementing unconditionally made
+            # `reroutes` report rerouting *opportunities* (~trip_steps/interval),
+            # not real route changes -- a misleading column in the comparison CSV.
+            try:
+                current_route = list(traci.vehicle.getRoute(self.ego_id))
+            except traci.TraCIException:
+                current_route = None
+            if current_route is not None and list(new_route) == current_route:
+                return  # no change; nothing to apply, nothing to count
             traci.vehicle.setRoute(self.ego_id, new_route)
             self.ego_metrics["reroutes"] += 1
 

@@ -80,8 +80,15 @@ class NetworkBuilder:
 
             return edge_path
 
-        except nx.NetworkXNoPath:
-            print(f"Warning: No valid path found between {source_node} and {target_node}")
+        except (nx.NetworkXNoPath, nx.NodeNotFound, nx.NetworkXError) as e:
+            # NetworkXNoPath: nodes exist but are disconnected.
+            # NodeNotFound:   src/dst node not in the graph (e.g. the ego is on
+            #                 an edge dynamically created after a teleport, whose
+            #                 endpoint node was never added). This used to escape
+            #                 _reroute_ego's `except TraCIException` and crash the
+            #                 whole scenario (HP-3); now it degrades gracefully to
+            #                 "keep the current route".
+            print(f"Warning: no route {source_node} -> {target_node} ({type(e).__name__})")
             return []
 
     # --- Utility Methods ---
