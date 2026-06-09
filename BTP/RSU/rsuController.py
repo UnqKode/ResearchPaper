@@ -75,12 +75,12 @@ class RSUManager:
     """
 
     def __init__(self, intersections, edges, window_size=240):
-        # window_size is in SIMULATION STEPS, not seconds. With the MoST
-        # step-length of 0.25 s, 240 steps == 60 s of rolling history (was 60
-        # steps == 15 s, loophole #11: too short to see peak-hour macro cycles,
-        # so the router reacted to noise and routes oscillated). Tune via the
-        # Simulation(..., rsu_window=...) argument; 240-1200 (1-5 min) is sane.
-        self.window_size = max(1, int(window_size))
+        # Window size for RSU rolling statistics (number of data-points kept per
+        # edge metric). 240 steps = 60 s at the default 0.25 s step-length -- long
+        # enough to capture several signal cycles and smooth short-term noise while
+        # still reacting within ~1 minute to a new congestion event.  The value is
+        # stored here so initialize_from_network can pass it through to each RSU.
+        self.window_size = window_size
         # RSU objects are built in initialize_from_network once TraCI is live.
         self.rsus:               dict = {}
         self.edge_to_rsu:        dict = {}
@@ -175,6 +175,53 @@ class RSUManager:
             traci.edge.subscribe(edge_id, _EDGE_VARS)
         print(f"[RSU] subscribed {len(self.edge_to_rsu)} edges "
               f"(VEHICLE_ID_LIST + OCCUPANCY + HALTING_NUMBER).")
+
+    def reset_for_new_state(self):
+        """
+        Re-arm the RSU layer after a ``traci.simulation.loadState()``.
+
+        ``loadState`` atomically replaces the entire running simulation state --
+        vehicles, positions, speeds, signals, and SUMO's RNG -- with a snapshot
+        that was saved earlier.  This means:
+
+        * Every vehicle ID that existed before the call may no longer exist, and
+          new vehicle IDs may appear that were not present before.
+        * The per-vehicle accumulators in ``active_vehicles`` (speeds, wait-times,
+          fuel integrals) describe cars that no longer exist in the network, so
+          they must be discarded completely.
+        * The rolling-window observations in each ``RSU.edge_data`` deque were
+          built from a traffic moment that no longer exists.  Averaging them into
+          the weights for the new state would feed the router stale, wrong costs.
+        * Edge subscriptions (``traci.edge.subscribe``) may be cleared by the
+          loadState on the SUMO side.
+
+        # VERIFY: whether traci.simulation.loadState clears SUMO-side edge and
+        # vehicle subscriptions.  If getAllSubscriptionResults() returns stale
+        # vehicle IDs from the previous state after a loadState, the step() guard
+        # ``if not v_sub: continue`` already discards them safely (no subscription
+        # data is available for IDs that SUMO has dropped), but explicitly
+        # re-subscribing edges here is the safest approach regardless.
+
+        What is intentionally NOT reset here
+        -------------------------------------
+        ``EdgeCostCalculator._fuel_baseline``: the free-flow fuel floor is a
+        property of the edge geometry and typical traffic, not of one traffic
+        snapshot.  Keeping it across trips within a seed models a persistently-
+        deployed system that refines its knowledge over the campaign.  Call
+        ``EdgeCostCalculator.reset()`` *between seeds*, not between trips.
+        """
+        # Discard all per-vehicle tracking (these vehicles no longer exist).
+        self.active_vehicles = {edge_id: {} for edge_id in self.edge_to_rsu}
+        # Drop the subscription-tracking set so step() re-subscribes any vehicle
+        # it encounters from scratch (no duplicate-subscribe guard needed here).
+        self._subscribed_vehicles = set()
+        # Clear every RSU's rolling-window observations: they described a traffic
+        # moment that loadState has now discarded.
+        for rsu in self.rsus.values():
+            rsu.clear()
+        # Re-establish edge subscriptions so the very next step() call has fresh
+        # bulk results from the newly-loaded network state.
+        self.subscribe_edges()
 
     def step(self):
         """

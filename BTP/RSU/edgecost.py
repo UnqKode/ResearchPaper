@@ -141,3 +141,26 @@ class EdgeCostCalculator:
         multiplier = min(multiplier, self.max_multiplier)
 
         return t_actual * multiplier
+
+    def reset(self):
+        """Forget all learned free-flow fuel baselines and seed buffers.
+
+        STATE-PERSISTENCE POLICY: call this between SEEDS, never between trips
+        within the same seed.
+
+        The asymmetric EMA baseline (``_fuel_baseline``) and the seed-sample
+        buffer (``_fuel_seed``) model a property of the edge -- its free-flow
+        fuel consumption rate -- that is legitimately learned over many vehicle
+        trips.  Across trips within one seed the router is behaving like a
+        persistently-deployed system that continuously refines its knowledge, so
+        keeping the baselines is both correct and beneficial (the fuel index F
+        becomes more accurate as the campaign progresses).
+
+        Across seeds, however, each seed may represent a different time period,
+        demand pattern, or scenario variant.  Carrying a baseline learned under
+        seed A into seed B could bias the fuel index in ways that are not
+        attributable to the routing algorithm, so the baselines are reset at the
+        seed boundary.
+        """
+        self._fuel_baseline = {}
+        self._fuel_seed     = {}

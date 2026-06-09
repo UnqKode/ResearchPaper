@@ -96,6 +96,11 @@ DEFAULT_TELEPORT = -1                # seconds stuck before teleport (-1 = never
 WORKER_TIMEOUT_S = 7200              # HP-1: hard wall-clock cap per parallel scenario
 TRIPINFO_FLUSH_WAIT_S = 10.0         # HP-5: max seconds to wait for SUMO to flush tripinfo
 
+# --- Checkpointed Campaign Knobs ---
+CHECKPOINT_DIR   = os.path.join(_BTP, "checkpoints")
+CKPT_SPACING     = 240               # background steps between checkpoints
+REWARM_STEPS     = 240               # background steps to populate RSUs after loadState
+
 
 # ---------------------------------------------------------------------------
 # 1. Build the OD set once (offline, reproducible)
@@ -161,9 +166,57 @@ def _free_port():
         return s.getsockname()[1]
 
 
+def build_checkpoints(n_pairs, seed, scale, teleport, spacing=CKPT_SPACING, warmup=REWARM_STEPS):
+    """
+    Phase A: Run a reference SUMO instance (no ego) to generate exactly N checkpoints.
+    Checkpoints ensure drift-free A/B testing because both algorithms start each
+    trip from a byte-identical background traffic state.
+    """
+    os.makedirs(CHECKPOINT_DIR, exist_ok=True)
+    paths = []
+    
+    # Pre-clean stale checkpoints from previous runs with this seed
+    for f in os.listdir(CHECKPOINT_DIR):
+        if f.startswith(f"ckpt_seed{seed}_"):
+            os.remove(os.path.join(CHECKPOINT_DIR, f))
+
+    print(f"\n[Phase A] Building {n_pairs} checkpoints for seed {seed} ...")
+    port = _free_port()
+    horizon_s = int((warmup + n_pairs * spacing) * 0.25) + 3600
+    cmd = [
+        SUMO_BIN, "-c", CONFIG_FILE, "--remote-port", str(port),
+        "--seed", str(seed), "--scale", str(scale),
+        "--time-to-teleport", str(teleport),
+        "--no-step-log", "true", "--no-warnings", "true",
+        "--end", str(horizon_s)
+    ]
+    
+    traci.start(cmd, port=port)
+    try:
+        for _ in range(warmup):
+            traci.simulationStep()
+            
+        for i in range(n_pairs):
+            path = os.path.abspath(os.path.join(CHECKPOINT_DIR, f"ckpt_seed{seed}_{i}.xml"))
+            traci.simulation.saveState(path)
+            paths.append(path)
+            if i % 10 == 0 or i == n_pairs - 1:
+                print(f"  saved checkpoint {i+1}/{n_pairs}")
+            
+            for _ in range(spacing):
+                traci.simulationStep()
+    finally:
+        try:
+            traci.close()
+        except Exception:
+            pass
+    print(f"[Phase A] Done. Saved {len(paths)} checkpoints.")
+    return paths
+
+
 def run_scenario(mode, od_list, traffic_seed, tag, warmup_steps=WARMUP_STEPS,
                  log_every=PROGRESS_LOG_EVERY, scale=DEFAULT_SCALE,
-                 teleport=DEFAULT_TELEPORT):
+                 teleport=DEFAULT_TELEPORT, checkpoints=None, rewarm_steps=REWARM_STEPS):
     """
     Launch SUMO and run the ego through every OD pair under `mode`
     ("ours" or "sumo"). Returns (live_results, tripinfo_by_id).
@@ -230,10 +283,17 @@ def run_scenario(mode, od_list, traffic_seed, tag, warmup_steps=WARMUP_STEPS,
             ego_routing=mode,
             ego_od_list=od_list,
         )
-        live_results = sim.run_od_campaign(per_trip_timeout=PER_TRIP_TIMEOUT,
-                                           warmup_steps=warmup_steps,
-                                           progress_log_path=progress_path,
-                                           log_every=log_every)
+        if checkpoints is not None:
+            live_results = sim.run_checkpointed_campaign(
+                checkpoints, per_trip_timeout=PER_TRIP_TIMEOUT,
+                rewarm_steps=rewarm_steps, seed=traffic_seed,
+                verbose=True, progress_log_path=progress_path, log_every=log_every
+            )
+        else:
+            live_results = sim.run_od_campaign(per_trip_timeout=PER_TRIP_TIMEOUT,
+                                               warmup_steps=warmup_steps,
+                                               progress_log_path=progress_path,
+                                               log_every=log_every)
     except traci.FatalTraCIError as e:
         print(f"TraCI error in scenario '{tag}': {e}")
     finally:
@@ -454,6 +514,108 @@ def compare(sumo_m, ours_m, csv_path=None, run_meta=None):
     print(f"\nPer-trip table written to {csv_path}")
 
 
+def compare_pooled(sumo_lists, ours_lists, run_meta):
+    """
+    Pools multi-seed results, checks the pre-injection fairness fingerprint,
+    and runs paired statistics.
+    sumo_lists: list of live_results lists from 'sumo' arms
+    ours_lists: list of live_results lists from 'ours' arms
+    """
+    sumo_all = [r for run in sumo_lists for r in run]
+    ours_all = [r for run in ours_lists for r in run]
+
+    # Index by (seed, trip)
+    sumo_by = {(r["seed"], r["trip"]): r for r in sumo_all}
+    ours_by = {(r["seed"], r["trip"]): r for r in ours_all}
+    keys = sorted(set(sumo_by) | set(ours_by))
+
+    stamp = time.strftime("%Y%m%d_%H%M%S")
+    csv_path = f"comparison_pooled_{stamp}.csv"
+
+    # Fairness Check
+    print("\n" + "=" * 64)
+    print("FAIRNESS FINGERPRINT CHECK")
+    print("=" * 64)
+    mismatches = 0
+    for k in keys:
+        s, o = sumo_by.get(k), ours_by.get(k)
+        if s and o and (s.get("pre_inject_vcount"), s.get("pre_inject_possum")) != \
+                       (o.get("pre_inject_vcount"), o.get("pre_inject_possum")):
+            print(f"  [Mismatch] seed={k[0]} trip={k[1]}: "
+                  f"SUMO={s.get('pre_inject_vcount')}/{s.get('pre_inject_possum')} vs "
+                  f"OURS={o.get('pre_inject_vcount')}/{o.get('pre_inject_possum')}")
+            mismatches += 1
+    if mismatches == 0 and len(keys) > 0:
+        print("  PASS: All pre-injection states were byte-identical.")
+    else:
+        print(f"  FAIL: {mismatches} state drifts detected! (Checkpoint/loadState failed)")
+
+    with open(csv_path, "w", newline="") as f:
+        w = csv.writer(f)
+        for k, v in run_meta.items():
+            w.writerow([f"# {k}", v])
+        w.writerow(["seed", "trip", "origin", "dest",
+                    "sumo_arrived", "sumo_time_s", "sumo_fuel_mg",
+                    "ours_arrived", "ours_time_s", "ours_fuel_mg", "ours_reroutes"])
+        for k in keys:
+            s, o = sumo_by.get(k, {}), ours_by.get(k, {})
+            w.writerow([
+                k[0], k[1], s.get("origin", o.get("origin", "")), s.get("dest", o.get("dest", "")),
+                s.get("arrived"), s.get("duration_s"), s.get("fuel_mg"),
+                o.get("arrived"), o.get("duration_s"), o.get("fuel_mg"), o.get("reroutes")
+            ])
+
+    paired = [ (k, sumo_by[k], ours_by[k]) for k in keys 
+               if k in sumo_by and k in ours_by and sumo_by[k]["arrived"] and ours_by[k]["arrived"] ]
+
+    print("\n" + "=" * 64)
+    print(f"POOLED RESULTS ({len(run_meta['seeds'])} seeds)")
+    print("=" * 64)
+    print(f"Comparable pairs (both arrived): {len(paired)} / {len(keys)}")
+    if not paired:
+        return
+
+    sumo_t = [s["duration_s"] for _, s, _ in paired]
+    ours_t = [o["duration_s"] for _, _, o in paired]
+    sumo_f = [s["fuel_mg"]    for _, s, _ in paired]
+    ours_f = [o["fuel_mg"]    for _, _, o in paired]
+
+    valid_t = [(s, o) for s, o in zip(sumo_t, ours_t) if s > 0]
+    valid_f = [(s, o) for s, o in zip(sumo_f, ours_f) if s > 0]
+    
+    if not valid_t and not valid_f:
+        print("No valid time/fuel values > 0 to compare.")
+        return
+
+    time_sav = [100.0 * (s - o) / s for s, o in valid_t]
+    fuel_sav = [100.0 * (s - o) / s for s, o in valid_f]
+
+    def block(name, sumo_vals, ours_vals, sav):
+        n_wins = sum(1 for s, o in zip(sumo_vals, ours_vals) if o < s)
+        print(f"\n-- {name} --")
+        print(f"  SUMO mean/med : {_mean(sumo_vals):8.1f} / {_median(sumo_vals):8.1f}")
+        print(f"  OURS mean/med : {_mean(ours_vals):8.1f} / {_median(ours_vals):8.1f}")
+        print(f"  Mean savings  : {_mean(sav):+.2f}%")
+        print(f"  Ours won      : {n_wins}/{len(sav)} trips ({100.0*n_wins/len(sav) if sav else 0:.0f}%)")
+
+    if valid_t: block("TIME (s)", [s for s, _ in valid_t], [o for _, o in valid_t], time_sav)
+    if valid_f: block("FUEL (mg)", [s for s, _ in valid_f], [o for _, o in valid_f], fuel_sav)
+
+    try:
+        from scipy import stats
+        print("\n-- paired t-test --")
+        if valid_t:
+            t_t, t_p = stats.ttest_rel([o for _, o in valid_t], [s for s, _ in valid_t])
+            print(f"  time: t={t_t:+.3f} p={t_p:.4g}")
+        if valid_f:
+            f_t, f_p = stats.ttest_rel([o for _, o in valid_f], [s for s, _ in valid_f])
+            print(f"  fuel: t={f_t:+.3f} p={f_p:.4g}")
+    except ImportError:
+        pass
+
+    print(f"\nDetailed CSV written to {csv_path}")
+
+
 # ---------------------------------------------------------------------------
 # 5. Parallel execution: run the two scenarios at the same time
 # ---------------------------------------------------------------------------
@@ -475,7 +637,7 @@ def compare(sumo_m, ours_m, csv_path=None, run_meta=None):
 
 
 def _run_scenario_capture(mode, od_list, traffic_seed, tag, warmup_steps,
-                          log_every, scale, teleport):
+                          log_every, scale, teleport, checkpoints=None, rewarm_steps=REWARM_STEPS):
     """
     Process-pool worker. Runs ONE scenario and returns a picklable dict.
 
@@ -494,7 +656,8 @@ def _run_scenario_capture(mode, od_list, traffic_seed, tag, warmup_steps,
     try:
         with redirect_stdout(buf):
             live, ti = run_scenario(mode, od_list, traffic_seed, tag,
-                                    warmup_steps, log_every, scale, teleport)
+                                    warmup_steps, log_every, scale, teleport,
+                                    checkpoints=checkpoints, rewarm_steps=rewarm_steps)
     except (KeyboardInterrupt, SystemExit):
         # LP-4: a Ctrl+C in the parent reaches workers as SIGINT. Do NOT swallow
         # it as a "result" -- let it propagate so the run actually aborts.
@@ -514,7 +677,7 @@ def _run_scenario_capture(mode, od_list, traffic_seed, tag, warmup_steps,
 
 def run_parallel(od_list, traffic_seed, jobs, warmup_steps=WARMUP_STEPS,
                  log_every=PROGRESS_LOG_EVERY, scale=DEFAULT_SCALE,
-                 teleport=DEFAULT_TELEPORT):
+                 teleport=DEFAULT_TELEPORT, checkpoints=None, rewarm_steps=REWARM_STEPS):
     """
     Launch every (mode, tag) in `jobs` concurrently, one process each.
     Returns {tag: (live_results, tripinfo)}.
@@ -533,7 +696,8 @@ def run_parallel(od_list, traffic_seed, jobs, warmup_steps=WARMUP_STEPS,
     try:
         fut_to_tag = {
             ex.submit(_run_scenario_capture, mode, od_list, traffic_seed, tag,
-                      warmup_steps, log_every, scale, teleport): tag
+                      warmup_steps, log_every, scale, teleport,
+                      checkpoints, rewarm_steps): tag
             for mode, tag in jobs
         }
         # HP-1: bound the wait so a deadlocked SUMO can't hang the parent forever.
@@ -581,6 +745,10 @@ def main():
     ap.add_argument("--n", type=int, default=100, help="number of OD pairs")
     ap.add_argument("--od-seed", type=int, default=42, help="seed for OD generation")
     ap.add_argument("--traffic-seed", type=int, default=1, help="SUMO traffic seed (same for both runs)")
+    ap.add_argument("--legacy", action="store_true",
+                    help="run the legacy un-checkpointed run_od_campaign (back-to-back runs)")
+    ap.add_argument("--seeds", type=str, default="1",
+                    help="comma-separated SUMO traffic seeds (used in new checkpoint mode)")
     ap.add_argument("--sequential", action="store_true",
                     help="run the two scenarios one after another (old behaviour) "
                          "instead of in parallel -- useful for low-RAM machines or debugging")
@@ -604,36 +772,70 @@ def main():
     # is who routes the ego. Parallel and sequential give identical results.
     jobs = [("sumo", "sumo"), ("ours", "ours")]
 
-    # LP-3: record exactly what produced this run so the CSV is reproducible.
-    run_meta = {
-        "n": args.n, "od_seed": args.od_seed, "traffic_seed": args.traffic_seed,
-        "scale": args.scale, "teleport": args.teleport,
-        "alpha": ALPHA, "beta": BETA, "gamma": GAMMA,
-        "reroute_interval": REROUTE_INTERVAL, "warmup_steps": WARMUP_STEPS,
-        "per_trip_timeout": PER_TRIP_TIMEOUT,
-        "ego_type": EGO_TYPE,
-        "od_pairs_built": len(od_list),
-    }
+    if args.legacy:
+        print("\n[Legacy Mode] Running un-checkpointed continuous back-to-back campaign.")
+        run_meta = {
+            "n": args.n, "od_seed": args.od_seed, "traffic_seed": args.traffic_seed,
+            "scale": args.scale, "teleport": args.teleport,
+            "alpha": ALPHA, "beta": BETA, "gamma": GAMMA,
+            "reroute_interval": REROUTE_INTERVAL, "warmup_steps": WARMUP_STEPS,
+            "per_trip_timeout": PER_TRIP_TIMEOUT, "ego_type": EGO_TYPE,
+            "od_pairs_built": len(od_list),
+        }
+        if args.sequential:
+            print("\nRunning scenarios SEQUENTIALLY (--sequential).")
+            results = {}
+            for mode, tag in jobs:
+                live, ti = run_scenario(mode, od_list, args.traffic_seed, tag=tag,
+                                        log_every=args.log_every,
+                                        scale=args.scale, teleport=args.teleport)
+                results[tag] = (live, ti)
+        else:
+            results = run_parallel(od_list, args.traffic_seed, jobs,
+                                   log_every=args.log_every,
+                                   scale=args.scale, teleport=args.teleport)
 
-    if args.sequential:
-        print("\nRunning scenarios SEQUENTIALLY (--sequential).")
-        results = {}
-        for mode, tag in jobs:
-            live, ti = run_scenario(mode, od_list, args.traffic_seed, tag=tag,
-                                    log_every=args.log_every,
-                                    scale=args.scale, teleport=args.teleport)
-            results[tag] = (live, ti)
+        sumo_live, sumo_ti = results["sumo"]
+        ours_live, ours_ti = results["ours"]
+
+        sumo_m = merge(sumo_live, sumo_ti)
+        ours_m = merge(ours_live, ours_ti)
+        compare(sumo_m, ours_m, run_meta=run_meta)
+    
     else:
-        results = run_parallel(od_list, args.traffic_seed, jobs,
-                               log_every=args.log_every,
-                               scale=args.scale, teleport=args.teleport)
+        # NEW Checkpointed Multi-Seed Sweep
+        seeds = [int(x.strip()) for x in args.seeds.split(",")]
+        run_meta = {
+            "n": args.n, "od_seed": args.od_seed, "seeds": seeds,
+            "scale": args.scale, "teleport": args.teleport,
+            "alpha": ALPHA, "beta": BETA, "gamma": GAMMA,
+            "ckpt_spacing": CKPT_SPACING, "rewarm_steps": REWARM_STEPS,
+        }
 
-    sumo_live, sumo_ti = results["sumo"]
-    ours_live, ours_ti = results["ours"]
+        sumo_all, ours_all = [], []
+        for seed in seeds:
+            print(f"\n==================================================================")
+            print(f" STARTING SEED SWEEP: {seed}")
+            print(f"==================================================================")
+            checkpoints = build_checkpoints(len(od_list), seed, args.scale, args.teleport)
+            
+            if args.sequential:
+                print("\nRunning arms SEQUENTIALLY for this seed (--sequential).")
+                for mode, tag in jobs:
+                    live, _ = run_scenario(mode, od_list, seed, tag=tag,
+                                           log_every=args.log_every, scale=args.scale,
+                                           teleport=args.teleport, checkpoints=checkpoints)
+                    if tag == "sumo": sumo_all.append(live)
+                    else: ours_all.append(live)
+            else:
+                results = run_parallel(
+                    od_list, seed, jobs, checkpoints=checkpoints,
+                    scale=args.scale, teleport=args.teleport
+                )
+                sumo_all.append(results.get("sumo", [])[0] if results.get("sumo") else [])
+                ours_all.append(results.get("ours", [])[0] if results.get("ours") else [])
 
-    sumo_m = merge(sumo_live, sumo_ti)
-    ours_m = merge(ours_live, ours_ti)
-    compare(sumo_m, ours_m, run_meta=run_meta)
+        compare_pooled(sumo_all, ours_all, run_meta)
 
 
 if __name__ == "__main__":

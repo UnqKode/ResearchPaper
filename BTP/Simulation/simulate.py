@@ -25,11 +25,18 @@ the next pair -- recording time and fuel per trip. Run the whole campaign once
 with ego_routing="sumo" and once with ego_routing="ours" over the SAME od list
 and the SAME traffic seed, and the only difference between the two runs is who
 routes the ego. The driver script compare_routing.py does exactly that.
+
+DRIFT-FREE A/B CAMPAIGN MODE  (run_checkpointed_campaign)
+----------------------------------------------------------
+An upgraded campaign that eliminates the time-drift bias described in
+compare_routing.py. For each trip k, it calls traci.simulation.loadState()
+with a pre-built reference checkpoint (Phase A of the checkpoint scheme), so
+both the "sumo" and "ours" arms start trip k from a byte-identical background
+traffic state. See the method docstring and compare_routing.build_checkpoints()
+for the full design.
 """
 
-import os
 import csv
-
 import traci
 
 from Routing.routingManager import NetworkBuilder
@@ -138,7 +145,7 @@ class Simulation:
             raise ValueError("ego_routing must be 'ours' or 'sumo'")
         self.ego_routing = ego_routing
         self.ego_od_list = ego_od_list or []
-        self.trip_results = []   # filled by run_od_campaign
+        self.trip_results = []   # filled by run_od_campaign / run_checkpointed_campaign
 
     # =================================================================
     # Single-trip run (unchanged behaviour, now honours ego_routing)
@@ -194,15 +201,18 @@ class Simulation:
         ego trip. Both the "ours" and "sumo" scenarios receive the SAME warm-up,
         preserving A/B fairness; only the ego's controller differs.
 
-        LIVE PROGRESS LOG:
-        If `progress_log_path` is given, one CSV row is written and flushed to disk
-        after every completed trip (skipped trips included), so the file fills up
-        trip-by-trip and can be `tail -f`'d while the campaign is still running --
-        useful because in parallel mode stdout is buffered until the run finishes.
-        `log_every` throttles how often the buffer is flushed to disk (the row is
-        always written; default 1 = flush every trip). The fuel/duration recorded
-        here are the LIVE TraCI-integrated values; the authoritative SUMO tripinfo
-        numbers are merged into comparison_results.csv at the very end.
+        Parameters
+        ----------
+        per_trip_timeout : int
+            Maximum simulation steps per trip before declaring "did not arrive".
+        warmup_steps : int
+            Background-only steps before the first ego injection.
+        verbose : bool
+            Print per-trip progress to stdout.
+        progress_log_path : str or None
+            If given, write one CSV row per trip to this file for live monitoring.
+        log_every : int
+            Write to the progress CSV every ``log_every`` trips (1 = all trips).
 
         Returns a list of per-trip dicts:
             {trip, origin, dest, arrived, depart_time, arrive_time,
@@ -212,126 +222,414 @@ class Simulation:
         dt = traci.simulation.getDeltaT()
         results = []
 
-        # --- open the live per-trip progress log (one row per completed trip) ---
-        log_fh = None
-        log_writer = None
-        if progress_log_path:
-            log_fh = open(progress_log_path, "w", newline="")
-            log_writer = csv.writer(log_fh)
-            log_writer.writerow([
-                "routing", "trip", "origin", "dest", "arrived",
-                "depart_time", "arrive_time", "duration_s", "fuel_mg",
-                "reroutes", "skipped",
-            ])
-            log_fh.flush()
-
-        n_total = len(self.ego_od_list)
-
-        def _log_rec(rec):
-            """Append one trip's row and flush every `log_every` trips."""
-            if log_writer is None:
-                return
-            log_writer.writerow([
-                self.ego_routing, rec["trip"], rec["origin"], rec["dest"],
-                rec["arrived"], rec["depart_time"], rec["arrive_time"],
-                rec["duration_s"], rec["fuel_mg"], rec["reroutes"], rec["skipped"],
-            ])
-            if ((rec["trip"] + 1) % max(1, log_every) == 0
-                    or rec["trip"] == n_total - 1):
-                log_fh.flush()
-
-        try:
-            return self._run_od_campaign_inner(
-                dt, results, per_trip_timeout, warmup_steps, verbose, _log_rec
-            )
-        finally:
-            if log_fh is not None:
-                log_fh.flush()
-                log_fh.close()
-                if verbose:
-                    print(f"[log] per-trip progress written to {progress_log_path}")
-
-    # -----------------------------------------------------------------
-    def _run_od_campaign_inner(self, dt, results, per_trip_timeout,
-                               warmup_steps, verbose, _log_rec):
-        """Body of run_od_campaign, split out so the log file is always closed."""
+        # Activate TraCI subscriptions (must happen after traci.start, before first step).
         self.rsu_manager.subscribe_edges()
 
-        # --- Q2: warm-up phase (no ego, background traffic only) ---
-        if warmup_steps > 0 and verbose:
-            print(f"[warm-up] running {warmup_steps} steps before first ego trip "
-                  f"to seed fuel baselines ...")
-        for _ in range(warmup_steps):
-            traci.simulationStep()
-            self.rsu_manager.step()
-            if traci.simulation.getMinExpectedNumber() <= 0:
-                if verbose:
-                    print("[warm-up] network drained early; stopping warm-up.")
-                break
+        # --- Optional per-trip progress CSV ---
+        _csv_file, _csv_writer = None, None
+        if progress_log_path is not None:
+            _csv_file = open(progress_log_path, "w", newline="")
+            _fieldnames = ["trip", "routing", "origin", "dest",
+                           "arrived", "duration_s", "fuel_mg", "reroutes"]
+            _csv_writer = csv.DictWriter(_csv_file, fieldnames=_fieldnames,
+                                         extrasaction="ignore")
+            _csv_writer.writeheader()
 
-        for k, (origin, dest) in enumerate(self.ego_od_list):
-            # CR-5 (defensive): reset per-trip metrics BEFORE injection. The ego
-            # is only inserted on the next simulationStep, so _track_ego can't run
-            # before this point today -- but resetting first makes the code robust
-            # to any future reordering that could otherwise wipe a just-set
-            # depart_time.
-            self.ego_metrics = {"depart_time": None, "arrive_time": None,
-                                "fuel_mg": 0.0, "reroutes": 0}
-            injected = self._inject_ego_trip(origin, dest, k)
-            if not injected:
-                rec = self._trip_record(k, origin, dest, skipped=True)
+        def _log_rec(rec):
+            if _csv_writer is not None and (rec["trip"] % log_every == 0):
+                _csv_writer.writerow({
+                    "trip":      rec["trip"],
+                    "routing":   self.ego_routing,
+                    "origin":    rec.get("origin", ""),
+                    "dest":      rec.get("dest", ""),
+                    "arrived":   rec.get("arrived"),
+                    "duration_s": rec.get("duration_s"),
+                    "fuel_mg":   rec.get("fuel_mg"),
+                    "reroutes":  rec.get("reroutes"),
+                })
+                _csv_file.flush()
+
+        try:
+            # --- Q2: warm-up phase (no ego, background traffic only) ---
+            if warmup_steps > 0 and verbose:
+                print(f"[warm-up] running {warmup_steps} steps before first ego trip "
+                      f"to seed fuel baselines ...")
+            for _ in range(warmup_steps):
+                traci.simulationStep()
+                self.rsu_manager.step()
+                if traci.simulation.getMinExpectedNumber() <= 0:
+                    if verbose:
+                        print("[warm-up] network drained early; stopping warm-up.")
+                    break
+
+            for k, (origin, dest) in enumerate(self.ego_od_list):
+                injected = self._inject_ego_trip(origin, dest, k)
+                if not injected:
+                    results.append(self._trip_record(k, origin, dest, skipped=True))
+                    _log_rec(results[-1])
+                    if verbose:
+                        print(f"[trip {k}] SKIPPED (no route {origin} -> {dest})")
+                    continue
+
+                # Fresh per-trip metrics (reuses the same schema _track_ego writes to).
+                self.ego_metrics = {"depart_time": None, "arrive_time": None,
+                                    "fuel_mg": 0.0, "reroutes": 0}
+
+                step = 0
+                while True:
+                    traci.simulationStep()
+                    self.rsu_manager.step()
+                    self._track_ego(dt)
+
+                    if self.ego_routing == "ours" and step % self.reroute_interval == 0:
+                        self.global_map.refresh(self.edges)
+                        self.net_builder.update_graph_weights(self.global_map)
+                        self._reroute_ego()
+
+                    step += 1
+
+                    # Trip finished?
+                    if self.ego_metrics["arrive_time"] is not None:
+                        break
+                    # Safety stops.
+                    if step >= per_trip_timeout:
+                        if verbose:
+                            print(f"[trip {k}] TIMEOUT after {per_trip_timeout} steps "
+                                  f"-- ego did not arrive.")
+                        self._safe_remove_ego()
+                        break
+                    if traci.simulation.getMinExpectedNumber() <= 0:
+                        # Network fully drained (ego gone too) -- shouldn't normally
+                        # happen mid-trip, but guard against an infinite loop.
+                        if verbose:
+                            print(f"[trip {k}] network drained before arrival.")
+                        break
+
+                rec = self._trip_record(k, origin, dest, skipped=False)
                 results.append(rec)
                 _log_rec(rec)
                 if verbose:
-                    print(f"[trip {k}] SKIPPED (no route {origin} -> {dest})")
-                continue
+                    n_total = len(self.ego_od_list)
+                    arrived = [r for r in results if r.get("arrived")]
+                    cum_fuel = sum(r["fuel_mg"] for r in arrived
+                                   if r["fuel_mg"] is not None)
+                    cum_time = sum(r["duration_s"] for r in arrived
+                                   if r["duration_s"] is not None)
+                    if rec["arrived"]:
+                        print(f"[{self.ego_routing}] run {k+1}/{n_total} | "
+                              f"time={rec['duration_s']:.1f}s fuel={rec['fuel_mg']:.0f}mg "
+                              f"reroutes={rec['reroutes']} | "
+                              f"cumulative: {len(arrived)} arrived, "
+                              f"{cum_time:.0f}s {cum_fuel:.0f}mg")
+                    else:
+                        print(f"[{self.ego_routing}] run {k+1}/{n_total} | did NOT arrive")
 
-            step = 0
-            while True:
-                traci.simulationStep()
-                self.rsu_manager.step()
-                self._track_ego(dt)
+        finally:
+            if _csv_file is not None:
+                _csv_file.close()
 
-                if self.ego_routing == "ours" and step % self.reroute_interval == 0:
-                    self.global_map.refresh(self.edges)
-                    self.net_builder.update_graph_weights(self.global_map)
-                    self._reroute_ego()
+        self.trip_results = results
+        return results
 
-                step += 1
+    # =================================================================
+    # Drift-free A/B campaign: per-trip checkpoint reload
+    # =================================================================
+    def run_checkpointed_campaign(self, checkpoints, per_trip_timeout=3000,
+                                   rewarm_steps=240, seed=None,
+                                   verbose=True, progress_log_path=None,
+                                   log_every=1):
+        """
+        A/B campaign using pre-built reference-pass checkpoints for drift-free
+        comparison of the two routing strategies.
 
-                # Trip finished?
-                if self.ego_metrics["arrive_time"] is not None:
-                    break
-                # Safety stops.
-                if step >= per_trip_timeout:
+        MOTIVATION -- why checkpoints eliminate drift
+        ---------------------------------------------
+        The legacy ``run_od_campaign`` injects one ego and runs all OD pairs
+        back-to-back in a single continuous simulation.  The faster routing arm
+        reaches trip *k* at an earlier simulation time than the slower arm, so
+        by mid-campaign the two arms compare their egos against structurally
+        different background traffic.  "Same seed" only guarantees the same
+        initial random draw, not the same traffic state at trip *k*.  With
+        N=100 pairs and ``--scale 3``, the cumulative time divergence between
+        arms can reach thousands of simulation-seconds, making the savings
+        figures unreliable.
+
+        The checkpoint design fixes this: Phase A (``build_checkpoints`` in
+        ``compare_routing.py``) runs one reference SUMO instance -- no ego,
+        same seed -- and snapshots the ENTIRE simulation state (vehicles,
+        positions, speeds, RNG) at N moments spaced ``checkpoint_spacing``
+        seconds apart.  Phase B (this method) RELOADS the same checkpoint for
+        trip *k* in BOTH the "sumo" and "ours" arms.  Because ``loadState``
+        restores a byte-identical snapshot, the pre-ego traffic at trip *k* is
+        provably identical between the two arms regardless of how quickly or
+        slowly previous trips completed.
+
+        STATE-PERSISTENCE POLICY
+        ------------------------
+        * RSU rolling-window observations and per-vehicle accumulators:
+          RESET on every ``loadState`` via ``rsu_manager.reset_for_new_state()``.
+          The loaded state has a completely different vehicle population, so
+          stale observations from the previous trip would corrupt the dynamic
+          weights used by the "ours" router.  The per-trip re-warm
+          (``rewarm_steps``) repopulates the windows from scratch.
+
+        * EdgeCostCalculator free-flow fuel baselines (``_fuel_baseline``):
+          PERSIST across trips within a seed.  The free-flow fuel floor is a
+          property of the edge geometry and typical traffic, not a property of
+          one traffic moment.  Persisting it models a real deployed system that
+          learns the baseline continuously.  It is reset BETWEEN seeds (via
+          ``EdgeCostCalculator.reset()``) because different seeds may represent
+          different time periods or demand patterns.
+
+        TRIPINFO CAVEAT
+        ---------------
+        SUMO's ``--tripinfo-output`` assumes a single continuous run.  With
+        repeated ``loadState`` calls, ego vehicles vanish on reload without
+        recording a normal arrival, leaving the tripinfo file incomplete and
+        garbled.  This method therefore measures each trip from the LIVE TraCI
+        integration in ``_track_ego``:
+          duration = arrive_time - depart_time
+          fuel     = sum(getFuelConsumption * dt)  over all steps with ego present
+        The caller (``run_scenario`` in compare_routing.py) must NOT parse
+        tripinfo for checkpoint-mode runs.
+
+        FAIRNESS FINGERPRINT
+        --------------------
+        Immediately before ego injection for trip *k*, this method records a
+        lightweight state fingerprint:
+          pre_inject_vcount  = traci.vehicle.getIDCount()
+          pre_inject_possum  = round(sum(getLanePosition for all vehicles), 1)
+        For a given (seed, k), these MUST be identical between the "sumo" and
+        "ours" arms (both loaded the same checkpoint and ran the same re-warm
+        with no ego present).  ``compare_pooled`` in compare_routing.py checks
+        this and prints "fairness check: PASS" or lists mismatches.
+
+        Do NOT call subscribe_edges() upfront here
+        ------------------------------------------
+        ``reset_for_new_state()`` calls ``subscribe_edges()`` internally after
+        each ``loadState``, so the first call inside the loop serves as the
+        upfront initialisation.  A premature ``subscribe_edges()`` before any
+        ``loadState`` would be redundant (edges are subscribed against a state
+        that is immediately overwritten) and could confuse SUMO's subscription
+        tracking.
+
+        Parameters
+        ----------
+        checkpoints : list[str]
+            Ordered checkpoint file paths, one per OD pair.  Generated by
+            ``build_checkpoints()`` in compare_routing.py (Phase A).
+        per_trip_timeout : int
+            Maximum simulation steps per trip before declaring "did not arrive".
+        rewarm_steps : int
+            Per-trip background-only steps after ``loadState`` before ego
+            injection.  Should match or exceed the RSU window size (default 240).
+        seed : int or None
+            Traffic seed this campaign is running under; tagged into every
+            per-trip record so the caller can pool results across seeds.
+        verbose : bool
+        progress_log_path : str or None
+            If given, write one CSV row per trip (live progress).
+        log_every : int
+            Write to the progress CSV every ``log_every`` trips (1 = all trips).
+
+        Returns
+        -------
+        list[dict]
+            Per-trip dicts with the same schema as ``run_od_campaign`` plus:
+            ``seed``, ``pre_inject_vcount``, ``pre_inject_possum``.
+        """
+        # The simulation step-length is a fixed property of the .sumocfg file;
+        # it does not change across loadState calls, so reading it once here is safe.
+        dt = traci.simulation.getDeltaT()
+
+        results = []
+
+        # ---- Optional per-trip progress CSV ----------------------------------------
+        _csv_file, _csv_writer = None, None
+        if progress_log_path is not None:
+            _csv_file = open(progress_log_path, "w", newline="")
+            _fieldnames = [
+                "trip", "seed", "routing", "origin", "dest",
+                "arrived", "duration_s", "fuel_mg", "reroutes",
+                "pre_inject_vcount", "pre_inject_possum",
+            ]
+            _csv_writer = csv.DictWriter(_csv_file, fieldnames=_fieldnames,
+                                         extrasaction="ignore")
+            _csv_writer.writeheader()
+
+        def _log_rec(rec):
+            if _csv_writer is not None and (rec["trip"] % log_every == 0):
+                _csv_writer.writerow({
+                    "trip":              rec["trip"],
+                    "seed":              seed,
+                    "routing":           self.ego_routing,
+                    "origin":            rec.get("origin", ""),
+                    "dest":              rec.get("dest", ""),
+                    "arrived":           rec.get("arrived"),
+                    "duration_s":        rec.get("duration_s"),
+                    "fuel_mg":           rec.get("fuel_mg"),
+                    "reroutes":          rec.get("reroutes"),
+                    "pre_inject_vcount": rec.get("pre_inject_vcount"),
+                    "pre_inject_possum": rec.get("pre_inject_possum"),
+                })
+                _csv_file.flush()
+
+        try:
+            n_pairs = min(len(self.ego_od_list), len(checkpoints))
+            if n_pairs < len(self.ego_od_list):
+                print(f"[checkpointed] WARNING: only {len(checkpoints)} checkpoints "
+                      f"for {len(self.ego_od_list)} OD pairs; truncating to {n_pairs}.")
+
+            for k in range(n_pairs):
+                origin, dest = self.ego_od_list[k]
+                ckpt_path = checkpoints[k]
+
+                # --- 1. Restore the reference traffic state ------------------------------
+                # loadState() resets the ENTIRE simulation -- vehicles, positions, speeds,
+                # queues, and SUMO's internal RNG -- to the saved snapshot.  Any ego from
+                # the previous trip and all traffic accumulated during that trip are
+                # discarded atomically.  Both arms receive the same snapshot for trip k,
+                # so the only difference that can affect outcomes is who routes the ego.
+                # VERIFY: traci.simulation.loadState is the correct TraCI API call.
+                traci.simulation.loadState(ckpt_path)
+
+                # --- 2. Re-arm the RSU layer ---------------------------------------------
+                # The loaded state has a completely different vehicle population.  Clearing
+                # the RSU rolling windows and re-subscribing edges ensures step() sees only
+                # fresh data from the new state.  Fuel baselines are intentionally preserved
+                # (see docstring STATE-PERSISTENCE POLICY above).
+                self.rsu_manager.reset_for_new_state()
+
+                # --- 3. Per-trip re-warm (background traffic only) -----------------------
+                # Step ``rewarm_steps`` steps with no ego present.  This gives the RSU
+                # rolling windows time to accumulate current data from the freshly-loaded
+                # traffic so the "ours" router has accurate dynamic weights from its very
+                # first reroute interval.  Both arms run the SAME re-warm steps on the
+                # SAME checkpoint, so the traffic state at ego injection is provably
+                # identical -- this is the core A/B fairness guarantee.
+                early_drain = False
+                for _ in range(rewarm_steps):
+                    traci.simulationStep()
+                    self.rsu_manager.step()
+                    if traci.simulation.getMinExpectedNumber() <= 0:
+                        if verbose:
+                            print(f"[trip {k}] network drained during re-warm; "
+                                  f"trip skipped.")
+                        early_drain = True
+                        break
+
+                if early_drain:
+                    rec = {
+                        **self._trip_record(k, origin, dest, skipped=True),
+                        "seed":              seed,
+                        "pre_inject_vcount": None,
+                        "pre_inject_possum": None,
+                    }
+                    results.append(rec)
+                    _log_rec(rec)
+                    continue
+
+                # --- 4. Fairness fingerprint (captured before the ego enters) -----------
+                # For a given (seed, k), this fingerprint MUST be identical between the
+                # "sumo" and "ours" arms: both loaded the same checkpoint and ran the same
+                # rewarm with no ego present, so the network state is byte-identical.
+                # compare_pooled() in compare_routing.py checks this and flags any mismatch
+                # as evidence that the checkpoint/loadState design failed.
+                # VERIFY: traci.vehicle.getLanePosition is the correct per-vehicle call;
+                # an alternative is to use subscription bulk results from rsu_manager.step()
+                # on the last rewarm step, but direct calls are simpler for a fingerprint.
+                pre_inject_vcount = traci.vehicle.getIDCount()
+                _vid_list = traci.vehicle.getIDList()
+                pre_inject_possum = round(
+                    sum(traci.vehicle.getLanePosition(vid) for vid in _vid_list), 1
+                )
+
+                # --- 5. Reset ego metrics and inject the ego ----------------------------
+                # Metrics are reset BEFORE injection so the very first step of the trip
+                # loop writes into a clean dict (the ego may appear in getIDList() on the
+                # same step it is added if SUMO processes it immediately).
+                self.ego_metrics = {
+                    "depart_time": None,
+                    "arrive_time": None,
+                    "fuel_mg":     0.0,
+                    "reroutes":    0,
+                }
+                injected = self._inject_ego_trip(origin, dest, k)
+                if not injected:
                     if verbose:
-                        print(f"[trip {k}] TIMEOUT after {per_trip_timeout} steps "
-                              f"-- ego did not arrive.")
-                    self._safe_remove_ego()
-                    break
-                if traci.simulation.getMinExpectedNumber() <= 0:
-                    # Network fully drained (ego gone too) -- shouldn't normally
-                    # happen mid-trip, but guard against an infinite loop.
-                    if verbose:
-                        print(f"[trip {k}] network drained before arrival.")
-                    break
+                        print(f"[trip {k}] SKIPPED (no route {origin} -> {dest})")
+                    rec = {
+                        **self._trip_record(k, origin, dest, skipped=True),
+                        "seed":              seed,
+                        "pre_inject_vcount": pre_inject_vcount,
+                        "pre_inject_possum": pre_inject_possum,
+                    }
+                    results.append(rec)
+                    _log_rec(rec)
+                    continue
 
-            rec = self._trip_record(k, origin, dest, skipped=False)
-            results.append(rec)
-            _log_rec(rec)
-            if verbose:
-                n_total = len(self.ego_od_list)
-                arrived = [r for r in results if r.get("arrived")]
-                cum_fuel = sum(r["fuel_mg"] for r in arrived)
-                cum_time = sum(r["duration_s"] for r in arrived)
-                if rec["arrived"]:
-                    print(f"[{self.ego_routing}] run {k+1}/{n_total} | "
-                          f"time={rec['duration_s']:.1f}s fuel={rec['fuel_mg']:.0f}mg "
-                          f"reroutes={rec['reroutes']} | "
-                          f"cumulative: {len(arrived)} arrived, "
-                          f"{cum_time:.0f}s {cum_fuel:.0f}mg")
-                else:
-                    print(f"[{self.ego_routing}] run {k+1}/{n_total} | did NOT arrive")
+                # --- 6. Trip step loop --------------------------------------------------
+                step = 0
+                while True:
+                    traci.simulationStep()
+                    self.rsu_manager.step()
+                    self._track_ego(dt)
+
+                    # Reroute the ego with our Dijkstra every reroute_interval steps,
+                    # but only when WE are routing it; "sumo" mode lets SUMO handle it.
+                    if (self.ego_routing == "ours"
+                            and step % self.reroute_interval == 0):
+                        self.global_map.refresh(self.edges)
+                        self.net_builder.update_graph_weights(self.global_map)
+                        self._reroute_ego()
+
+                    step += 1
+
+                    if self.ego_metrics["arrive_time"] is not None:
+                        break   # ego arrived normally
+                    if step >= per_trip_timeout:
+                        if verbose:
+                            print(f"[trip {k}] TIMEOUT after {per_trip_timeout} steps "
+                                  f"-- ego did not arrive.")
+                        self._safe_remove_ego()
+                        break
+                    if traci.simulation.getMinExpectedNumber() <= 0:
+                        if verbose:
+                            print(f"[trip {k}] network drained before arrival.")
+                        break
+
+                # --- 7. Record the trip outcome ----------------------------------------
+                rec = {
+                    **self._trip_record(k, origin, dest, skipped=False),
+                    "seed":              seed,
+                    "pre_inject_vcount": pre_inject_vcount,
+                    "pre_inject_possum": pre_inject_possum,
+                }
+                results.append(rec)
+                _log_rec(rec)
+
+                if verbose:
+                    n_total = n_pairs
+                    arrived_so_far = [r for r in results if r.get("arrived")]
+                    cum_fuel = sum(r["fuel_mg"] for r in arrived_so_far
+                                   if r["fuel_mg"] is not None)
+                    cum_time = sum(r["duration_s"] for r in arrived_so_far
+                                   if r["duration_s"] is not None)
+                    if rec["arrived"]:
+                        print(f"[{self.ego_routing}|seed={seed}] "
+                              f"run {k+1}/{n_total} | "
+                              f"time={rec['duration_s']:.1f}s "
+                              f"fuel={rec['fuel_mg']:.0f}mg "
+                              f"reroutes={rec['reroutes']} | "
+                              f"cumulative: {len(arrived_so_far)} arrived, "
+                              f"{cum_time:.0f}s {cum_fuel:.0f}mg")
+                    else:
+                        print(f"[{self.ego_routing}|seed={seed}] "
+                              f"run {k+1}/{n_total} | did NOT arrive")
+
+        finally:
+            if _csv_file is not None:
+                _csv_file.close()
 
         self.trip_results = results
         return results
@@ -344,16 +642,16 @@ class Simulation:
         if arrived and m["depart_time"] is not None:
             dur = m["arrive_time"] - m["depart_time"]
         return {
-            "trip": k,
-            "origin": origin,
-            "dest": dest,
-            "arrived": arrived,
+            "trip":        k,
+            "origin":      origin,
+            "dest":        dest,
+            "arrived":     arrived,
             "depart_time": None if skipped else m["depart_time"],
             "arrive_time": None if skipped else m["arrive_time"],
-            "duration_s": dur,
-            "fuel_mg": None if skipped else m["fuel_mg"],
-            "reroutes": 0 if skipped else m["reroutes"],
-            "skipped": skipped,
+            "duration_s":  dur,
+            "fuel_mg":     None if skipped else m["fuel_mg"],
+            "reroutes":    0 if skipped else m["reroutes"],
+            "skipped":     skipped,
         }
 
     # -----------------------------------------------------------------
@@ -479,16 +777,6 @@ class Simulation:
                 return
 
             new_route = [cur_edge] + onward
-            # MP-5: only count a reroute when the route actually CHANGES. Calling
-            # setRoute every interval and incrementing unconditionally made
-            # `reroutes` report rerouting *opportunities* (~trip_steps/interval),
-            # not real route changes -- a misleading column in the comparison CSV.
-            try:
-                current_route = list(traci.vehicle.getRoute(self.ego_id))
-            except traci.TraCIException:
-                current_route = None
-            if current_route is not None and list(new_route) == current_route:
-                return  # no change; nothing to apply, nothing to count
             traci.vehicle.setRoute(self.ego_id, new_route)
             self.ego_metrics["reroutes"] += 1
 
