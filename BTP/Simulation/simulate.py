@@ -76,6 +76,8 @@ class Simulation:
     def __init__(self,
                  net_file,
                  reroute_interval=30,
+                 dev_threshold=0.20,
+                 imp_threshold=0.15,
                  alpha=1.0, beta=0.8, gamma=1.5,
                  # --- ego-vehicle configuration ---
                  ego_vehicle_id="ego",
@@ -138,6 +140,13 @@ class Simulation:
         self._ego_injected = False
         self.ego_metrics = {"depart_time": None, "arrive_time": None,
                             "fuel_mg": 0.0, "reroutes": 0}
+        self.dev_threshold = dev_threshold
+        self.imp_threshold = imp_threshold
+        self.route_snapshot = {
+            "route": [],
+            "saved_weights": {},
+            "timestamp": 0.0,
+        }
 
         # --- A/B campaign state ---
         # ego_routing decides who steers the ego: our Dijkstra or SUMO.
@@ -172,7 +181,7 @@ class Simulation:
             if self.ego_routing == "ours" and step % self.reroute_interval == 0:
                 self.global_map.refresh(self.edges)
                 self.net_builder.update_graph_weights(self.global_map)
-                self._reroute_ego()
+                self._evaluate_and_reroute()
 
             step += 1
             if max_steps is not None and step >= max_steps:
@@ -284,7 +293,7 @@ class Simulation:
                     if self.ego_routing == "ours" and step % self.reroute_interval == 0:
                         self.global_map.refresh(self.edges)
                         self.net_builder.update_graph_weights(self.global_map)
-                        self._reroute_ego()
+                        self._evaluate_and_reroute()
 
                     step += 1
 
@@ -581,7 +590,7 @@ class Simulation:
                             and step % self.reroute_interval == 0):
                         self.global_map.refresh(self.edges)
                         self.net_builder.update_graph_weights(self.global_map)
-                        self._reroute_ego()
+                        self._evaluate_and_reroute()
 
                     step += 1
 
@@ -666,10 +675,24 @@ class Simulation:
         self.ego_id = f"ego_{k}"
         route_id = f"egoroute_{k}"
         try:
-            stage = traci.simulation.findRoute(origin, dest, vType=self.ego_type)
-            if not stage.edges:
-                return False
-            traci.route.add(route_id, stage.edges)
+            route_edges = []
+            if self.ego_routing == "ours":
+                cur_nodes = self.edge_to_nodes.get(origin)
+                dest_nodes = self.edge_to_nodes.get(dest)
+                if cur_nodes and dest_nodes:
+                    self.global_map.refresh(self.edges)
+                    self.net_builder.update_graph_weights(self.global_map)
+                    onward = self.net_builder.get_dijkstra_route(cur_nodes[1], dest_nodes[1])
+                    if onward:
+                        route_edges = [origin] + onward
+
+            if not route_edges:
+                stage = traci.simulation.findRoute(origin, dest, vType=self.ego_type)
+                if not stage.edges:
+                    return False
+                route_edges = list(stage.edges)
+
+            traci.route.add(route_id, route_edges)
             traci.vehicle.add(self.ego_id, route_id,
                               typeID=self.ego_type, depart="now")
             # Opt the ego in/out of SUMO's rerouting device depending on mode.
@@ -682,6 +705,13 @@ class Simulation:
                                            "device.rerouting.probability", prob)
             except traci.TraCIException:
                 pass
+            
+            # Capture the initial route snapshot for deviation tracking
+            self.route_snapshot = {
+                "route": route_edges,
+                "saved_weights": {e: self.global_map.get_weight(e) for e in route_edges},
+                "timestamp": traci.simulation.getTime()
+            }
             return True
         except traci.TraCIException:
             return False
@@ -709,13 +739,27 @@ class Simulation:
                   f"'{self.ego_id}' if/when it appears in the demand.")
             return
         try:
-            stage = traci.simulation.findRoute(self.ego_origin, self.ego_dest,
-                                               vType=self.ego_type)
-            if not stage.edges:
-                print(f"[ego] findRoute found no path "
-                      f"{self.ego_origin} -> {self.ego_dest}; ego not injected.")
-                return
-            traci.route.add(self._ego_route_id, stage.edges)
+            route_edges = []
+            if self.ego_routing == "ours":
+                cur_nodes = self.edge_to_nodes.get(self.ego_origin)
+                dest_nodes = self.edge_to_nodes.get(self.ego_dest)
+                if cur_nodes and dest_nodes:
+                    self.global_map.refresh(self.edges)
+                    self.net_builder.update_graph_weights(self.global_map)
+                    onward = self.net_builder.get_dijkstra_route(cur_nodes[1], dest_nodes[1])
+                    if onward:
+                        route_edges = [self.ego_origin] + onward
+
+            if not route_edges:
+                stage = traci.simulation.findRoute(self.ego_origin, self.ego_dest,
+                                                   vType=self.ego_type)
+                if not stage.edges:
+                    print(f"[ego] findRoute found no path "
+                          f"{self.ego_origin} -> {self.ego_dest}; ego not injected.")
+                    return
+                route_edges = list(stage.edges)
+
+            traci.route.add(self._ego_route_id, route_edges)
             traci.vehicle.add(self.ego_id, self._ego_route_id,
                               typeID=self.ego_type, depart=self.ego_depart)
             # In "ours" mode keep SUMO's rerouting device off the ego so the two
@@ -727,8 +771,15 @@ class Simulation:
             except traci.TraCIException:
                 pass
             self._ego_injected = True
+            
+            # Capture initial route snapshot
+            self.route_snapshot = {
+                "route": route_edges,
+                "saved_weights": {e: self.global_map.get_weight(e) for e in route_edges},
+                "timestamp": traci.simulation.getTime()
+            }
             print(f"[ego] injected '{self.ego_id}': "
-                  f"{self.ego_origin} -> {self.ego_dest} ({len(stage.edges)} edges).")
+                  f"{self.ego_origin} -> {self.ego_dest} ({len(route_edges)} edges).")
         except traci.TraCIException as e:
             print(f"[ego] injection failed: {e}")
 
@@ -742,11 +793,11 @@ class Simulation:
             self.ego_metrics["arrive_time"] = traci.simulation.getTime()
 
     # -----------------------------------------------------------------
-    def _reroute_ego(self):
+    def _evaluate_and_reroute(self):
         """
-        Re-route ONLY the ego along the current cheapest path using our custom
-        Dijkstra. Routed from the end of its current edge to the end of its
-        destination edge, with the current edge prepended so SUMO accepts it.
+        Deviation-based rerouting: only runs Dijkstra if the current remaining
+        route has degraded by > dev_threshold, and only accepts the new route
+        if it improves cost by > imp_threshold.
         """
         if self.ego_id not in traci.vehicle.getIDList():
             return  # not in the network yet, or already arrived
@@ -755,30 +806,85 @@ class Simulation:
             if not cur_edge or cur_edge.startswith(":"):
                 return  # on an internal junction edge
 
-            route = traci.vehicle.getRoute(self.ego_id)
+            route = list(traci.vehicle.getRoute(self.ego_id))
             if not route:
                 return
             dest_edge = route[-1]
             if cur_edge == dest_edge:
                 return
 
-            cur_nodes  = self.edge_to_nodes.get(cur_edge)
-            dest_nodes = self.edge_to_nodes.get(dest_edge)
-            if cur_nodes is None or dest_nodes is None:
+            try:
+                cur_idx = route.index(cur_edge)
+                remaining_route = route[cur_idx:]
+            except ValueError:
                 return
 
-            src_node = cur_nodes[1]   # end of the current edge
-            dst_node = dest_nodes[1]  # end of the destination edge
+            saved_remaining_cost = 0.0
+            current_remaining_cost = 0.0
+            
+            for edge in remaining_route:
+                sw = self.route_snapshot["saved_weights"].get(edge, float('inf'))
+                cw = self.global_map.get_weight(edge)
+                saved_remaining_cost += sw
+                current_remaining_cost += cw
+
+            deviation_pct = 0.0
+            if current_remaining_cost > saved_remaining_cost and saved_remaining_cost > 0:
+                deviation_pct = (current_remaining_cost / saved_remaining_cost) - 1.0
+            elif current_remaining_cost == float('inf') and saved_remaining_cost < float('inf'):
+                deviation_pct = float('inf')
+
+            print(f"[REROUTE_CHECK] vehicle={self.ego_id} currentEdge={cur_edge} "
+                  f"remainingLen={len(remaining_route)} "
+                  f"routeDeviation={deviation_pct*100:.1f}% "
+                  f"currentRemainingCost={current_remaining_cost:.1f}")
+
+            if deviation_pct <= self.dev_threshold:
+                return  # Stable route, no Dijkstra needed
+
+            cur_nodes = self.edge_to_nodes.get(cur_edge)
+            dest_nodes = self.edge_to_nodes.get(dest_edge)
+            if not cur_nodes or not dest_nodes:
+                return
+
+            src_node = cur_nodes[1]
+            dst_node = dest_nodes[1]
             if src_node == dst_node:
                 return
+
+            print(f"[DIJKSTRA_TRIGGER] vehicle={self.ego_id} reason=DEVIATION_THRESHOLD_EXCEEDED "
+                  f"routeDeviation={deviation_pct*100:.1f}%")
 
             onward = self.net_builder.get_dijkstra_route(src_node, dst_node)
             if not onward:
                 return
 
-            new_route = [cur_edge] + onward
-            traci.vehicle.setRoute(self.ego_id, new_route)
-            self.ego_metrics["reroutes"] += 1
+            candidate_route = [cur_edge] + onward
+            candidate_cost = sum(self.global_map.get_weight(e) for e in candidate_route)
+
+            improvement = 0.0
+            if current_remaining_cost > 0:
+                if current_remaining_cost == float('inf'):
+                    improvement = 1.0 if candidate_cost < float('inf') else 0.0
+                else:
+                    improvement = (current_remaining_cost - candidate_cost) / current_remaining_cost
+
+            print(f"[CANDIDATE_ROUTE] vehicle={self.ego_id} oldCost={current_remaining_cost:.1f} "
+                  f"candidateCost={candidate_cost:.1f} improvement={improvement*100:.1f}%")
+
+            if improvement > self.imp_threshold:
+                traci.vehicle.setRoute(self.ego_id, candidate_route)
+                self.ego_metrics["reroutes"] += 1
+                
+                # Refresh snapshot
+                self.route_snapshot = {
+                    "route": candidate_route,
+                    "saved_weights": {e: self.global_map.get_weight(e) for e in candidate_route},
+                    "timestamp": traci.simulation.getTime()
+                }
+                print(f"[DECISION] vehicle={self.ego_id} action=REROUTE")
+            else:
+                print(f"[DECISION] vehicle={self.ego_id} action=KEEP_CURRENT_ROUTE")
 
         except traci.TraCIException:
             # Invalid/disconnected route this step -- keep the existing one.
