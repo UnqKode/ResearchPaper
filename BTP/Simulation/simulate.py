@@ -960,7 +960,7 @@ class Simulation:
 
         active_egos = set()
         completed_egos = set()
-        fast_forward_target = depart_start - 60.0 # 60 seconds rewarm
+        fast_forward_target = depart_start - 900.0 # 15 minutes rewarm
 
         while len(completed_egos) < len(od_list) and traci.simulation.getMinExpectedNumber() > 0:
             traci.simulationStep()

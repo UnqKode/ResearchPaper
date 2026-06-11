@@ -51,9 +51,9 @@ class NetworkBuilder:
             dynamic_weight = global_map.get_weight(edge_id)
 
             # If the edge hasn't been evaluated yet (returns infinity),
-            # fall back to the static physical length.
+            # fall back to the static physical length in free-flow seconds.
             if dynamic_weight == float('inf'):
-                dynamic_weight = data['length']
+                dynamic_weight = data['length'] / data.get('speed_limit', 13.89)
 
             # Update this specific parallel edge's weight
             self.graph[u][v][k]['weight'] = dynamic_weight
