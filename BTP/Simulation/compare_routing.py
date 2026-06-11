@@ -77,7 +77,7 @@ _BTP         = os.path.dirname(_HERE)                        # BTP/
 PROJECT_ROOT = os.path.dirname(_BTP)                        # MoSTScenario/
 CONFIG_FILE  = os.path.join(PROJECT_ROOT, "scenario", "most.sumocfg")
 NET_FILE     = os.path.join(PROJECT_ROOT, "scenario", "in", "most.net.xml")
-EGO_TYPE     = "DEFAULT_VEHTYPE"      # must be a vType that exists in MoST and has fuel
+EGO_TYPE     = "ego_petrol"           # uses HBEFA3/PC_G_EU6 emissionClass and has.emissions.device=true
 SUMO_BIN     = "sumo"                 # headless; use "sumo-gui" only to eyeball one run
 
 REROUTE_INTERVAL = 30
@@ -192,6 +192,7 @@ def build_checkpoints(n_pairs, seed, scale, teleport, spacing=CKPT_SPACING, warm
         "--end", str(horizon_s),
         "--output-prefix", "",
         "--device.rerouting.probability", "0",
+        "--device.emissions.probability", "1",
         "--route-steps", "0"
     ]
     
@@ -271,6 +272,7 @@ def run_scenario(mode, od_list, traffic_seed, tag, warmup_steps=WARMUP_STEPS,
         # Background traffic uses SUMO dynamic rerouting in BOTH scenarios so it
         # behaves identically; only the ego's controller differs by `mode`.
         "--device.rerouting.probability", "0",
+        "--device.emissions.probability", "1",
         "--device.rerouting.period", str(REROUTE_INTERVAL),
         "--route-steps", "0"
     ]
@@ -781,6 +783,7 @@ def run_paired_scenario(arm_policy, alpha, beta, gamma, od_list, traffic_seed, t
         "--error-log", "errors.log",
         # Background routing ON for paired mode
         "--device.rerouting.probability", "1",
+        "--device.emissions.probability", "1",
         "--device.rerouting.period", str(REROUTE_INTERVAL),
         "--route-steps", "0"
     ]
@@ -818,7 +821,12 @@ def run_paired_scenario(arm_policy, alpha, beta, gamma, od_list, traffic_seed, t
     deadline = time.time() + TRIPINFO_FLUSH_WAIT_S
     while time.time() < deadline:
         if os.path.exists(tripinfo_path) and os.path.getsize(tripinfo_path) > 0:
-            break
+            try:
+                import xml.etree.ElementTree as ET
+                ET.parse(tripinfo_path)
+                break
+            except ET.ParseError:
+                pass
         time.sleep(0.25)
     
     tripinfo = parse_tripinfo(tripinfo_path)

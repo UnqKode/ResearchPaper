@@ -142,45 +142,11 @@ class Simulation:
         self.imp_threshold = imp_threshold
         self.active_egos = {}
 
-        # For legacy single-ego modes, initialize self.ego_id in active_egos
-        self._init_ego_state(self.ego_id)
+        self.ego_metrics = {"depart_time": None, "arrive_time": None, "fuel_mg": 0.0, "reroutes": 0}
+        self.route_snapshot = {"route": [], "saved_weights": {}, "timestamp": 0.0}
+        self.last_dijkstra_time = 0.0
+
         self._finalize_init(ego_routing, ego_od_list)
-
-    def _init_ego_state(self, ego_id):
-        if ego_id not in self.active_egos:
-            self.active_egos[ego_id] = {
-                "metrics": {"depart_time": None, "arrive_time": None, "fuel_mg": 0.0, "reroutes": 0},
-                "snapshot": {"route": [], "saved_weights": {}, "timestamp": 0.0},
-                "last_dijkstra_time": 0.0,
-                "injected": False
-            }
-
-    @property
-    def ego_metrics(self):
-        return self.active_egos.get(self.ego_id, {}).get("metrics", {})
-
-    @ego_metrics.setter
-    def ego_metrics(self, value):
-        self._init_ego_state(self.ego_id)
-        self.active_egos[self.ego_id]["metrics"] = value
-
-    @property
-    def route_snapshot(self):
-        return self.active_egos.get(self.ego_id, {}).get("snapshot", {})
-
-    @route_snapshot.setter
-    def route_snapshot(self, value):
-        self._init_ego_state(self.ego_id)
-        self.active_egos[self.ego_id]["snapshot"] = value
-
-    @property
-    def last_dijkstra_time(self):
-        return self.active_egos.get(self.ego_id, {}).get("last_dijkstra_time", 0.0)
-
-    @last_dijkstra_time.setter
-    def last_dijkstra_time(self, value):
-        self._init_ego_state(self.ego_id)
-        self.active_egos[self.ego_id]["last_dijkstra_time"] = value
 
     def _finalize_init(self, ego_routing, ego_od_list):
         # --- A/B campaign state ---
@@ -976,10 +942,19 @@ class Simulation:
 
         # Build departure schedule: ego_id -> depart_time_s
         schedule = {}
+        ego_states = {}
         for k, (origin, dest) in enumerate(od_list):
             depart_time_s = depart_start + k * depart_spacing
-            schedule[f"ego_{k}"] = depart_time_s
-            self._init_ego_state(f"ego_{k}")
+            vid = f"ego_{k}"
+            schedule[vid] = depart_time_s
+            ego_states[vid] = {
+                "metrics": {"depart_time": None, "arrive_time": None, "fuel_mg": 0.0, "reroutes": 0},
+                "snapshot": {"route": [], "saved_weights": {}, "timestamp": 0.0},
+                "last_dijkstra_time": 0.0,
+                "origin": origin,
+                "dest": dest,
+                "depart_t": None,
+            }
 
         active_egos = set()
         completed_egos = set()
@@ -1004,9 +979,13 @@ class Simulation:
                     _vid_list = traci.vehicle.getIDList()
                     bg_possum = round(sum(traci.vehicle.getLanePosition(v) for v in _vid_list), 1)
 
-                    # Temporarily bind self.ego_id to inject
+                    # Temporarily bind pointers to THIS ego's entry
                     self.ego_id = vid
-                    self.ego_metrics = {"depart_time": None, "arrive_time": None, "fuel_mg": 0.0, "reroutes": 0}
+                    self.ego_metrics = ego_states[vid]["metrics"]
+                    self.route_snapshot = ego_states[vid]["snapshot"]
+                    self.last_dijkstra_time = ego_states[vid]["last_dijkstra_time"]
+                    ego_states[vid]["depart_t"] = sim_time
+
                     injected = self._inject_ego_trip(origin, dest, k)
 
                     if injected:
@@ -1030,7 +1009,12 @@ class Simulation:
 
             # Track and Reroute active egos
             for vid in list(active_egos):
+                # Bind pointers FIRST for the track loop
                 self.ego_id = vid
+                self.ego_metrics = ego_states[vid]["metrics"]
+                self.route_snapshot = ego_states[vid]["snapshot"]
+                self.last_dijkstra_time = ego_states[vid]["last_dijkstra_time"]
+
                 self._track_ego(dt)
 
                 # reroute_interval is in steps. We can use modulo on the current integer step count
@@ -1040,16 +1024,19 @@ class Simulation:
                     self.global_map.refresh(self.edges)
                     self.net_builder.update_graph_weights(self.global_map)
                     self._evaluate_and_reroute()
+                    
+                # Update saved last_dijkstra_time
+                ego_states[vid]["last_dijkstra_time"] = self.last_dijkstra_time
 
                 # Check completion
-                if self.ego_metrics["arrive_time"] is not None:
+                if ego_states[vid]["metrics"]["arrive_time"] is not None:
                     active_egos.remove(vid)
                     completed_egos.add(vid)
                     # Update reroutes in results
                     for r in results:
                         if r["trip"] == int(vid.split("_")[1]):
                             r["arrived"] = True
-                            r["reroutes"] = self.ego_metrics["reroutes"]
+                            r["reroutes"] = ego_states[vid]["metrics"]["reroutes"]
                             break
                     print(f"[{ego_policy}] {vid} arrived.")
                 elif sim_time - schedule[vid] >= per_trip_timeout * dt:

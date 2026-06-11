@@ -72,4 +72,11 @@
   </vTypeDistribution>
 
   <vType vClass="evehicle"     id="evehicle"    personCapacity="4"     latAlignment="center" tau="0.5" speedDev="0.1"/>
+
+  <!-- Ego Vehicle for Fuel Experiments -->
+  <vType id="ego_petrol" vClass="passenger" personCapacity="4" latAlignment="center"
+         sigma="0.30" tau="0.5" speedDev="0.1" guiShape="passenger/sedan"
+         emissionClass="HBEFA3/PC_G_EU6">
+    <param key="has.emissions.device" value="true"/>
+  </vType>
 </routes>
