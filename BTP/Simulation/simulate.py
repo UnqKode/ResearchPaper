@@ -707,9 +707,10 @@ class Simulation:
                 pass
             
             # Capture the initial route snapshot for deviation tracking
+            actual_route = traci.vehicle.getRoute(self.ego_id)
             self.route_snapshot = {
-                "route": route_edges,
-                "saved_weights": {e: self.global_map.get_weight(e) for e in route_edges},
+                "route": actual_route,
+                "saved_weights": {e: self.global_map.get_weight(e) for e in actual_route},
                 "timestamp": traci.simulation.getTime()
             }
             return True
@@ -823,8 +824,8 @@ class Simulation:
             current_remaining_cost = 0.0
             
             for edge in remaining_route:
-                sw = self.route_snapshot["saved_weights"].get(edge, float('inf'))
                 cw = self.global_map.get_weight(edge)
+                sw = self.route_snapshot["saved_weights"].get(edge, cw)
                 saved_remaining_cost += sw
                 current_remaining_cost += cw
 
@@ -882,9 +883,10 @@ class Simulation:
                 self.ego_metrics["reroutes"] += 1
                 
                 # Refresh snapshot
+                actual_route = traci.vehicle.getRoute(self.ego_id)
                 self.route_snapshot = {
-                    "route": candidate_route,
-                    "saved_weights": {e: self.global_map.get_weight(e) for e in candidate_route},
+                    "route": actual_route,
+                    "saved_weights": {e: self.global_map.get_weight(e) for e in actual_route},
                     "timestamp": traci.simulation.getTime()
                 }
                 print(f"[DECISION] vehicle={self.ego_id} action=REROUTE")
@@ -990,6 +992,9 @@ class Simulation:
 
                     if injected:
                         active_egos.add(vid)
+                        ego_states[vid]["metrics"] = self.ego_metrics
+                        ego_states[vid]["snapshot"] = self.route_snapshot
+                        ego_states[vid]["last_dijkstra_time"] = self.last_dijkstra_time
                         results.append({
                             "trip": k,
                             "seed": None, # Will be attached by caller
@@ -1025,7 +1030,9 @@ class Simulation:
                     self.net_builder.update_graph_weights(self.global_map)
                     self._evaluate_and_reroute()
                     
-                # Update saved last_dijkstra_time
+                # Update saved state
+                ego_states[vid]["metrics"] = self.ego_metrics
+                ego_states[vid]["snapshot"] = self.route_snapshot
                 ego_states[vid]["last_dijkstra_time"] = self.last_dijkstra_time
 
                 # Check completion
