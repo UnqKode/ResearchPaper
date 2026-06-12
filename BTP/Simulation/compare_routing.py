@@ -898,6 +898,14 @@ def run_paired_scenario(arm_policy, alpha, beta, gamma, od_list, traffic_seed, t
             debug_cfs=debug_cfs,
             road_condition_manager=road_condition_manager
         )
+        # D3: bind the unbound manager (pickled without traci/calc refs) to live objects.
+        if road_condition_manager is not None and road_condition_manager.mode != "none":
+            road_condition_manager.bind(traci, sim.calc)
+            print(
+                f"[{tag}] RoadConditionManager bound "
+                f"(mode={road_condition_manager.mode}, "
+                f"edges={road_condition_manager.degraded_edges})"
+            )
         live_results = sim.run_fixed_departure_campaign(
             od_list=od_list,
             depart_start=depart_start,
@@ -948,7 +956,8 @@ def run_paired_scenario(arm_policy, alpha, beta, gamma, od_list, traffic_seed, t
     return live_results, sim.calc.cfs_records if sim.calc else [], sim.route_cfs_records
 
 def _run_paired_capture(arm_policy, alpha, beta, gamma, od_list, traffic_seed, tag,
-                        depart_start, depart_spacing, use_hysteresis, scale, teleport, debug_cfs=False):
+                        depart_start, depart_spacing, use_hysteresis, scale, teleport,
+                        road_condition_manager=None, debug_cfs=False):
     t0 = time.time()
     buf = io.StringIO()
     error = None
@@ -957,13 +966,17 @@ def _run_paired_capture(arm_policy, alpha, beta, gamma, od_list, traffic_seed, t
     route_cfs = []
     try:
         with redirect_stdout(buf):
-            res, cfs, route_cfs = run_paired_scenario(arm_policy, alpha, beta, gamma, od_list, traffic_seed, tag,
-                                      depart_start, depart_spacing, use_hysteresis, scale, teleport, road_condition_manager=road_condition_manager, debug_cfs=debug_cfs)
+            res, cfs, route_cfs = run_paired_scenario(
+                arm_policy, alpha, beta, gamma, od_list, traffic_seed, tag,
+                depart_start, depart_spacing, use_hysteresis, scale, teleport,
+                road_condition_manager=road_condition_manager, debug_cfs=debug_cfs
+            )
     except Exception as e:
         error = repr(e)
     return {
         "tag": tag, "log": buf.getvalue(), "error": error,
-        "results": res, "cfs_records": cfs, "route_cfs_records": route_cfs, "wall_s": time.time() - t0
+        "results": res, "cfs_records": cfs, "route_cfs_records": route_cfs,
+        "wall_s": time.time() - t0
     }
 
 def analyze_paired_results(ours_lists, base_lists, base_name, run_meta):
@@ -1090,9 +1103,58 @@ def analyze_paired_results(ours_lists, base_lists, base_name, run_meta):
                 print(f" Fuel Stats: paired t-test p={p_f:.4f}, Wilcoxon p={w_p_f}")
                 print(f" Fuel 95% CI of savings: [{ci_pct[0]:.2f}%, {ci_pct[1]:.2f}%]")
             except Exception as e: print(f" Stats failed: {e}")
-            
+
+    # ------------------------------------------------------------------
+    # D5 — Gate C: avoidance-rate analysis
+    # ------------------------------------------------------------------
+    degraded_edges = run_meta.get("degraded_edges", [])
+    if degraded_edges:
+        print(f"\n-- Gate C: avoidance of degraded edges {degraded_edges} --")
+
+        def _avoidance(flat_list, label):
+            avoided, crossed, total_arrived = 0, 0, 0
+            for r in flat_list:
+                if not r.get("arrived"):
+                    continue
+                total_arrived += 1
+                driven = r.get("driven_edges", [])
+                if isinstance(driven, str):
+                    driven = driven.split("|") if driven else []
+                if any(de in driven for de in degraded_edges):
+                    crossed += 1
+                else:
+                    avoided += 1
+            rate = avoided / total_arrived * 100 if total_arrived > 0 else 0.0
+            print(f"  {label}: avoided={avoided}/{total_arrived} ({rate:.1f}%), "
+                  f"crossed={crossed}/{total_arrived}")
+            return rate, avoided, crossed, total_arrived
+
+        ours_avoidance_rate, _, _, _ = _avoidance(ours_flat, "ours")
+        base_avoidance_rate, _, _, _ = _avoidance(base_flat, base_name)
+
+        summary["gate_c"] = {
+            "degraded_edges": degraded_edges,
+            "road_condition": run_meta.get("road_condition", "unknown"),
+            "avoidance_rate_ours_pct": ours_avoidance_rate,
+            f"avoidance_rate_{base_name}_pct": base_avoidance_rate,
+        }
+
+        mean_fuel_sav = summary.get("fuel_sav_mean", 0.0)
+        if mean_fuel_sav > 0 and ours_avoidance_rate <= base_avoidance_rate:
+            print("\n" + "*" * 65)
+            print("  SUSPECTED ARTIFACT: fuel saving without avoidance signature")
+            print("  ours saved fuel but did NOT avoid degraded edges more than")
+            print(f"  {base_name} (ours={ours_avoidance_rate:.1f}% <= "
+                  f"{base_name}={base_avoidance_rate:.1f}%).")
+            print("  Result may be a statistical artefact — do not claim as proof.")
+            print("*" * 65)
+            summary["gate_c"]["artifact_flag"] = True
+        else:
+            summary["gate_c"]["artifact_flag"] = False
+
     with open(f_sum, "w") as f: json.dump(summary, f, indent=2)
     return f_sum
+
 
 
 def main():
@@ -1255,12 +1317,17 @@ def main():
     # is who routes the ego. Parallel and sequential give identical results.
     jobs = [("sumo", "sumo"), ("ours", "ours")]
 
-    from Simulation.road_conditions import RoadConditionManager
-    manager = RoadConditionManager(
-        degraded_edges, args.road_condition, degrade_start,
-        v_low=args.degrade_vlow, v_high=args.degrade_vhigh,
-        period_s=args.degrade_period, event_duration=args.event_duration
-    )
+    # D4: only import/construct when degradation is requested; otherwise pass None so
+    # all existing modes (no road-condition flags) behave exactly as before.
+    if args.road_condition != "none" and degraded_edges:
+        from Simulation.road_conditions import RoadConditionManager
+        manager = RoadConditionManager(
+            degraded_edges, args.road_condition, degrade_start,
+            v_low=args.degrade_vlow, v_high=args.degrade_vhigh,
+            period_s=args.degrade_period, event_duration=args.event_duration
+        )
+    else:
+        manager = None
     if args.paired:
         print("\n[Paired Mode] Running fixed-departure continuous fuel campaign.")
         seeds = [int(x.strip()) for x in args.seeds.split(",")]
@@ -1270,7 +1337,10 @@ def main():
             "alpha": ALPHA, "beta": BETA, "gamma": GAMMA,
             "depart_start": args.depart_start, "depart_spacing": args.depart_spacing,
             "reroute_interval": args.reroute_interval, "use_hysteresis": args.use_hysteresis,
-            "baseline": args.baseline
+            "baseline": args.baseline,
+            # D5: Gate C needs these to compute avoidance rates
+            "degraded_edges": degraded_edges,
+            "road_condition": args.road_condition,
         }
         
         arms_to_run = ["ours"]
@@ -1304,9 +1374,14 @@ def main():
                     for arm in arms_to_run:
                         a, b, g = (0.0, 0.0, 0.0) if arm == "ablation" else (ALPHA, BETA, GAMMA)
                         is_ours = (arm == "ours")
-                        fut = ex.submit(_run_paired_capture, arm, a, b, g, od_list, seed, f"{arm}_{seed}_{scale}_{depart}",
-                                        depart, args.depart_spacing, args.use_hysteresis,
-                                        scale, args.teleport, debug_cfs=(args.debug_cfs and is_ours))
+                        fut = ex.submit(
+                            _run_paired_capture, arm, a, b, g, od_list, seed,
+                            f"{arm}_{seed}_{scale}_{depart}",
+                            depart, args.depart_spacing, args.use_hysteresis,
+                            scale, args.teleport,
+                            road_condition_manager=manager,
+                            debug_cfs=(args.debug_cfs and is_ours)
+                        )
                         futs[fut] = arm
                         
                     for fut in concurrent.futures.as_completed(futs, timeout=WORKER_TIMEOUT_S):

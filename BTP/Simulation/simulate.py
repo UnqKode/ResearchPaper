@@ -156,6 +156,8 @@ class Simulation:
         self.last_dijkstra_time = 0.0
 
         self._finalize_init(ego_routing, ego_od_list)
+        # D2: store the manager so the campaign loop's hasattr() guard actually fires.
+        self.road_condition_manager = road_condition_manager
 
     def _finalize_init(self, ego_routing, ego_od_list):
         # --- A/B campaign state ---
@@ -1104,21 +1106,44 @@ class Simulation:
                     print(f"[{ego_policy}] {vid} arrived.")
                     if progress_log_path:
                         try:
-                            import csv
-                            with open(progress_log_path, 'w', newline='') as f:
-                                writer = csv.DictWriter(f, fieldnames=list(results[0].keys()))
-                                writer.writeheader()
-                                writer.writerows(results)
-                            with open(progress_log_path.replace('progress_', 'cfs_debug_'), 'w', newline='') as f:
-                                if self.calc.cfs_records:
-                                    writer = csv.DictWriter(f, fieldnames=list(self.calc.cfs_records[0].keys()))
+                            import csv as _csv
+                            write_header = not os.path.exists(progress_log_path)
+                            with open(progress_log_path, 'a', newline='') as f:
+                                _fieldnames = [
+                                    "trip", "arm", "origin", "dest", "arrived",
+                                    "duration_s", "fuel_mg", "reroutes", "driven_edges",
+                                    "bg_vcount_at_depart", "bg_possum_at_depart",
+                                ]
+                                writer = _csv.DictWriter(f, fieldnames=_fieldnames, extrasaction="ignore")
+                                if write_header:
                                     writer.writeheader()
+                                # Find the just-completed record
+                                for r in results:
+                                    if r["trip"] == int(vid.split("_")[1]):
+                                        row = dict(r)
+                                        # D5: serialize driven_edges as pipe-joined string
+                                        de = row.get("driven_edges", [])
+                                        row["driven_edges"] = "|".join(de) if de else ""
+                                        writer.writerow(row)
+                                        break
+                            if self.calc.cfs_records:
+                                cfs_path = progress_log_path.replace('progress_', 'cfs_debug_')
+                                write_cfs_hdr = not os.path.exists(cfs_path)
+                                with open(cfs_path, 'a', newline='') as f:
+                                    writer = _csv.DictWriter(f, fieldnames=list(self.calc.cfs_records[0].keys()))
+                                    if write_cfs_hdr:
+                                        writer.writeheader()
                                     writer.writerows(self.calc.cfs_records)
-                            with open(progress_log_path.replace('progress_', 'route_cfs_'), 'w', newline='') as f:
-                                if self.route_cfs_records:
-                                    writer = csv.DictWriter(f, fieldnames=list(self.route_cfs_records[0].keys()))
-                                    writer.writeheader()
+                                self.calc.cfs_records.clear()
+                            if self.route_cfs_records:
+                                rcfs_path = progress_log_path.replace('progress_', 'route_cfs_')
+                                write_rcfs_hdr = not os.path.exists(rcfs_path)
+                                with open(rcfs_path, 'a', newline='') as f:
+                                    writer = _csv.DictWriter(f, fieldnames=list(self.route_cfs_records[0].keys()))
+                                    if write_rcfs_hdr:
+                                        writer.writeheader()
                                     writer.writerows(self.route_cfs_records)
+                                self.route_cfs_records.clear()
                         except Exception as e:
                             print(f"Failed to log progress: {e}")
                 elif sim_time - schedule[vid] >= per_trip_timeout * dt:

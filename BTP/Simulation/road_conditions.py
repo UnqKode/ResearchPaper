@@ -1,10 +1,12 @@
 import logging
 
+
 class RoadConditionManager:
-    def __init__(self, degraded_edges, mode, activate_time, v_low=5.0, v_high=12.0, period_s=20.0, event_duration=600.0, dt=1.0):
+    def __init__(self, degraded_edges, mode, activate_time,
+                 v_low=5.0, v_high=12.0, period_s=20.0, event_duration=600.0, dt=1.0):
         """
         Manages mid-simulation physical road degradations.
-        
+
         Args:
             degraded_edges (list): List of edge IDs to degrade.
             mode (str): 'none', 'rough', or 'accident'.
@@ -26,11 +28,11 @@ class RoadConditionManager:
 
         self.active = False
         self.restored = False
-        self.original_speeds = {}
-        self.original_permissions = {}
+        self.original_speeds = {}       # edge_id -> original speed (m/s)
+        self.original_permissions = {}  # lane_id -> original allowed list
         self.blocked_lanes = []
         self.last_toggle_time = 0.0
-        self.current_oscillation_state = "low" # Start by dropping to v_low
+        self.current_oscillation_state = "low"  # Start by dropping to v_low
 
         # Dependency injection for TraCI and calc to allow mocking in unit tests
         self._traci = None
@@ -55,7 +57,7 @@ class RoadConditionManager:
             if self.mode == "rough":
                 self._oscillate_rough(sim_time)
             elif self.mode == "accident":
-                # Check for restoration
+                # Check for restoration after event_duration
                 if sim_time >= self.activate_time + self.event_duration:
                     self.deactivate()
 
@@ -63,12 +65,12 @@ class RoadConditionManager:
         """Enforce that baselines for degraded edges are locked before activation."""
         if not self._calc:
             return
-            
+
         unlocked = []
         for edge in self.degraded_edges:
             if edge not in self._calc._fuel_baseline:
                 unlocked.append(edge)
-                
+
         if unlocked:
             logging.warning(
                 f"WARNING: RoadConditionManager activating at {self.activate_time}s but baselines "
@@ -76,7 +78,10 @@ class RoadConditionManager:
                 f"on these edges because it will absorb the degraded rate into the baseline."
             )
         else:
-            logging.info(f"RoadConditionManager: baselines locked for {len(self.degraded_edges)}/{len(self.degraded_edges)} degraded edges.")
+            logging.info(
+                f"RoadConditionManager: baselines locked for "
+                f"{len(self.degraded_edges)}/{len(self.degraded_edges)} degraded edges."
+            )
 
     def _activate(self):
         """Activates the degradation."""
@@ -84,49 +89,60 @@ class RoadConditionManager:
         self._verify_baseline_locks()
 
         if self.mode == "rough":
-            logging.info(f"RoadConditionManager: Activating ROUGH mode on edges {self.degraded_edges}")
+            logging.info(
+                f"RoadConditionManager: Activating ROUGH mode on edges {self.degraded_edges}"
+            )
             for edge in self.degraded_edges:
                 try:
-                    # In traci, edge.getMaxSpeed returns the max speed of the edge
-                    orig_speed = self._traci.lane.getMaxSpeed(edge + '_0')
+                    # Read original speed from lane 0 (lane API, not edge API)
+                    orig_speed = self._traci.lane.getMaxSpeed(edge + "_0")
                     self.original_speeds[edge] = orig_speed
-                    # Apply initial drop
-                    for i in range(self._traci.edge.getLaneNumber(edge)):\n                        self._traci.lane.setMaxSpeed(edge + '_' + str(i), self.v_low)
+                    # Drop every lane to v_low
+                    n_lanes = self._traci.edge.getLaneNumber(edge)
+                    for i in range(n_lanes):
+                        self._traci.lane.setMaxSpeed(edge + "_" + str(i), self.v_low)
                 except Exception as e:
                     logging.warning(f"Failed to activate rough mode on {edge}: {e}")
             self.last_toggle_time = self.activate_time
             self.current_oscillation_state = "low"
 
         elif self.mode == "accident":
-            logging.info(f"RoadConditionManager: Activating ACCIDENT mode on edges {self.degraded_edges}")
+            logging.info(
+                f"RoadConditionManager: Activating ACCIDENT mode on edges {self.degraded_edges}"
+            )
             for edge in self.degraded_edges:
                 try:
-                    # Get lanes for this edge
                     lane_count = self._traci.edge.getLaneNumber(edge)
                     if lane_count > 1:
-                        # Prefer blocking lane 0, leaving other lanes open
+                        # Block lane 0 only, leaving the remaining lane(s) passable.
+                        # This creates queue + merge stop-and-go without a full closure.
                         lane_id = f"{edge}_0"
                         orig_permissions = self._traci.lane.getAllowed(lane_id)
                         self.original_permissions[lane_id] = orig_permissions
-                        # Disallow passenger vehicles to block it
-                        self._traci.lane.setDisallowed(lane_id, ["passenger", "custom1", "custom2"])
+                        self._traci.lane.setDisallowed(
+                            lane_id, ["passenger", "custom1", "custom2"]
+                        )
                         self.blocked_lanes.append(lane_id)
                     else:
-                        logging.warning(f"Edge {edge} is single-lane. Blocking it fully will force travel-time rerouting, nullifying the experiment.")
-                        # Still block it as requested, but log the warning
+                        logging.warning(
+                            f"Edge {edge} is single-lane. Blocking it fully will force "
+                            f"travel-time rerouting by SUMO, nullifying the experiment."
+                        )
                         lane_id = f"{edge}_0"
                         orig_permissions = self._traci.lane.getAllowed(lane_id)
                         self.original_permissions[lane_id] = orig_permissions
-                        self._traci.lane.setDisallowed(lane_id, ["passenger", "custom1", "custom2"])
+                        self._traci.lane.setDisallowed(
+                            lane_id, ["passenger", "custom1", "custom2"]
+                        )
                         self.blocked_lanes.append(lane_id)
                 except Exception as e:
                     logging.warning(f"Failed to activate accident mode on {edge}: {e}")
 
     def _oscillate_rough(self, sim_time):
-        """Toggles the speed limit between v_low and v_high every period_s."""
+        """Toggles the speed limit between v_low and v_high every period_s / 2."""
         if sim_time - self.last_toggle_time >= (self.period_s / 2.0):
             self.last_toggle_time = sim_time
-            
+
             # Toggle state
             if self.current_oscillation_state == "low":
                 self.current_oscillation_state = "high"
@@ -134,36 +150,42 @@ class RoadConditionManager:
             else:
                 self.current_oscillation_state = "low"
                 target_v = self.v_low
-                
+
             for edge in self.degraded_edges:
                 if edge in self.original_speeds:
-                    # Safety check: don't raise v_high above original speed limit
+                    # Safety: don't exceed the original speed limit
                     safe_target = min(target_v, self.original_speeds[edge])
                     try:
-                        for i in range(self._traci.edge.getLaneNumber(edge)):\n                            self._traci.lane.setMaxSpeed(edge + '_' + str(i), safe_target)
-                    except:
+                        n_lanes = self._traci.edge.getLaneNumber(edge)
+                        for i in range(n_lanes):
+                            self._traci.lane.setMaxSpeed(
+                                edge + "_" + str(i), safe_target
+                            )
+                    except Exception:
                         pass
 
     def deactivate(self):
         """Restores the original physical state of the edges."""
         if not self.active:
             return
-            
+
         logging.info("RoadConditionManager: Deactivating and restoring original conditions.")
-        
+
         if self.mode == "rough":
             for edge, orig_v in self.original_speeds.items():
                 try:
-                    for i in range(self._traci.edge.getLaneNumber(edge)):\n                        self._traci.lane.setMaxSpeed(edge + '_' + str(i), orig_v)
-                except:
+                    n_lanes = self._traci.edge.getLaneNumber(edge)
+                    for i in range(n_lanes):
+                        self._traci.lane.setMaxSpeed(edge + "_" + str(i), orig_v)
+                except Exception:
                     pass
             self.original_speeds.clear()
-            
+
         elif self.mode == "accident":
             for lane_id, allowed in self.original_permissions.items():
                 try:
                     self._traci.lane.setAllowed(lane_id, allowed)
-                except:
+                except Exception:
                     pass
             self.original_permissions.clear()
             self.blocked_lanes.clear()
