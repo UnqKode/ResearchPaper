@@ -41,7 +41,8 @@ class EdgeCostCalculator:
                  v_min=0.1,             # floor speed to avoid div-by-zero (m/s)
                  max_multiplier=10.0,   # cap on the penalty bracket
                  stop_ref=5.0,          # reference stop count for S normalisation (Q3)
-                 baseline_seed_n=8):    # samples collected before locking the free-flow baseline
+                 baseline_seed_n=8,     # samples collected before locking the free-flow baseline
+                 debug_cfs=False):      # flag to capture decomposed C/F/S terms
         self.edge_lengths      = edge_lengths
         self.edge_speed_limits = edge_speed_limits
         self.alpha, self.beta, self.gamma = alpha, beta, gamma
@@ -69,6 +70,9 @@ class EdgeCostCalculator:
         self._baseline_seed_n = max(1, int(baseline_seed_n))
         self._a_down = 0.20
         self._a_up   = 0.05
+        
+        self.debug_cfs = debug_cfs
+        self.cfs_records = []
 
     # --- called once per completed vehicle trip by RSUManager (rate in mg/s) ---
     def record_vehicle_fuel(self, edge_id, fuel_rate):
@@ -107,40 +111,78 @@ class EdgeCostCalculator:
         CO2 is strongly correlated with fuel_consumption, which is already
         captured by the F (fuel index) term.
         """
+    def _decompose(self, edge_id, m):
         L     = self.edge_lengths.get(edge_id, 100.0)
         v_lim = self.edge_speed_limits.get(edge_id, 13.89)
 
         # --- backbone: actual travel time (s) ---
-        v        = max(m["avg_speed"], self.v_min)
+        v        = max(m.get("avg_speed", 0.0), self.v_min)
         t_actual = L / v                      # always >= t_free = L / v_lim
 
         # --- congestion index: capacity-normalized, count excluded ---
-        occ   = self._clamp(m["occupancy"] / 100.0)            # density 0..1
+        occ   = self._clamp(m.get("occupancy", 0.0) / 100.0)            # density 0..1
         q_jam = max(L / self.veh_footprint, 1.0)
-        q     = self._clamp(m["queue_length"] / q_jam)         # queue fill 0..1
-        w     = self._clamp(m["waiting_time"] / self.w_ref)    # delay 0..1
-        C = (occ + q + w) / 3.0
+        q     = self._clamp(m.get("queue_length", 0.0) / q_jam)         # queue fill 0..1
+        w_time = self._clamp(m.get("waiting_time", 0.0) / self.w_ref)   # delay 0..1
+        C = (occ + q + w_time) / 3.0
 
         # --- fuel index: current fuel RATE vs this edge's free-flow baseline ---
-        # current rate ~= mass-per-trip / time-per-trip = fuel_consumption / t_actual
         baseline = self._fuel_baseline.get(edge_id)
         F = 0.0
-        if baseline and baseline > 0 and m["fuel_consumption"] > 0:
-            cur_rate = m["fuel_consumption"] / t_actual
+        fuel_cons = m.get("fuel_consumption", 0.0)
+        if baseline and baseline > 0 and fuel_cons > 0:
+            cur_rate = fuel_cons / t_actual
             F = self._clamp(cur_rate / baseline - 1.0, 0.0, 2.0) / 2.0
 
         # --- stop-and-go: heaviest fuel driver, squared so it bites ---
-        # stop_and_go_freq is a mean STOP COUNT per vehicle (Q3).
-        # Divide by stop_ref to normalise to [0, 1] before squaring so the
-        # gamma coefficient retains the same scale regardless of trip length.
-        # A vehicle averaging stop_ref or more stops per edge traversal gets
-        # the maximum penalty (S = 1.0).
-        S = self._clamp(m["stop_and_go_freq"] / self.stop_ref) ** 2
+        S = self._clamp(m.get("stop_and_go_freq", 0.0) / self.stop_ref) ** 2
 
         multiplier = 1.0 + self.alpha * C + self.beta * F + self.gamma * S
         multiplier = min(multiplier, self.max_multiplier)
+        weight = t_actual * multiplier
+        
+        return {
+            "t_actual": t_actual, "C": C, "F": F, "S": S,
+            "multiplier": multiplier, "weight": weight,
+            "baseline_locked": baseline is not None,
+            "baseline_value": baseline if baseline else 0.0,
+            "v": v
+        }
 
-        return t_actual * multiplier
+    def compute_weight(self, edge_id, m):
+        d = self._decompose(edge_id, m)
+        weight = d["weight"]
+
+        if self.debug_cfs:
+            import traci
+            try:
+                sim_time = traci.simulation.getTime()
+            except traci.TraCIException:
+                sim_time = 0.0
+                
+            self.cfs_records.append({
+                "edge_id": edge_id,
+                "sim_time": sim_time,
+                "avg_speed": m.get("avg_speed", 0.0),
+                "occupancy": m.get("occupancy", 0.0),
+                "queue_length": m.get("queue_length", 0.0),
+                "waiting_time": m.get("waiting_time", 0.0),
+                "stop_and_go_freq": m.get("stop_and_go_freq", 0.0),
+                "fuel_consumption": m.get("fuel_consumption", 0.0),
+                "baseline_locked": d["baseline_locked"],
+                "baseline_value": d["baseline_value"],
+                "t_actual": d["t_actual"],
+                "C": d["C"],
+                "F": d["F"],
+                "S": d["S"],
+                "alpha": self.alpha,
+                "beta": self.beta,
+                "gamma": self.gamma,
+                "multiplier": d["multiplier"],
+                "weight": d["weight"]
+            })
+
+        return weight
 
     def reset(self):
         """Forget all learned free-flow fuel baselines and seed buffers.

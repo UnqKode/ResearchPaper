@@ -69,7 +69,12 @@ class GlobalMap:
             self.weights[edge_id] = self.calc.compute_weight(edge_id, stats)
 
     def get_weight(self, edge_id):
-        return self.weights.get(edge_id, float("inf"))
+        w = self.weights.get(edge_id, float("inf"))
+        if w == float("inf"):
+            L = self.calc.edge_lengths.get(edge_id, 100.0)
+            v_lim = self.calc.edge_speed_limits.get(edge_id, 13.89)
+            return L / v_lim
+        return w
 
 
 class Simulation:
@@ -87,7 +92,8 @@ class Simulation:
                  ego_depart="now",
                  # --- A/B comparison configuration ---
                  ego_routing="ours",  # "ours" -> our Dijkstra ; "sumo" -> SUMO's routing
-                 ego_od_list=None):   # list[(origin_edge, dest_edge)] for run_od_campaign
+                 ego_od_list=None,    # list[(origin_edge, dest_edge)] for run_od_campaign
+                 debug_cfs=False):    # Phase 1 debug flag
         # --- 1. Build the road graph (offline; uses sumolib, not TraCI) ---
         self.net_builder   = NetworkBuilder(net_file=net_file)
         self.graph         = self.net_builder.get_graph()
@@ -122,11 +128,13 @@ class Simulation:
         self.calc = EdgeCostCalculator(
             edge_lengths, edge_speed_limits,
             alpha=alpha, beta=beta, gamma=gamma,
+            debug_cfs=debug_cfs
         )
         self.rsu_manager.set_edge_cost_calc(self.calc)
 
         # --- 5. Glue ---
         self.global_map = GlobalMap(self.rsu_manager, self.calc)
+        self.route_cfs_records = []
 
         self.reroute_interval = reroute_interval
 
@@ -878,7 +886,8 @@ class Simulation:
             print(f"[CANDIDATE_ROUTE] vehicle={self.ego_id} oldCost={current_remaining_cost:.1f} "
                   f"candidateCost={candidate_cost:.1f} improvement={improvement*100:.1f}%")
 
-            if improvement > self.imp_threshold:
+            accepted = improvement > self.imp_threshold
+            if accepted:
                 traci.vehicle.setRoute(self.ego_id, candidate_route)
                 self.ego_metrics["reroutes"] += 1
                 
@@ -892,6 +901,40 @@ class Simulation:
                 print(f"[DECISION] vehicle={self.ego_id} action=REROUTE")
             else:
                 print(f"[DECISION] vehicle={self.ego_id} action=KEEP_CURRENT_ROUTE")
+
+            # Phase 1b: Record decisive data on edges that matter
+            if getattr(self.calc, "debug_cfs", False):
+                step = int(now / traci.simulation.getDeltaT())
+                route_edges = set(remaining_route) | set(candidate_route)
+                for edge in route_edges:
+                    m = self.rsu_manager.get_edge_stats(edge)
+                    if m is None:
+                        m = {}
+                    d = self.calc._decompose(edge, m)
+                    
+                    self.route_cfs_records.append({
+                        "ego": self.ego_id,
+                        "decision_step": step,
+                        "accepted": accepted,
+                        "edge_id": edge,
+                        "in_current": edge in remaining_route,
+                        "in_candidate": edge in candidate_route,
+                        "avg_speed": m.get("avg_speed", 0.0),
+                        "occupancy": m.get("occupancy", 0.0),
+                        "queue_length": m.get("queue_length", 0.0),
+                        "waiting_time": m.get("waiting_time", 0.0),
+                        "stop_and_go_freq": m.get("stop_and_go_freq", 0.0),
+                        "fuel_consumption": m.get("fuel_consumption", 0.0),
+                        "baseline_locked": d["baseline_locked"],
+                        "baseline_value": d["baseline_value"],
+                        "t_actual": d["t_actual"],
+                        "C": d["C"],
+                        "F": d["F"],
+                        "S": d["S"],
+                        "multiplier": d["multiplier"],
+                        "weight": d["weight"]
+                    })
+
 
         except traci.TraCIException:
             # Invalid/disconnected route this step -- keep the existing one.

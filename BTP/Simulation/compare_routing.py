@@ -757,7 +757,7 @@ def run_parallel(od_list, traffic_seed, jobs, warmup_steps=WARMUP_STEPS,
 # ===========================================================================
 def run_paired_scenario(arm_policy, alpha, beta, gamma, od_list, traffic_seed, tag,
                         depart_start, depart_spacing, use_hysteresis,
-                        scale, teleport):
+                        scale, teleport, debug_cfs=False):
     out_prefix = f"{tag}."
     tripinfo_path = f"{out_prefix}tripinfo.xml"
     progress_path = f"progress_{tag}.csv"
@@ -798,7 +798,8 @@ def run_paired_scenario(arm_policy, alpha, beta, gamma, od_list, traffic_seed, t
             alpha=alpha, beta=beta, gamma=gamma,
             ego_type=EGO_TYPE,
             ego_routing=arm_policy if arm_policy != "ablation" else "ours",
-            ego_od_list=od_list
+            ego_od_list=od_list,
+            debug_cfs=debug_cfs
         )
         live_results = sim.run_fixed_departure_campaign(
             od_list=od_list,
@@ -847,23 +848,25 @@ def run_paired_scenario(arm_policy, alpha, beta, gamma, od_list, traffic_seed, t
             rec["fuel_per_km"] = ti["fuel_mg"] / (ti["routeLength"] / 1000.0)
         else:
             rec["fuel_per_km"] = None
-    return live_results
+    return live_results, sim.calc.cfs_records if sim.calc else [], sim.route_cfs_records
 
 def _run_paired_capture(arm_policy, alpha, beta, gamma, od_list, traffic_seed, tag,
-                        depart_start, depart_spacing, use_hysteresis, scale, teleport):
+                        depart_start, depart_spacing, use_hysteresis, scale, teleport, debug_cfs=False):
     t0 = time.time()
     buf = io.StringIO()
     error = None
     res = []
+    cfs = []
+    route_cfs = []
     try:
         with redirect_stdout(buf):
-            res = run_paired_scenario(arm_policy, alpha, beta, gamma, od_list, traffic_seed, tag,
-                                      depart_start, depart_spacing, use_hysteresis, scale, teleport)
+            res, cfs, route_cfs = run_paired_scenario(arm_policy, alpha, beta, gamma, od_list, traffic_seed, tag,
+                                      depart_start, depart_spacing, use_hysteresis, scale, teleport, debug_cfs=debug_cfs)
     except Exception as e:
         error = repr(e)
     return {
         "tag": tag, "log": buf.getvalue(), "error": error,
-        "results": res, "wall_s": time.time() - t0
+        "results": res, "cfs_records": cfs, "route_cfs_records": route_cfs, "wall_s": time.time() - t0
     }
 
 def analyze_paired_results(ours_lists, base_lists, base_name, run_meta):
@@ -992,6 +995,7 @@ def analyze_paired_results(ours_lists, base_lists, base_name, run_meta):
             except Exception as e: print(f" Stats failed: {e}")
             
     with open(f_sum, "w") as f: json.dump(summary, f, indent=2)
+    return f_sum
 
 
 def main():
@@ -1022,6 +1026,12 @@ def main():
     ap.add_argument("--depart-spacing", type=float, default=120, help="steps between ego departures")
     ap.add_argument("--reroute-interval", type=int, default=REROUTE_INTERVAL, help="reroute cadence")
     ap.add_argument("--use-hysteresis", action="store_true", help="re-enable ours hysteresis")
+    
+    # Phase 1 & 2 additions
+    ap.add_argument("--debug-cfs", action="store_true", help="enable Phase 1 C/F/S debug sink and summary")
+    ap.add_argument("--scale-sweep", type=str, default="", help="comma-separated scales for Phase 2 congestion sweep")
+    ap.add_argument("--depart-sweep", type=str, default="", help="comma-separated depart_starts for Phase 2 sweep")
+    
     args = ap.parse_args()
 
     od_list = generate_od_pairs(NET_FILE, n=args.n, seed=args.od_seed)
@@ -1048,35 +1058,164 @@ def main():
         if args.baseline in ["sumo", "both"]: arms_to_run.append("sumo")
         if args.baseline in ["ablation", "both"]: arms_to_run.append("ablation")
         
-        all_res = {arm: [] for arm in arms_to_run}
+        scales = [float(x.strip()) for x in args.scale_sweep.split(",")] if args.scale_sweep else [args.scale]
+        departs = [float(x.strip()) for x in args.depart_sweep.split(",")] if args.depart_sweep else [args.depart_start]
         
-        for seed in seeds:
-            print(f"\n--- SEED {seed} ---")
-            ctx = multiprocessing.get_context("spawn")
-            ex = concurrent.futures.ProcessPoolExecutor(max_workers=len(arms_to_run), mp_context=ctx)
-            
-            futs = {}
-            for arm in arms_to_run:
-                # for ablation, alpha/beta/gamma are 0
-                a, b, g = (0.0, 0.0, 0.0) if arm == "ablation" else (ALPHA, BETA, GAMMA)
-                fut = ex.submit(_run_paired_capture, arm, a, b, g, od_list, seed, f"{arm}_{seed}",
-                                args.depart_start, args.depart_spacing, args.use_hysteresis,
-                                args.scale, args.teleport)
-                futs[fut] = arm
+        sweep_results = []
+        import csv
+        
+        for scale in scales:
+            for depart in departs:
+                print(f"\n=======================================================")
+                print(f" SWEEP POINT: scale={scale}, depart={depart}")
+                print(f"=======================================================")
+                all_res = {arm: [] for arm in arms_to_run}
+                cfs_all = []
+                route_cfs_all = []
                 
-            for fut in concurrent.futures.as_completed(futs, timeout=WORKER_TIMEOUT_S):
-                arm = futs[fut]
-                out = fut.result()
-                print(f"\n# scenario '{out['tag']}' finished in {out['wall_s']:.1f}s")
-                if out["error"]: print(f"[ERROR] {out['error']}")
-                all_res[arm].append(out["results"])
-            ex.shutdown(wait=False, cancel_futures=True)
-            
-        if "sumo" in all_res:
-            analyze_paired_results(all_res["ours"], all_res["sumo"], "sumo", run_meta)
-        if "ablation" in all_res:
-            analyze_paired_results(all_res["ours"], all_res["ablation"], "ablation", run_meta)
-            
+                run_meta["scale"] = scale
+                run_meta["depart_start"] = depart
+                
+                for seed in seeds:
+                    print(f"\n--- SEED {seed} ---")
+                    ctx = multiprocessing.get_context("spawn")
+                    ex = concurrent.futures.ProcessPoolExecutor(max_workers=len(arms_to_run), mp_context=ctx)
+                    
+                    futs = {}
+                    for arm in arms_to_run:
+                        a, b, g = (0.0, 0.0, 0.0) if arm == "ablation" else (ALPHA, BETA, GAMMA)
+                        is_ours = (arm == "ours")
+                        fut = ex.submit(_run_paired_capture, arm, a, b, g, od_list, seed, f"{arm}_{seed}_{scale}_{depart}",
+                                        depart, args.depart_spacing, args.use_hysteresis,
+                                        scale, args.teleport, debug_cfs=(args.debug_cfs and is_ours))
+                        futs[fut] = arm
+                        
+                    for fut in concurrent.futures.as_completed(futs, timeout=WORKER_TIMEOUT_S):
+                        arm = futs[fut]
+                        out = fut.result()
+                        print(f"\n# scenario '{out['tag']}' finished in {out['wall_s']:.1f}s")
+                        if out["error"]: print(f"[ERROR] {out['error']}")
+                        all_res[arm].append(out["results"])
+                        if arm == "ours" and args.debug_cfs:
+                            cfs_all.extend(out.get("cfs_records", []))
+                            route_cfs_all.extend(out.get("route_cfs_records", []))
+                    ex.shutdown(wait=False, cancel_futures=True)
+                    
+                sum_json = None
+                if "sumo" in all_res:
+                    analyze_paired_results(all_res["ours"], all_res["sumo"], "sumo", run_meta)
+                if "ablation" in all_res:
+                    sum_json = analyze_paired_results(all_res["ours"], all_res["ablation"], "ablation", run_meta)
+                    
+                if args.debug_cfs and cfs_all:
+                    stamp = time.strftime("%Y%m%d_%H%M%S")
+                    import csv
+                    with open(f"cfs_debug_{stamp}.csv", "w", newline="") as f:
+                        w = csv.DictWriter(f, fieldnames=list(cfs_all[0].keys()))
+                        w.writeheader()
+                        w.writerows(cfs_all)
+                    if route_cfs_all:
+                        with open(f"route_cfs_{stamp}.csv", "w", newline="") as f:
+                            w = csv.DictWriter(f, fieldnames=list(route_cfs_all[0].keys()))
+                            w.writeheader()
+                            w.writerows(route_cfs_all)
+                    
+                    # Compute summary
+                    total_calls = len(cfs_all)
+                    bl_locked = sum(1 for r in cfs_all if r["baseline_locked"])
+                    max_route_mult = max((r["multiplier"] for r in route_cfs_all), default=1.0)
+                    
+                    print("\n" + "="*50)
+                    print(" PHASE 1 DEBUG-CFS SUMMARY")
+                    print("="*50)
+                    print(f"Total compute_weight calls: {total_calls}")
+                    print(f"Evaluated edges with baseline_locked: {bl_locked}/{total_calls} ({bl_locked/total_calls*100:.2f}%)")
+                    
+                    bins = {"[1.00,1.01)": 0, "[1.01,1.05)": 0, "[1.05,1.10)": 0, "[1.10,1.25)": 0, "[1.25,+)": 0}
+                    for r in cfs_all:
+                        m = r["multiplier"]
+                        if m < 1.01: bins["[1.00,1.01)"] += 1
+                        elif m < 1.05: bins["[1.01,1.05)"] += 1
+                        elif m < 1.10: bins["[1.05,1.10)"] += 1
+                        elif m < 1.25: bins["[1.10,1.25)"] += 1
+                        else: bins["[1.25,+)"] += 1
+                    
+                    print("Multiplier distribution:")
+                    for k, v in bins.items(): print(f"  {k}: {v}")
+                    
+                    C_vals = [r["C"] for r in cfs_all]
+                    F_vals = [r["F"] for r in cfs_all]
+                    S_vals = [r["S"] for r in cfs_all]
+                    
+                    def p_stat(vals):
+                        if not vals: return 0,0,0,0
+                        s = sorted(vals)
+                        return sum(vals)/len(vals), s[len(s)//2], s[int(len(s)*0.95)], s[-1]
+                        
+                    cm, cp50, cp95, cmax = p_stat(C_vals)
+                    fm, fp50, fp95, fmax = p_stat(F_vals)
+                    sm, sp50, sp95, smax = p_stat(S_vals)
+                    print(f"\nStats (mean / p50 / p95 / max):")
+                    print(f"  C: {cm:.4f} / {cp50:.4f} / {cp95:.4f} / {cmax:.4f}")
+                    print(f"  F: {fm:.4f} / {fp50:.4f} / {fp95:.4f} / {fmax:.4f}")
+                    print(f"  S: {sm:.4f} / {sp50:.4f} / {sp95:.4f} / {smax:.4f}")
+                    
+                    print(f"\nMax multiplier on any route (max_route_multiplier): {max_route_mult:.4f}")
+                    
+                    if max_route_mult <= 1.025:
+                        print(">>> VERDICT: H1 confirmed. Penalty is effectively dead. The +0.00% tie is an artifact.")
+                    elif max_route_mult > 1.10:
+                        print(">>> VERDICT: H2 supported. Penalty is alive but optimal paths coincide.")
+                    else:
+                        print(">>> VERDICT: Middle case. Penalty is present but weak (1.02-1.10).")
+                        
+                if sum_json and (args.scale_sweep or args.depart_sweep):
+                    with open(sum_json) as f:
+                        j = json.load(f)
+                    
+                    mean_net_speed = 0.0
+                    mean_tl = 0.0
+                    n_trips = 0
+                    for arm_trips in all_res["ours"]:
+                        for trip in arm_trips:
+                            if trip.get("arrived"):
+                                mean_net_speed += (trip.get("routeLength", 0) / trip.get("duration", 1))
+                                mean_tl += trip.get("timeLoss", 0)
+                                n_trips += 1
+                    if n_trips > 0:
+                        mean_net_speed /= n_trips
+                        mean_tl /= n_trips
+                        
+                    f_stats = j.get("fuel_stats", {})
+                    
+                    sweep_results.append({
+                        "scale": scale,
+                        "depart_start": depart,
+                        "mean_network_speed": mean_net_speed,
+                        "mean_timeLoss": mean_tl,
+                        "K_seeds": j["run_meta"]["K_seeds"],
+                        "mean_fuel_saving_pct": j.get("fuel_sav_mean", 0),
+                        "ci_low": f_stats.get("CI_95_pct", [0,0])[0],
+                        "ci_high": f_stats.get("CI_95_pct", [0,0])[1],
+                        "ttest_p": f_stats.get("t_test_p", 1.0),
+                        "wilcoxon_p": f_stats.get("wilcoxon_p", 1.0),
+                        "mean_time_saving_pct": j.get("dur_sav_mean", 0),
+                        "mean_reroutes": sum(t.get("reroutes", 0) for arm_t in all_res["ours"] for t in arm_t) / (len(all_res["ours"])*len(od_list))
+                    })
+        
+        if sweep_results:
+            stamp = time.strftime("%Y%m%d_%H%M%S")
+            with open(f"congestion_sweep_{stamp}.csv", "w", newline="") as f:
+                w = csv.DictWriter(f, fieldnames=list(sweep_results[0].keys()))
+                w.writeheader()
+                w.writerows(sweep_results)
+                
+            print("\n=======================================================")
+            print(" PHASE 2 SWEEP RESULTS ")
+            print("=======================================================")
+            print(f"{'Scale':<8} | {'Depart':<8} | {'Speed':<8} | {'TimeLoss':<8} | {'FuelSav%':<8} | {'TimeSav%':<8} | {'Reroutes':<8}")
+            for r in sweep_results:
+                print(f"{r['scale']:<8.2f} | {r['depart_start']:<8.0f} | {r['mean_network_speed']:<8.2f} | {r['mean_timeLoss']:<8.2f} | {r['mean_fuel_saving_pct']:<8.2f} | {r['mean_time_saving_pct']:<8.2f} | {r['mean_reroutes']:<8.2f}")
         return
 
     if args.legacy:
