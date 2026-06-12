@@ -93,7 +93,8 @@ class Simulation:
                  # --- A/B comparison configuration ---
                  ego_routing="ours",  # "ours" -> our Dijkstra ; "sumo" -> SUMO's routing
                  ego_od_list=None,    # list[(origin_edge, dest_edge)] for run_od_campaign
-                 debug_cfs=False):    # Phase 1 debug flag
+                 debug_cfs=False,     # Phase 1 debug flag
+                 road_condition_manager=None):
         # --- 1. Build the road graph (offline; uses sumolib, not TraCI) ---
         self.net_builder   = NetworkBuilder(net_file=net_file)
         self.graph         = self.net_builder.get_graph()
@@ -798,6 +799,14 @@ class Simulation:
             if self.ego_metrics["depart_time"] is None:
                 self.ego_metrics["depart_time"] = traci.simulation.getTime()
             self.ego_metrics["fuel_mg"] += traci.vehicle.getFuelConsumption(self.ego_id) * dt
+            
+            cur_edge = traci.vehicle.getRoadID(self.ego_id)
+            if cur_edge and not cur_edge.startswith(":"):
+                if "driven_edges" not in self.ego_metrics:
+                    self.ego_metrics["driven_edges"] = []
+                if not self.ego_metrics["driven_edges"] or self.ego_metrics["driven_edges"][-1] != cur_edge:
+                    self.ego_metrics["driven_edges"].append(cur_edge)
+
         if self.ego_id in traci.simulation.getArrivedIDList():
             self.ego_metrics["arrive_time"] = traci.simulation.getTime()
 
@@ -993,7 +1002,7 @@ class Simulation:
             vid = f"ego_{k}"
             schedule[vid] = depart_time_s
             ego_states[vid] = {
-                "metrics": {"depart_time": None, "arrive_time": None, "fuel_mg": 0.0, "reroutes": 0},
+                "metrics": {"depart_time": None, "arrive_time": None, "fuel_mg": 0.0, "reroutes": 0, "driven_edges": []},
                 "snapshot": {"route": [], "saved_weights": {}, "timestamp": 0.0},
                 "last_dijkstra_time": 0.0,
                 "origin": origin,
@@ -1014,6 +1023,8 @@ class Simulation:
                 continue
 
             self.rsu_manager.step()
+            if hasattr(self, 'road_condition_manager') and self.road_condition_manager:
+                self.road_condition_manager.step(sim_time)
 
             # Inject scheduled egos
             for k, (origin, dest) in enumerate(od_list):
@@ -1049,6 +1060,7 @@ class Simulation:
                             "bg_possum_at_depart": bg_possum,
                             "arrived": False,
                             "reroutes": 0,
+                            "driven_edges": [],
                         })
                         print(f"[{ego_policy}] Injected {vid} at sim_time {sim_time:.1f}s (vcount={bg_vcount}, possum={bg_possum})")
                     else:
@@ -1087,8 +1099,28 @@ class Simulation:
                         if r["trip"] == int(vid.split("_")[1]):
                             r["arrived"] = True
                             r["reroutes"] = ego_states[vid]["metrics"]["reroutes"]
+                            r["driven_edges"] = ego_states[vid]["metrics"].get("driven_edges", [])
                             break
                     print(f"[{ego_policy}] {vid} arrived.")
+                    if progress_log_path:
+                        try:
+                            import csv
+                            with open(progress_log_path, 'w', newline='') as f:
+                                writer = csv.DictWriter(f, fieldnames=list(results[0].keys()))
+                                writer.writeheader()
+                                writer.writerows(results)
+                            with open(progress_log_path.replace('progress_', 'cfs_debug_'), 'w', newline='') as f:
+                                if self.calc.cfs_records:
+                                    writer = csv.DictWriter(f, fieldnames=list(self.calc.cfs_records[0].keys()))
+                                    writer.writeheader()
+                                    writer.writerows(self.calc.cfs_records)
+                            with open(progress_log_path.replace('progress_', 'route_cfs_'), 'w', newline='') as f:
+                                if self.route_cfs_records:
+                                    writer = csv.DictWriter(f, fieldnames=list(self.route_cfs_records[0].keys()))
+                                    writer.writeheader()
+                                    writer.writerows(self.route_cfs_records)
+                        except Exception as e:
+                            print(f"Failed to log progress: {e}")
                 elif sim_time - schedule[vid] >= per_trip_timeout * dt:
                     print(f"[{ego_policy}] {vid} TIMEOUT after {per_trip_timeout} steps.")
                     self._safe_remove_ego()
