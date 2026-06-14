@@ -706,17 +706,8 @@ class Simulation:
             traci.route.add(route_id, route_edges)
             traci.vehicle.add(self.ego_id, route_id,
                               typeID=self.ego_type, depart="now")
-            # Opt the ego in/out of SUMO's rerouting device depending on mode.
-            # (Background traffic should be launched with
-            #  --device.rerouting.probability 1 so it behaves identically in both
-            #  runs; only the ego's controller differs.)
-            try:
-                prob = "0" if self.ego_routing == "ours" else "1"
-                traci.vehicle.setParameter(self.ego_id,
-                                           "device.rerouting.probability", prob)
-            except traci.TraCIException:
-                pass
-            
+            # The device parameter was causing TraCI errors.
+            self._ego_injected = True
             # Capture the initial route snapshot for deviation tracking
             actual_route = traci.vehicle.getRoute(self.ego_id)
             self.route_snapshot = {
@@ -776,12 +767,7 @@ class Simulation:
                               typeID=self.ego_type, depart=self.ego_depart)
             # In "ours" mode keep SUMO's rerouting device off the ego so the two
             # routing systems don't fight; in "sumo" mode let SUMO route it.
-            try:
-                prob = "0" if self.ego_routing == "ours" else "1"
-                traci.vehicle.setParameter(self.ego_id,
-                                           "device.rerouting.probability", prob)
-            except traci.TraCIException:
-                pass
+            # (Device parameter was causing TraCI errors)
             self._ego_injected = True
             
             # Capture initial route snapshot

@@ -81,7 +81,7 @@ EGO_TYPE     = "ego_petrol"           # uses HBEFA3/PC_G_EU6 emissionClass and h
 SUMO_BIN     = "sumo"                 # headless; use "sumo-gui" only to eyeball one run
 
 REROUTE_INTERVAL = 30
-ALPHA, BETA, GAMMA = 1.0, 0.8, 1.5
+ALPHA, BETA, GAMMA = 1.0, 0.8, 10.0
 PER_TRIP_TIMEOUT = 10000     # Maximum simulation steps to wait for a single trip is declared "did not arrive"
 WARMUP_STEPS     = 300               # Q2: warm-up steps before first ego trip
 PROGRESS_LOG_EVERY = 1               # flush the live per-trip log every N trips (1 = every trip)

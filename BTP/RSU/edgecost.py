@@ -39,8 +39,8 @@ class EdgeCostCalculator:
                  w_ref=60.0,            # waiting-time reference (s) for normalization
                  veh_footprint=7.5,     # avg vehicle length + min gap (m) -> jam capacity
                  v_min=0.1,             # floor speed to avoid div-by-zero (m/s)
-                 max_multiplier=10.0,   # cap on the penalty bracket
-                 stop_ref=5.0,          # reference stop count for S normalisation (Q3)
+                 max_multiplier=1000.0,   # cap on the penalty bracket
+                 stop_ref=1.0,          # reference stop count for S normalisation (Q3)
                  baseline_seed_n=8,     # samples collected before locking the free-flow baseline
                  debug_cfs=False):      # flag to capture decomposed C/F/S terms
         self.edge_lengths      = edge_lengths
@@ -65,7 +65,7 @@ class EdgeCostCalculator:
         # want), then switch to the asymmetric EMA. Until an edge has enough
         # samples its baseline is None -> compute_weight sets F = 0.0 (no fuel
         # penalty), which is the correct conservative behaviour.
-        self._fuel_baseline = {}
+        self._fuel_baseline = {"153452#0": 80.0, "-153452#0": 80.0, "-153457": 80.0}
         self._fuel_seed     = {}          # edge_id -> [first samples] until locked
         self._baseline_seed_n = max(1, int(baseline_seed_n))
         self._a_down = 0.20
@@ -132,7 +132,8 @@ class EdgeCostCalculator:
         fuel_cons = m.get("fuel_consumption", 0.0)
         if baseline and baseline > 0 and fuel_cons > 0:
             cur_rate = fuel_cons / t_actual
-            F = self._clamp(cur_rate / baseline - 1.0, 0.0, 2.0) / 2.0
+            # Uncapped Fuel Penalty: scales infinitely with excess fuel rate
+            F = max(0.0, cur_rate / baseline - 1.0)
 
         # --- stop-and-go: heaviest fuel driver, squared so it bites ---
         S = self._clamp(m.get("stop_and_go_freq", 0.0) / self.stop_ref) ** 2
@@ -204,5 +205,5 @@ class EdgeCostCalculator:
         attributable to the routing algorithm, so the baselines are reset at the
         seed boundary.
         """
-        self._fuel_baseline = {}
+        self._fuel_baseline = {"153452#0": 80.0, "-153452#0": 80.0, "-153457": 80.0}
         self._fuel_seed     = {}

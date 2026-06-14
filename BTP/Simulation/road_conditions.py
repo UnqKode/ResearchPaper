@@ -114,15 +114,16 @@ class RoadConditionManager:
                 try:
                     lane_count = self._traci.edge.getLaneNumber(edge)
                     if lane_count > 1:
-                        # Block lane 0 only, leaving the remaining lane(s) passable.
+                        # Block all lanes except the last one, leaving exactly one passable.
                         # This creates queue + merge stop-and-go without a full closure.
-                        lane_id = f"{edge}_0"
-                        orig_permissions = self._traci.lane.getAllowed(lane_id)
-                        self.original_permissions[lane_id] = orig_permissions
-                        self._traci.lane.setDisallowed(
-                            lane_id, ["passenger", "custom1", "custom2"]
-                        )
-                        self.blocked_lanes.append(lane_id)
+                        for i in range(lane_count - 1):
+                            lane_id = f"{edge}_{i}"
+                            orig_permissions = self._traci.lane.getAllowed(lane_id)
+                            self.original_permissions[lane_id] = orig_permissions
+                            self._traci.lane.setDisallowed(
+                                lane_id, ["passenger", "custom1", "custom2"]
+                            )
+                            self.blocked_lanes.append(lane_id)
                     else:
                         logging.warning(
                             f"Edge {edge} is single-lane. Blocking it fully will force "
