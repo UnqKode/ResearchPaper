@@ -27,11 +27,27 @@ class RSU:
         """
         if edge in self.edge_data:
             for key in self.edge_data[edge]:
-                self.edge_data[edge][key].append(data_point.get(key, 0.0))
+                val = data_point.get(key, 0.0)
+                # Fuel/CO2 are per-trip aggregates (non-zero only when vehicles
+                # depart this step).  Skip zeros so the deque stores only real
+                # trip measurements — on low-traffic corridors this prevents the
+                # window from being flushed to all-zeros between rare departures.
+                if key in ("fuel_consumption", "co2_emissions") and val == 0.0:
+                    continue
+                self.edge_data[edge][key].append(val)
 
     def get_average_stats(self, edge):
         """
         Returns the average of the metrics over the rolling window for a specific edge.
+
+        Fuel and CO2 metrics use a non-zero filter because the rolling window
+        receives a zero entry on every step where no vehicle departs (empty-road
+        or non-jam steps).  Averaging those zeros into the fuel mean produces a
+        heavily diluted value (< actual fuel / trip × departure_rate / update_rate)
+        that keeps F near zero even during grade degradation.  Averaging only the
+        non-zero entries recovers the true mean-fuel-per-trip that _decompose
+        expects, without changing the semantics of the other stats (speed,
+        occupancy, etc.) which are correctly averaged over all steps.
         """
         if edge not in self.edge_data:
             return {}
@@ -39,7 +55,11 @@ class RSU:
         stats = {}
         for key, queue in self.edge_data[edge].items():
             if len(queue) > 0:
-                stats[key] = np.mean(queue)
+                if key in ("fuel_consumption", "co2_emissions"):
+                    nonzero = [x for x in queue if x > 0]
+                    stats[key] = float(np.mean(nonzero)) if nonzero else 0.0
+                else:
+                    stats[key] = float(np.mean(queue))
             else:
                 stats[key] = 0.0
         return stats

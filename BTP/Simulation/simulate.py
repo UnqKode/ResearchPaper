@@ -693,6 +693,21 @@ class Simulation:
                 if cur_nodes and dest_nodes:
                     self.global_map.refresh(self.edges)
                     self.net_builder.update_graph_weights(self.global_map)
+                    import sys as _sys
+                    for _de in ('153391#0', '153391#1'):
+                        _stats = self.rsu_manager.get_edge_stats(_de)
+                        _baseline = self.calc._fuel_baseline.get(_de)
+                        _frozen = _de in self.calc._frozen_baseline_edges
+                        _w = self.global_map.get_weight(_de)
+                        _bl_str = f"{_baseline:.4f}" if _baseline is not None else "None"
+                        if _stats:
+                            _d = self.calc._decompose(_de, _stats)
+                            _sys.stderr.write(f"[INJECT_DIAG] ego_{k} {_de}: baseline={_bl_str} "
+                                              f"frozen={_frozen} fuel_cons={_stats.get('fuel_consumption',0):.4f} "
+                                              f"F={_d['F']:.4f} weight={_w:.2f}\n")
+                        else:
+                            _sys.stderr.write(f"[INJECT_DIAG] ego_{k} {_de}: NO STATS baseline={_bl_str} frozen={_frozen} weight={_w:.2f}\n")
+                    _sys.stderr.flush()
                     onward = self.net_builder.get_dijkstra_route(cur_nodes[1], dest_nodes[1])
                     if onward:
                         route_edges = [origin] + onward
@@ -700,6 +715,9 @@ class Simulation:
             if not route_edges:
                 stage = traci.simulation.findRoute(origin, dest, vType=self.ego_type)
                 if not stage.edges:
+                    import sys as _sys
+                    _sys.stderr.write(f"[INJECT_FAIL] k={k} no route {origin}->{dest} vType={self.ego_type}\n")
+                    _sys.stderr.flush()
                     return False
                 route_edges = list(stage.edges)
 
@@ -715,8 +733,45 @@ class Simulation:
                 "saved_weights": {e: self.global_map.get_weight(e) for e in actual_route},
                 "timestamp": traci.simulation.getTime()
             }
+            # Log CFS decomposition for initial route edges so max_route_mult
+            # reflects the F signal at injection time (not just reroute decisions).
+            if getattr(self.calc, "debug_cfs", False) and self.ego_routing == "ours":
+                now = traci.simulation.getTime()
+                step = int(now / traci.simulation.getDeltaT())
+                for edge in actual_route:
+                    m = self.rsu_manager.get_edge_stats(edge)
+                    if m is None:
+                        m = {}
+                    d = self.calc._decompose(edge, m)
+                    self.route_cfs_records.append({
+                        "ego": self.ego_id,
+                        "decision_step": step,
+                        "accepted": True,
+                        "edge_id": edge,
+                        "in_current": True,
+                        "in_candidate": False,
+                        "avg_speed":        m.get("avg_speed",        0.0),
+                        "occupancy":        m.get("occupancy",        0.0),
+                        "queue_length":     m.get("queue_length",     0.0),
+                        "waiting_time":     m.get("waiting_time",     0.0),
+                        "stop_and_go_freq": m.get("stop_and_go_freq", 0.0),
+                        "fuel_consumption": m.get("fuel_consumption", 0.0),
+                        "baseline_locked":  d["baseline_locked"],
+                        "baseline_value":   d["baseline_value"],
+                        "t_actual":         d["t_actual"],
+                        "C": d["C"], "F": d["F"], "S": d["S"],
+                        "multiplier": d["multiplier"], "weight": d["weight"],
+                    })
             return True
-        except traci.TraCIException:
+        except traci.TraCIException as e:
+            import sys as _sys
+            _sys.stderr.write(f"[INJECT_FAIL] TraCIException k={k}: {e!r}\n")
+            _sys.stderr.flush()
+            return False
+        except Exception as e:
+            import sys as _sys, traceback as _tb
+            _sys.stderr.write(f"[INJECT_FAIL] Exception k={k}: {e!r}\n{_tb.format_exc()}")
+            _sys.stderr.flush()
             return False
 
     # -----------------------------------------------------------------
@@ -1000,7 +1055,24 @@ class Simulation:
 
         active_egos = set()
         completed_egos = set()
-        fast_forward_target = depart_start - 900.0 # 15 minutes rewarm
+        fast_forward_target = depart_start - 900.0  # default: 15-min RSU rewarm before egos
+
+        # If a road condition activates before the default fast-forward end, pull the
+        # end back so RSU seeds baselines BEFORE grade activation.  Without this,
+        # freeze_baseline locks an empty _fuel_baseline and F stays 0 for all
+        # degraded edges.  1800s safety margin is needed: the least-trafficked
+        # degraded edge (153391#1) sees ~0.43 veh/min at scale=2.0, so 8 samples
+        # require ~19 min.  Use 30 min (1800s) to be safe.
+        rcm = self.road_condition_manager if hasattr(self, 'road_condition_manager') else None
+        if rcm is not None and rcm.mode != "none":
+            fast_forward_target = min(fast_forward_target, rcm.activate_time - 1800)
+        import sys as _sys
+        _sys.stderr.write(
+            f"[run_fixed_departure_campaign] fast_forward_target={fast_forward_target} "
+            f"rcm.mode={getattr(rcm,'mode',None)} "
+            f"rcm.activate_time={getattr(rcm,'activate_time',None)}\n"
+        )
+        _sys.stderr.flush()
 
         while len(completed_egos) < len(od_list) and traci.simulation.getMinExpectedNumber() > 0:
             traci.simulationStep()

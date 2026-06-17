@@ -81,7 +81,7 @@ EGO_TYPE     = "ego_petrol"           # uses HBEFA3/PC_G_EU6 emissionClass and h
 SUMO_BIN     = "sumo"                 # headless; use "sumo-gui" only to eyeball one run
 
 REROUTE_INTERVAL = 30
-ALPHA, BETA, GAMMA = 1.0, 0.8, 10.0
+ALPHA, BETA, GAMMA = 1.0, 8.0, 10.0
 PER_TRIP_TIMEOUT = 10000     # Maximum simulation steps to wait for a single trip is declared "did not arrive"
 WARMUP_STEPS     = 300               # Q2: warm-up steps before first ego trip
 PROGRESS_LOG_EVERY = 1               # flush the live per-trip log every N trips (1 = every trip)
@@ -192,12 +192,16 @@ def select_degraded_edges(net_file, k, traffic_seed, scale, teleport, depart_sta
     from Simulation.simulate import Simulation
     sim = Simulation(net_file)
     rsu_manager = sim.rsu_manager
-    
+    # subscribe_edges() must be called after traci.start() so SUMO can register
+    # the subscriptions; without this the RSU receives no data and all edges
+    # appear identical (vehicle_count=0), causing arbitrary edge selection.
+    rsu_manager.subscribe_edges()
+
     end_time = depart_start - 300
     while traci.simulation.getTime() < end_time:
         traci.simulationStep()
         rsu_manager.step()
-        
+
     edges = traci.edge.getIDList()
     edge_counts = []
     for e in edges:
@@ -220,44 +224,156 @@ def select_degraded_edges(net_file, k, traffic_seed, scale, teleport, depart_sta
     print(f"Selected degraded edges: {selected}")
     return selected
 
-def select_targeted_od_pairs(net_file, degraded_edges, n, seed, vclass="passenger", min_len=50.0):
+def _bypass_cost(net, from_edge, to_edge, blocked_ids, vclass="passenger"):
+    """Travel-time cost of the shortest path from_edge→to_edge avoiding blocked_ids.
+
+    Uses an edge-based Dijkstra (travel time = length / speed_limit).
+    The origin and destination edges are never blocked even if they appear in
+    blocked_ids, so the OD pair always has a well-defined start/end.
+    Returns float('inf') if no such path exists.
     """
-    Select OD pairs where the shortest path crosses at least one degraded edge,
-    and an alternative exists.
+    import heapq
+    INF = float("inf")
+    blocked = blocked_ids - {from_edge.getID(), to_edge.getID()}
+
+    start_t = from_edge.getLength() / max(from_edge.getSpeed(), 0.1)
+    dist = {from_edge.getID(): start_t}
+    heap = [(start_t, from_edge.getID())]
+
+    while heap:
+        d, eid = heapq.heappop(heap)
+        if d > dist.get(eid, INF):
+            continue
+        if eid == to_edge.getID():
+            return d
+        try:
+            edge = net.getEdge(eid)
+        except Exception:
+            continue
+        for succ in edge.getToNode().getOutgoing():
+            sid = succ.getID()
+            if sid in blocked or not succ.allows(vclass):
+                continue
+            nd = d + succ.getLength() / max(succ.getSpeed(), 0.1)
+            if nd < dist.get(sid, INF):
+                dist[sid] = nd
+                heapq.heappush(heap, (nd, sid))
+    return INF
+
+
+def _ttime_route(net, from_edge, to_edge, blocked_ids, vclass="passenger"):
+    """Travel-time shortest path avoiding blocked_ids. Returns (path_edge_id_list, cost_s).
+
+    Like _bypass_cost but also returns the path so callers can inspect which
+    edges it crosses. Returns ([], inf) if no path exists.
     """
-    print(f"Building {n} targeted OD pairs crossing {degraded_edges}...")
+    import heapq
+    INF = float("inf")
+    blocked = blocked_ids - {from_edge.getID(), to_edge.getID()}
+    start_t = from_edge.getLength() / max(from_edge.getSpeed(), 0.1)
+    dist = {from_edge.getID(): start_t}
+    prev = {from_edge.getID(): None}
+    heap = [(start_t, from_edge.getID())]
+    while heap:
+        d, eid = heapq.heappop(heap)
+        if d > dist.get(eid, INF):
+            continue
+        if eid == to_edge.getID():
+            path = []
+            cur = eid
+            while cur is not None:
+                path.append(cur)
+                cur = prev.get(cur)
+            return list(reversed(path)), d
+        try:
+            edge = net.getEdge(eid)
+        except Exception:
+            continue
+        for succ in edge.getToNode().getOutgoing():
+            sid = succ.getID()
+            if sid in blocked or not succ.allows(vclass):
+                continue
+            nd = d + succ.getLength() / max(succ.getSpeed(), 0.1)
+            if nd < dist.get(sid, INF):
+                dist[sid] = nd
+                prev[sid] = eid
+                heapq.heappush(heap, (nd, sid))
+    return [], INF
+
+
+def select_targeted_od_pairs(net_file, degraded_edges, n, seed, vclass="passenger",
+                              min_len=50.0, max_detour_factor=1.25, max_trip_time=None):
+    """
+    Select OD pairs satisfying TWO conditions:
+      1. The travel-time-optimal path crosses at least one degraded edge.
+      2. A bypass (path avoiding all degraded edges) exists and costs at most
+         max_detour_factor × the normal travel-time cost.
+
+    Both costs are in seconds so the detour ratio is exact. Condition 2 ensures
+    the routing penalty can actually tip the balance: if the only detour is 3×
+    longer the router will never avoid the degraded edge regardless of penalty.
+
+    max_trip_time: if set, only accept pairs whose free-flow travel time <= this
+    value (seconds). Shorter trips make the degraded corridor a larger fraction of
+    the total trip, so the fuel penalty has more leverage over bypass congestion.
+    """
+    desc = f"with viable bypass (detour <={max_detour_factor}x)"
+    if max_trip_time:
+        desc += f", trip <={max_trip_time}s free-flow"
+    print(f"Building {n} targeted OD pairs crossing {degraded_edges} {desc}...")
     net = sumolib.net.readNet(net_file)
-    candidates = [e for e in net.getEdges() if (not e.isSpecial()) and e.allows(vclass) and e.getLength() >= min_len]
-    
+    candidates = [e for e in net.getEdges()
+                  if (not e.isSpecial()) and e.allows(vclass) and e.getLength() >= min_len]
+
+    blocked_ids = set(degraded_edges)
     rng = random.Random(seed)
     pairs = []
     seen = set()
     attempts = 0
-    max_attempts = n * 500
-    
+    # Short-trip filter rejects most pairs; need many more attempts to find n valid ones
+    max_attempts = n * (10000 if max_trip_time else 1000)
+
     while len(pairs) < n and attempts < max_attempts:
         attempts += 1
         a = rng.choice(candidates)
         b = rng.choice(candidates)
-        if a.getID() == b.getID(): continue
+        if a.getID() == b.getID():
+            continue
         key = (a.getID(), b.getID())
-        if key in seen: continue
-        
-        try:
-            path, cost = net.getShortestPath(a, b, vClass=vclass)
-        except:
-            path = None
-            
-        if path and len(path) > 1:
-            path_ids = [e.getID() for e in path]
-            # Must cross a degraded edge
-            if any(de in path_ids for de in degraded_edges):
-                # Ensure alternative exists (not strictly checking detour factor here for speed)
-                seen.add(key)
-                pairs.append(key)
-                
-    if len(pairs) < n:
-        print(f"  WARNING: only found {len(pairs)} targeted pairs.")
+        if key in seen:
+            continue
+        seen.add(key)
+
+        if a.getID() in blocked_ids or b.getID() in blocked_ids:
+            continue  # ego can't route around its own start/end edge
+
+        path_ids, cost = _ttime_route(net, a, b, set(), vclass)
+        if not path_ids or cost >= float("inf"):
+            continue
+
+        if max_trip_time and cost > max_trip_time:
+            continue   # trip too long; corridor fraction too small for F penalty to dominate
+
+        if not any(de in path_ids for de in degraded_edges):
+            continue   # travel-time-optimal path doesn't cross any degraded edge
+
+        bypass = _bypass_cost(net, a, b, blocked_ids, vclass)
+        if bypass > max_detour_factor * cost:
+            continue   # bypass unreachable or too expensive; router can't benefit
+
+        corridor_s = sum(net.getEdge(de).getLength() / max(net.getEdge(de).getSpeed(), 0.1)
+                         for de in degraded_edges if de in path_ids)
+        pairs.append(key)
+        print(f"  OD pair {len(pairs)}: trip={cost:.1f}s free-flow, "
+              f"corridor={corridor_s:.1f}s ({100*corridor_s/cost:.0f}%), "
+              f"bypass={bypass:.1f}s ({100*bypass/cost:.0f}%)")
+
+    n_found = len(pairs)
+    if n_found < n:
+        print(f"  WARNING: only found {n_found} targeted pairs with viable bypass "
+              f"after {attempts} attempts.")
+    else:
+        print(f"  Got {n_found} targeted pairs with viable bypass in {attempts} attempts.")
     return pairs
 
 
@@ -900,7 +1016,7 @@ def run_paired_scenario(arm_policy, alpha, beta, gamma, od_list, traffic_seed, t
         )
         # D3: bind the unbound manager (pickled without traci/calc refs) to live objects.
         if road_condition_manager is not None and road_condition_manager.mode != "none":
-            road_condition_manager.bind(traci, sim.calc)
+            road_condition_manager.bind(traci, sim.calc, sim.rsu_manager)
             print(
                 f"[{tag}] RoadConditionManager bound "
                 f"(mode={road_condition_manager.mode}, "
@@ -973,6 +1089,11 @@ def _run_paired_capture(arm_policy, alpha, beta, gamma, od_list, traffic_seed, t
             )
     except Exception as e:
         error = repr(e)
+        import sys as _sys
+        _sys.stderr.write(f"[ARM_CRASH] {tag}: {error}\n")
+        import traceback as _tb
+        _sys.stderr.write(_tb.format_exc())
+        _sys.stderr.flush()
     return {
         "tag": tag, "log": buf.getvalue(), "error": error,
         "results": res, "cfs_records": cfs, "route_cfs_records": route_cfs,
@@ -1193,7 +1314,7 @@ def main():
     
     
     # Phase 2: Degraded Road args
-    ap.add_argument("--road-condition", choices=["none", "rough", "accident"], default="none", help="degradation mode")
+    ap.add_argument("--road-condition", choices=["none", "rough", "accident", "grade"], default="none", help="degradation mode")
     ap.add_argument("--degraded-edges", type=str, default="", help="comma-separated list of edges, or 'auto'")
     ap.add_argument("--n-degraded", type=int, default=3, help="k for auto-selection")
     ap.add_argument("--degrade-start", type=float, default=-1, help="time to start degradation (-1 = depart_start - 300)")
@@ -1201,7 +1322,18 @@ def main():
     ap.add_argument("--degrade-vhigh", type=float, default=12.0, help="v_high for rough mode")
     ap.add_argument("--degrade-period", type=float, default=20.0, help="period for rough mode")
     ap.add_argument("--event-duration", type=float, default=600.0, help="duration for accident mode")
+    ap.add_argument("--grade-emission-class", type=str, default="HBEFA3/PC_G_EU0",
+                    help="heavier emission class applied to vehicles on degraded edges in grade mode")
     ap.add_argument("--targeted-od", action="store_true", help="force OD generation to target degraded edges")
+    ap.add_argument("--max-detour-factor", type=float, default=1.25,
+                    help="targeted-OD: only include pairs where the bypass path costs "
+                         "at most this multiple of the normal travel-time path (default 1.25). "
+                         "Must be >1.0.")
+    ap.add_argument("--max-od-trip-time", type=float, default=None,
+                    help="targeted-OD: only include pairs whose free-flow trip time is at most "
+                         "this many seconds (default: no limit). Shorter trips make the degraded "
+                         "corridor a larger fraction of the total trip, giving the F penalty "
+                         "more leverage over bypass congestion costs.")
     ap.add_argument("--verify-degradation", action="store_true", help="Gate A verification: run headless and check fuel per edge")
     
     args = ap.parse_args()
@@ -1249,64 +1381,121 @@ def main():
         manager = RoadConditionManager(
             degraded_edges, args.road_condition, degrade_start,
             v_low=args.degrade_vlow, v_high=args.degrade_vhigh,
-            period_s=args.degrade_period, event_duration=args.event_duration
+            period_s=args.degrade_period, event_duration=args.event_duration,
+            grade_emission_class=args.grade_emission_class
         )
         manager.bind(traci, calc)
         
-        fuel_before = {e: [] for e in degraded_edges}
-        fuel_after = {e: [] for e in degraded_edges}
-        time_before = {e: [] for e in degraded_edges}
-        time_after = {e: [] for e in degraded_edges}
-        
-        end_time = depart_start + 1800  # Run for 30 minutes past ego depart
-        
+        # Gate A: measure per-vehicle fuel and speed directly from TraCI each step.
+        # Avoids RSU EMA artifacts on sparse-traffic edges.
+        # Accumulate (fuel_rate_mg_per_s, speed_m_per_s) for each vehicle on each edge.
+        fuel_before = {e: [] for e in degraded_edges}   # list of mg/s rates
+        fuel_after  = {e: [] for e in degraded_edges}
+        spd_before  = {e: [] for e in degraded_edges}   # list of m/s speeds
+        spd_after   = {e: [] for e in degraded_edges}
+        # Diagnostics: total vehicle-steps seen, and how many had fuel > 0
+        _diag_total  = {e: 0 for e in degraded_edges}
+        _diag_nonzero = {e: 0 for e in degraded_edges}
+        _diag_printed = False
+
+        end_time = depart_start + 1800  # 30 min post-activation window
+
         while traci.simulation.getTime() < end_time:
             t = traci.simulation.getTime()
             traci.simulationStep()
             rsu_manager.step()
             manager.step(t)
-            
-            # Sample stats every 300s (at the end of an RSU window)
-            if int(t) > 0 and int(t) % 300 == 0:
+
+            # Sample each degraded edge every step
+            for e in degraded_edges:
+                try:
+                    vids = traci.edge.getLastStepVehicleIDs(e)
+                except Exception:
+                    vids = []
+                for vid in vids:
+                    try:
+                        _diag_total[e] += 1
+                        if traci.vehicle.getVehicleClass(vid) != "passenger":
+                            continue  # Gate A: only sample passenger vClass (ego's class)
+                        f_rate = traci.vehicle.getFuelConsumption(vid)   # mg/s
+                        spd    = traci.vehicle.getSpeed(vid)              # m/s
+                        if f_rate > 0:
+                            _diag_nonzero[e] += 1
+                        if f_rate > 0 and spd > 0.1:
+                            if t <= degrade_start:
+                                fuel_before[e].append(f_rate)
+                                spd_before[e].append(spd)
+                            else:
+                                fuel_after[e].append(f_rate)
+                                spd_after[e].append(spd)
+                    except Exception:
+                        pass
+
+            # After 1000 steps print a one-time diagnostic
+            if not _diag_printed and t >= 15000:
+                _diag_printed = True
+                print("\n[Gate A diagnostic @ t=15000]")
                 for e in degraded_edges:
-                    stats = rsu_manager.get_edge_stats(e)
-                    if stats and stats.get("vehicle_count", 0) > 0:
-                        f = stats.get("fuel_consumption", 0)
-                        L = calc.edge_lengths.get(e, 100)
-                        f_per_m = f / L if L > 0 else 0
-                        tt = L / stats.get("avg_speed", 13.89)
-                        
-                        if t <= degrade_start:
-                            fuel_before[e].append(f_per_m)
-                            time_before[e].append(tt)
-                        else:
-                            fuel_after[e].append(f_per_m)
-                            time_after[e].append(tt)
-                            
+                    try:
+                        vids = traci.edge.getLastStepVehicleIDs(e)
+                    except Exception:
+                        vids = []
+                    print(f"  {e}: {len(vids)} vehicles on edge right now, "
+                          f"cumulative veh-steps={_diag_total[e]}, "
+                          f"nonzero-fuel steps={_diag_nonzero[e]}")
+                    for vid in list(vids)[:3]:
+                        try:
+                            ec  = traci.vehicle.getEmissionClass(vid)
+                            vcc = traci.vehicle.getVehicleClass(vid)
+                            fc  = traci.vehicle.getFuelConsumption(vid)
+                            spd = traci.vehicle.getSpeed(vid)
+                            print(f"    vid={vid} vClass={vcc} emClass={ec} fuel={fc:.3f}mg/s spd={spd:.2f}m/s")
+                        except Exception as ex:
+                            print(f"    vid={vid} error={ex}")
+
         traci.close()
-        
-        print("\nGate A Results (Fuel/meter and Traversal Time):")
+
+        print("\nGate A Results (passenger vClass only — matching ego vehicle class):")
         for e in degraded_edges:
-            fb = sum(fuel_before[e])/len(fuel_before[e]) if fuel_before[e] else 0
-            fa = sum(fuel_after[e])/len(fuel_after[e]) if fuel_after[e] else 0
-            tb = sum(time_before[e])/len(time_before[e]) if time_before[e] else 0
-            ta = sum(time_after[e])/len(time_after[e]) if time_after[e] else 0
-            
-            f_ratio = (fa/fb) if fb > 0 else 0
-            t_ratio = (ta/tb) if tb > 0 else 0
-            
-            print(f"  Edge {e}:")
-            print(f"    Fuel/m : Before={fb:.1f} mg/m, After={fa:.1f} mg/m -> Ratio = {f_ratio:.2f}x")
-            print(f"    Time   : Before={tb:.1f} s, After={ta:.1f} s -> Ratio = {t_ratio:.2f}x")
-            if f_ratio >= 1.3:
-                print("    -> PASS (>= 30% fuel spike)")
+            L = calc.edge_lengths.get(e, 100.0)
+            # fuel/m = mean(fuel_rate / speed)  [mg/s / (m/s) = mg/m]
+            def fuel_per_m(rates, spds):
+                samples = [r/s for r, s in zip(rates, spds) if s > 0]
+                return sum(samples)/len(samples) if samples else 0.0, len(samples)
+
+            fb, nb = fuel_per_m(fuel_before[e], spd_before[e])
+            fa, na = fuel_per_m(fuel_after[e],  spd_after[e])
+            # traversal time = L / mean_speed
+            tb = L / (sum(spd_before[e])/len(spd_before[e])) if spd_before[e] else 0.0
+            ta = L / (sum(spd_after[e])/len(spd_after[e]))   if spd_after[e]  else 0.0
+
+            f_ratio = (fa / fb) if fb > 0 else 0.0
+            t_ratio = (ta / tb) if tb > 0 else 0.0
+
+
+            fuel_pass = f_ratio >= 1.30
+            time_pass = t_ratio <= 1.05  # time rise <= ~5% is the hard requirement
+
+            print(f"  Edge {e}:  (samples before={nb}, after={na})")
+            print(f"    Fuel/m : Before={fb:.3f} mg/m, After={fa:.3f} mg/m -> Ratio = {f_ratio:.2f}x")
+            print(f"    Time   : Before={tb:.1f} s,    After={ta:.1f} s    -> Ratio = {t_ratio:.3f}x")
+            print(f"    -> Fuel PASS" if fuel_pass else f"    -> Fuel FAIL (need >=1.30x, got {f_ratio:.2f}x)")
+            print(f"    -> Time PASS" if time_pass else
+                  f"    -> Time FAIL (need <=1.05x, got {t_ratio:.2f}x) "
+                  f"[mechanism is slowing vehicles -> not grade mode]")
+
+            if fuel_pass and time_pass:
+                print(f"    => Gate A PASS for {e}")
             else:
-                print("    -> FAIL (< 30% fuel spike)")
-                
+                print(f"    => Gate A FAIL for {e}")
+
         sys.exit(0)
 
     if args.targeted_od and degraded_edges:
-        od_list = select_targeted_od_pairs(NET_FILE, degraded_edges, n=args.n, seed=args.od_seed)
+        od_list = select_targeted_od_pairs(NET_FILE, degraded_edges, n=args.n,
+                                           seed=args.od_seed,
+                                           max_detour_factor=args.max_detour_factor,
+                                           max_trip_time=args.max_od_trip_time)
     else:
         od_list = generate_od_pairs(NET_FILE, n=args.n, seed=args.od_seed)
 
@@ -1324,7 +1513,8 @@ def main():
         manager = RoadConditionManager(
             degraded_edges, args.road_condition, degrade_start,
             v_low=args.degrade_vlow, v_high=args.degrade_vhigh,
-            period_s=args.degrade_period, event_duration=args.event_duration
+            period_s=args.degrade_period, event_duration=args.event_duration,
+            grade_emission_class=args.grade_emission_class
         )
     else:
         manager = None
@@ -1389,6 +1579,7 @@ def main():
                         out = fut.result()
                         print(f"\n# scenario '{out['tag']}' finished in {out['wall_s']:.1f}s")
                         if out["error"]: print(f"[ERROR] {out['error']}")
+                        if out.get("log"): print(out["log"], end="" if out["log"].endswith("\n") else "\n")
                         all_res[arm].append(out["results"])
                         if arm == "ours" and args.debug_cfs:
                             cfs_all.extend(out.get("cfs_records", []))

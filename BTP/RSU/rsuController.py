@@ -74,11 +74,17 @@ class RSUManager:
         not the departed vehicles).
     """
 
-    def __init__(self, intersections, edges, window_size=240):
-        # Window size for RSU rolling statistics (number of data-points kept per
-        # edge metric). 240 steps = 60 s at the default 0.25 s step-length -- long
-        # enough to capture several signal cycles and smooth short-term noise while
-        # still reacting within ~1 minute to a new congestion event.  The value is
+    def __init__(self, intersections, edges, window_size=60):
+        # Window size for RSU rolling statistics: number of vehicle-departure
+        # EVENTS kept per edge (not simulation steps). At typical Monaco traffic
+        # rates (~2-3 veh/min on busy edges), 60 events ≈ 20-30 min of history --
+        # enough to smooth short-term noise while reacting within ~30 min to a new
+        # degradation event (e.g., EU0 grade mode activation).
+        # 240 events was too large: at 2.6 veh/min the 1800s EU4 warmup contributes
+        # 78 entries that dilute the EU0 signal for >90 min after grade activation,
+        # collapsing F from 0.165 (theoretical) to ~0.10 (observed).
+        # With 60 events, warmup entries flush out within ~23 min of grade start,
+        # giving F≈0.165 at the 45-min ego-injection window.  The value is
         # stored here so initialize_from_network can pass it through to each RSU.
         self.window_size = window_size
         # RSU objects are built in initialize_from_network once TraCI is live.
@@ -157,6 +163,10 @@ class RSUManager:
         covered     = len(self.edge_to_rsu)
         print(f"[RSU] coverage: {covered} / {total_edges} non-internal edges have an RSU "
               f"({dead_end_assigned} assigned via from_node fallback for dead-end terminations).")
+        import sys as _sys
+        for _de in ('153391#0', '153391#1'):
+            _sys.stderr.write(f"[RSU_COVERAGE_CHECK] {_de}: {'COVERED' if _de in self.edge_to_rsu else 'UNCOVERED'}\n")
+            _sys.stderr.flush()
 
         for u, v, data in graph.edges(data=True):
             self.edge_speed_limits[data["edge_id"]] = data.get("speed_limit", 13.89)
@@ -175,6 +185,19 @@ class RSUManager:
             traci.edge.subscribe(edge_id, _EDGE_VARS)
         print(f"[RSU] subscribed {len(self.edge_to_rsu)} edges "
               f"(VEHICLE_ID_LIST + OCCUPANCY + HALTING_NUMBER).")
+
+    def clear_fuel_deques(self, edges):
+        """Clear fuel/CO2 rolling windows for the given edges.
+
+        Called at grade-mode activation so pre-grade EU4 measurements don't
+        dilute the EU0 signal used by _decompose() to compute F.  After the
+        clear, only post-activation EU0 vehicle trips are averaged.
+        """
+        for edge_id in edges:
+            rsu = self.edge_to_rsu.get(edge_id)
+            if rsu is not None and edge_id in rsu.edge_data:
+                rsu.edge_data[edge_id]["fuel_consumption"].clear()
+                rsu.edge_data[edge_id]["co2_emissions"].clear()
 
     def reset_for_new_state(self):
         """

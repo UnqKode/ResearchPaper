@@ -39,8 +39,8 @@ class EdgeCostCalculator:
                  w_ref=60.0,            # waiting-time reference (s) for normalization
                  veh_footprint=7.5,     # avg vehicle length + min gap (m) -> jam capacity
                  v_min=0.1,             # floor speed to avoid div-by-zero (m/s)
-                 max_multiplier=1000.0,   # cap on the penalty bracket
-                 stop_ref=1.0,          # reference stop count for S normalisation (Q3)
+                 max_multiplier=10.0,   # cap on the penalty bracket
+                 stop_ref=5.0,          # reference stop count for S normalisation (Q3)
                  baseline_seed_n=8,     # samples collected before locking the free-flow baseline
                  debug_cfs=False):      # flag to capture decomposed C/F/S terms
         self.edge_lengths      = edge_lengths
@@ -65,19 +65,45 @@ class EdgeCostCalculator:
         # want), then switch to the asymmetric EMA. Until an edge has enough
         # samples its baseline is None -> compute_weight sets F = 0.0 (no fuel
         # penalty), which is the correct conservative behaviour.
-        self._fuel_baseline = {"153452#0": 80.0, "-153452#0": 80.0, "-153457": 80.0}
+        self._fuel_baseline = {}
         self._fuel_seed     = {}          # edge_id -> [first samples] until locked
         self._baseline_seed_n = max(1, int(baseline_seed_n))
         self._a_down = 0.20
         self._a_up   = 0.05
-        
+        # Edges whose baseline must not be updated (frozen at grade-mode activation
+        # so the pre-degradation free-flow floor is preserved as the F denominator).
+        self._frozen_baseline_edges: set = set()
+
         self.debug_cfs = debug_cfs
         self.cfs_records = []
+
+    def freeze_baseline(self, edge_id):
+        """Prevent further EMA updates for edge_id.
+
+        Called by RoadConditionManager at grade-mode activation so the
+        pre-degradation free-flow fuel floor is preserved as the F denominator
+        throughout the degradation window.  Without this the EMA absorbs the
+        elevated EU0 rates and F collapses to ~0.
+        """
+        self._frozen_baseline_edges.add(edge_id)
+        baseline_val = self._fuel_baseline.get(edge_id)
+        seed_count   = len(self._fuel_seed.get(edge_id, []))
+        import sys as _sys
+        _sys.stderr.write(f"[FREEZE_BASELINE] {edge_id}: baseline={baseline_val} seed_buf={seed_count} samples\n")
+        _sys.stderr.flush()
+
+    def unfreeze_baseline(self, edge_id):
+        """Re-enable EMA updates after grade mode deactivates."""
+        self._frozen_baseline_edges.discard(edge_id)
 
     # --- called once per completed vehicle trip by RSUManager (rate in mg/s) ---
     def record_vehicle_fuel(self, edge_id, fuel_rate):
         # Ignore non-physical / zero samples outright.
         if fuel_rate is None or fuel_rate <= 0:
+            return
+
+        # Frozen edges keep their pre-activation baseline so F stays valid.
+        if edge_id in self._frozen_baseline_edges:
             return
 
         cur = self._fuel_baseline.get(edge_id)
@@ -99,18 +125,6 @@ class EdgeCostCalculator:
     def _clamp(x, lo=0.0, hi=1.0):
         return max(lo, min(hi, x))
 
-    def compute_weight(self, edge_id, m):
-        """
-        m is the metrics dict for the edge:
-        vehicle_count, avg_speed, waiting_time, stop_and_go_freq,
-        fuel_consumption (mean mass per trip, mg), co2_emissions,
-        queue_length, occupancy (percent 0..100).
-
-        co2_emissions: collected by RSUManager for logging/analysis purposes
-        only; it is intentionally NOT part of the routing weight here because
-        CO2 is strongly correlated with fuel_consumption, which is already
-        captured by the F (fuel index) term.
-        """
     def _decompose(self, edge_id, m):
         L     = self.edge_lengths.get(edge_id, 100.0)
         v_lim = self.edge_speed_limits.get(edge_id, 13.89)
@@ -132,8 +146,14 @@ class EdgeCostCalculator:
         fuel_cons = m.get("fuel_consumption", 0.0)
         if baseline and baseline > 0 and fuel_cons > 0:
             cur_rate = fuel_cons / t_actual
-            # Uncapped Fuel Penalty: scales infinitely with excess fuel rate
-            F = max(0.0, cur_rate / baseline - 1.0)
+            F = self._clamp(cur_rate / baseline - 1.0, 0.0, 2.0) / 2.0
+
+        if edge_id in ('153391#0', '153391#1'):
+            import sys as _sys
+            _b = f"{baseline:.3f}" if baseline is not None else "None"
+            _sys.stderr.write(f"[F_DIAG] {edge_id}: baseline={_b} "
+                              f"fuel_cons={fuel_cons:.2f} t_actual={t_actual:.2f} F={F:.4f}\n")
+            _sys.stderr.flush()
 
         # --- stop-and-go: heaviest fuel driver, squared so it bites ---
         S = self._clamp(m.get("stop_and_go_freq", 0.0) / self.stop_ref) ** 2
@@ -205,5 +225,6 @@ class EdgeCostCalculator:
         attributable to the routing algorithm, so the baselines are reset at the
         seed boundary.
         """
-        self._fuel_baseline = {"153452#0": 80.0, "-153452#0": 80.0, "-153457": 80.0}
+        self._fuel_baseline = {}
         self._fuel_seed     = {}
+        self._frozen_baseline_edges = set()
