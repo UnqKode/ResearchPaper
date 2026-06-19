@@ -163,11 +163,6 @@ class RSUManager:
         covered     = len(self.edge_to_rsu)
         print(f"[RSU] coverage: {covered} / {total_edges} non-internal edges have an RSU "
               f"({dead_end_assigned} assigned via from_node fallback for dead-end terminations).")
-        import sys as _sys
-        for _de in ('153391#0', '153391#1'):
-            _sys.stderr.write(f"[RSU_COVERAGE_CHECK] {_de}: {'COVERED' if _de in self.edge_to_rsu else 'UNCOVERED'}\n")
-            _sys.stderr.flush()
-
         for u, v, data in graph.edges(data=True):
             self.edge_speed_limits[data["edge_id"]] = data.get("speed_limit", 13.89)
 

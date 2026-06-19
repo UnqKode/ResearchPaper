@@ -148,13 +148,6 @@ class EdgeCostCalculator:
             cur_rate = fuel_cons / t_actual
             F = self._clamp(cur_rate / baseline - 1.0, 0.0, 2.0) / 2.0
 
-        if edge_id in ('153391#0', '153391#1'):
-            import sys as _sys
-            _b = f"{baseline:.3f}" if baseline is not None else "None"
-            _sys.stderr.write(f"[F_DIAG] {edge_id}: baseline={_b} "
-                              f"fuel_cons={fuel_cons:.2f} t_actual={t_actual:.2f} F={F:.4f}\n")
-            _sys.stderr.flush()
-
         # --- stop-and-go: heaviest fuel driver, squared so it bites ---
         S = self._clamp(m.get("stop_and_go_freq", 0.0) / self.stop_ref) ** 2
 

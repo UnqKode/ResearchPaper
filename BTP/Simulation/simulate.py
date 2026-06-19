@@ -94,7 +94,10 @@ class Simulation:
                  ego_routing="ours",  # "ours" -> our Dijkstra ; "sumo" -> SUMO's routing
                  ego_od_list=None,    # list[(origin_edge, dest_edge)] for run_od_campaign
                  debug_cfs=False,     # Phase 1 debug flag
-                 road_condition_manager=None):
+                 road_condition_manager=None,
+                 theta_fuel=1.0,      # min fractional fuel saving required to accept bypass (1.0=off)
+                 theta_time=0.10,     # max fractional time increase allowed for bypass
+                 bypass_f_thresh=0.1):  # F threshold above which edge is treated as "high-fuel"
         # --- 1. Build the road graph (offline; uses sumolib, not TraCI) ---
         self.net_builder   = NetworkBuilder(net_file=net_file)
         self.graph         = self.net_builder.get_graph()
@@ -149,6 +152,11 @@ class Simulation:
         self._ego_injected = False
         self.dev_threshold = dev_threshold
         self.imp_threshold = imp_threshold
+        self.theta_fuel    = theta_fuel
+        self.theta_time    = theta_time
+        self.bypass_f_thresh = bypass_f_thresh
+        self._bypass_G     = None       # cached bypass graph (rebuilt each reroute interval)
+        self._bypass_G_time = -999.0    # sim_time when bypass_G was last built
         self.active_egos = {}
 
         self.ego_metrics = {"depart_time": None, "arrive_time": None, "fuel_mg": 0.0, "reroutes": 0}
@@ -693,21 +701,6 @@ class Simulation:
                 if cur_nodes and dest_nodes:
                     self.global_map.refresh(self.edges)
                     self.net_builder.update_graph_weights(self.global_map)
-                    import sys as _sys
-                    for _de in ('153391#0', '153391#1'):
-                        _stats = self.rsu_manager.get_edge_stats(_de)
-                        _baseline = self.calc._fuel_baseline.get(_de)
-                        _frozen = _de in self.calc._frozen_baseline_edges
-                        _w = self.global_map.get_weight(_de)
-                        _bl_str = f"{_baseline:.4f}" if _baseline is not None else "None"
-                        if _stats:
-                            _d = self.calc._decompose(_de, _stats)
-                            _sys.stderr.write(f"[INJECT_DIAG] ego_{k} {_de}: baseline={_bl_str} "
-                                              f"frozen={_frozen} fuel_cons={_stats.get('fuel_consumption',0):.4f} "
-                                              f"F={_d['F']:.4f} weight={_w:.2f}\n")
-                        else:
-                            _sys.stderr.write(f"[INJECT_DIAG] ego_{k} {_de}: NO STATS baseline={_bl_str} frozen={_frozen} weight={_w:.2f}\n")
-                    _sys.stderr.flush()
                     onward = self.net_builder.get_dijkstra_route(cur_nodes[1], dest_nodes[1])
                     if onward:
                         route_edges = [origin] + onward
@@ -854,6 +847,63 @@ class Simulation:
             self.ego_metrics["arrive_time"] = traci.simulation.getTime()
 
     # -----------------------------------------------------------------
+    def _predict_route_fuel_time(self, route):
+        """Predict total fuel (mg) and time (s) for route using current RSU stats.
+
+        For edges with no RSU fuel data, falls back to baseline_rate × t_actual so
+        the bypass is never artificially made to look free.
+        """
+        fuel = 0.0
+        t    = 0.0
+        for edge in route:
+            m    = self.rsu_manager.get_edge_stats(edge) or {}
+            L    = self.calc.edge_lengths.get(edge, 100.0)
+            v    = max(m.get("avg_speed", 0.0), self.calc.v_min)
+            t_act = L / v
+            t    += t_act
+            fc   = m.get("fuel_consumption", 0.0)
+            if fc <= 0.0:
+                bl = self.calc._fuel_baseline.get(edge)
+                fc = bl * t_act if bl else 0.0
+            fuel += fc
+        return fuel, t
+
+    def _build_bypass_graph(self):
+        """NetworkX MultiDiGraph with edges whose F > bypass_f_thresh removed.
+
+        Uses metric-based filtering (no hardcoded edge IDs).  Rebuilding from
+        scratch is O(|E|) but only happens once per reroute_interval.
+        """
+        import networkx as _nx
+        G       = self.net_builder.graph
+        bypass_G = _nx.MultiDiGraph()
+        bypass_G.add_nodes_from(G.nodes())
+        for u, v, k, d in G.edges(keys=True, data=True):
+            edge_id = d.get('edge_id', '')
+            m       = self.rsu_manager.get_edge_stats(edge_id) or {}
+            decomp  = self.calc._decompose(edge_id, m)
+            if decomp['F'] <= self.bypass_f_thresh:
+                bypass_G.add_edge(u, v, key=k, **d)
+        return bypass_G
+
+    def _get_bypass_route(self, src_node, dst_node, sim_time):
+        """Return edge list for cheapest route avoiding high-F edges, or []."""
+        import networkx as _nx
+        if self._bypass_G is None or sim_time - self._bypass_G_time >= self.reroute_interval:
+            self._bypass_G      = self._build_bypass_graph()
+            self._bypass_G_time = sim_time
+        bypass_G = self._bypass_G
+        try:
+            node_path = _nx.dijkstra_path(bypass_G, src_node, dst_node, weight='weight')
+            edge_path = []
+            for u, v in zip(node_path[:-1], node_path[1:]):
+                best_k = min(bypass_G[u][v], key=lambda kk: bypass_G[u][v][kk]['weight'])
+                edge_path.append(bypass_G[u][v][best_k]['edge_id'])
+            return edge_path
+        except Exception:
+            return []
+
+    # -----------------------------------------------------------------
     def _evaluate_and_reroute(self):
         """
         Deviation-based rerouting: only runs Dijkstra if the current remaining
@@ -895,10 +945,8 @@ class Simulation:
             elif current_remaining_cost == float('inf') and saved_remaining_cost < float('inf'):
                 deviation_pct = float('inf')
 
-            print(f"[REROUTE_CHECK] vehicle={self.ego_id} currentEdge={cur_edge} "
-                  f"remainingLen={len(remaining_route)} "
-                  f"routeDeviation={deviation_pct*100:.1f}% "
-                  f"currentRemainingCost={current_remaining_cost:.1f}")
+            # REROUTE_CHECK suppressed — printed every eval (every reroute_interval seconds);
+            # reroute_evals count at arrival gives the same information in aggregate.
 
             if deviation_pct <= self.dev_threshold:
                 return  # Stable route, no Dijkstra needed
@@ -938,19 +986,71 @@ class Simulation:
             print(f"[CANDIDATE_ROUTE] vehicle={self.ego_id} oldCost={current_remaining_cost:.1f} "
                   f"candidateCost={candidate_cost:.1f} improvement={improvement*100:.1f}%")
 
-            accepted = improvement > self.imp_threshold
+            # --- Step 2: fuel-vs-time bypass decision ---
+            # Only active when theta_fuel < 1.0 (disabled by default; enabled via --theta-fuel).
+            # Builds a bypass graph that forcibly removes high-F edges and checks whether
+            # the forced bypass is better on BOTH fuel and time before accepting it.
+            bypass_route = None
+            fuel_through = time_through = fuel_bypass = time_bypass = None
+            fuel_ok = time_ok = False
+
+            if self.theta_fuel < 1.0:
+                remaining_has_hf = any(
+                    self.calc._decompose(e, self.rsu_manager.get_edge_stats(e) or {})['F']
+                    > self.bypass_f_thresh
+                    for e in remaining_route
+                )
+                if remaining_has_hf:
+                    bypass_onward = self._get_bypass_route(src_node, dst_node, now)
+                    if bypass_onward:
+                        bypass_route   = [cur_edge] + bypass_onward
+                        fuel_through, time_through = self._predict_route_fuel_time(candidate_route)
+                        fuel_bypass, time_bypass   = self._predict_route_fuel_time(bypass_route)
+                        if fuel_through > 0:
+                            fuel_ok = fuel_bypass <= fuel_through * (1.0 - self.theta_fuel)
+                            time_ok = time_bypass <= time_through * (1.0 + self.theta_time)
+
+            # --- Step 1 diagnostic: log at-decision-time costs (debug_cfs only) ---
+            if getattr(self.calc, "debug_cfs", False) and bypass_route is not None:
+                bypass_cfs = sum(self.global_map.get_weight(e) for e in bypass_route)
+                suspect = (
+                    "S3_artifact"  if improvement <= 0.0 else
+                    "S1_hysteresis" if not (improvement > self.imp_threshold) else
+                    "none"
+                )
+                print(
+                    f"[STEP1_DIAG] ego={self.ego_id} t={now:.0f} "
+                    f"remaining={current_remaining_cost:.1f} "
+                    f"through_cfs={candidate_cost:.1f}(imp={improvement*100:.1f}%) "
+                    f"bypass_cfs={bypass_cfs:.1f} "
+                    f"fuel_through={fuel_through:.1f} fuel_bypass={fuel_bypass:.1f} "
+                    f"time_through={time_through:.1f} time_bypass={time_bypass:.1f} "
+                    f"fuel_ok={fuel_ok} time_ok={time_ok} suspect={suspect}"
+                )
+
+            # --- Choose final route ---
+            # Priority: fuel-aware bypass > CFS-optimal candidate > keep current
+            if fuel_ok and time_ok and bypass_route is not None:
+                chosen_route  = bypass_route
+                chosen_type   = "FUEL_BYPASS"
+            elif improvement > self.imp_threshold:
+                chosen_route  = candidate_route
+                chosen_type   = "CFS_OPTIMAL"
+            else:
+                chosen_route  = None
+                chosen_type   = "KEEP_CURRENT_ROUTE"
+
+            accepted = chosen_route is not None
             if accepted:
-                traci.vehicle.setRoute(self.ego_id, candidate_route)
+                traci.vehicle.setRoute(self.ego_id, chosen_route)
                 self.ego_metrics["reroutes"] += 1
-                
-                # Refresh snapshot
                 actual_route = traci.vehicle.getRoute(self.ego_id)
                 self.route_snapshot = {
                     "route": actual_route,
                     "saved_weights": {e: self.global_map.get_weight(e) for e in actual_route},
-                    "timestamp": traci.simulation.getTime()
+                    "timestamp": now,
                 }
-                print(f"[DECISION] vehicle={self.ego_id} action=REROUTE")
+                print(f"[DECISION] vehicle={self.ego_id} action=REROUTE type={chosen_type}")
             else:
                 print(f"[DECISION] vehicle={self.ego_id} action=KEEP_CURRENT_ROUTE")
 
@@ -958,19 +1058,21 @@ class Simulation:
             if getattr(self.calc, "debug_cfs", False):
                 step = int(now / traci.simulation.getDeltaT())
                 route_edges = set(remaining_route) | set(candidate_route)
+                if bypass_route:
+                    route_edges |= set(bypass_route)
                 for edge in route_edges:
                     m = self.rsu_manager.get_edge_stats(edge)
                     if m is None:
                         m = {}
                     d = self.calc._decompose(edge, m)
-                    
                     self.route_cfs_records.append({
                         "ego": self.ego_id,
                         "decision_step": step,
                         "accepted": accepted,
                         "edge_id": edge,
-                        "in_current": edge in remaining_route,
-                        "in_candidate": edge in candidate_route,
+                        "in_current":   edge in remaining_route,
+                        "in_candidate": edge in (candidate_route or []),
+                        "in_bypass":    edge in (bypass_route or []),
                         "avg_speed": m.get("avg_speed", 0.0),
                         "occupancy": m.get("occupancy", 0.0),
                         "queue_length": m.get("queue_length", 0.0),
@@ -1009,12 +1111,79 @@ class Simulation:
         print(f"  fuel:      {m['fuel_mg']:.1f} mg")
         print(f"  reroutes:  {m['reroutes']}")
 
+    # -----------------------------------------------------------------
+    def _write_crossing_diag(self, ego_id, arm, ego_k, od_list, driven_edges, seed, stamp):
+        """
+        For every ego that arrives, compute whether it crossed a degraded edge and
+        whether doing so was cost-rational (chosen_cost <= bypass_cost).
+
+        chosen_cost  = sum of current CFS weights over the ego's actual driven route
+        bypass_cost  = sum of CFS weights over the cheapest route that avoids all
+                       degraded edges (Dijkstra on a graph copy with those edges removed)
+
+        Writes one row to crossing_diag_<stamp>.csv in the BTP output directory.
+        If bypass Dijkstra fails (disconnected graph), bypass_cost is left blank.
+        """
+        import csv as _csv, os as _os
+        import networkx as _nx
+
+        rcm = getattr(self, 'road_condition_manager', None)
+        degraded = set(rcm.degraded_edges) if rcm is not None else set()
+
+        crossed = any(e in degraded for e in driven_edges)
+        chosen_cost = sum(self.global_map.get_weight(e) for e in driven_edges)
+
+        bypass_cost = None
+        if ego_k < len(od_list):
+            origin, dest = od_list[ego_k]
+            cur_nodes  = self.edge_to_nodes.get(origin)
+            dest_nodes = self.edge_to_nodes.get(dest)
+            if cur_nodes and dest_nodes:
+                G = self.net_builder.graph
+                bypass_G = _nx.MultiDiGraph()
+                bypass_G.add_nodes_from(G.nodes())
+                for u, v, k, d in G.edges(keys=True, data=True):
+                    if d.get('edge_id') not in degraded:
+                        bypass_G.add_edge(u, v, key=k, **d)
+                try:
+                    node_path = _nx.dijkstra_path(
+                        bypass_G, cur_nodes[1], dest_nodes[1], weight='weight')
+                    bypass_route = []
+                    for u, v in zip(node_path[:-1], node_path[1:]):
+                        best_k = min(bypass_G[u][v], key=lambda kk: bypass_G[u][v][kk]['weight'])
+                        bypass_route.append(bypass_G[u][v][best_k]['edge_id'])
+                    bypass_cost = sum(self.global_map.get_weight(e) for e in bypass_route)
+                except Exception:
+                    bypass_cost = None
+
+        ratio = (chosen_cost / bypass_cost) if (bypass_cost and bypass_cost > 0) else None
+
+        btp_dir = _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__)))
+        csv_path = _os.path.join(btp_dir, f"crossing_diag_{stamp}.csv")
+        write_hdr = not _os.path.exists(csv_path)
+        with open(csv_path, 'a', newline='') as fh:
+            writer = _csv.DictWriter(fh, fieldnames=[
+                'ego_id', 'seed', 'arm', 'crossed',
+                'chosen_cost', 'bypass_cost', 'ratio'])
+            if write_hdr:
+                writer.writeheader()
+            writer.writerow({
+                'ego_id':       ego_id,
+                'seed':         seed,
+                'arm':          arm,
+                'crossed':      crossed,
+                'chosen_cost':  round(chosen_cost, 3),
+                'bypass_cost':  round(bypass_cost, 3) if bypass_cost is not None else '',
+                'ratio':        round(ratio, 4) if ratio is not None else '',
+            })
+
     # =================================================================
     # Fixed-Departure Continuous Campaign (NEW PAIRED FUEL MODE)
     # =================================================================
     def run_fixed_departure_campaign(self, od_list, depart_start, depart_spacing,
                                      per_trip_timeout, ego_policy, reroute_interval,
-                                     use_hysteresis, progress_log_path=None):
+                                     use_hysteresis, progress_log_path=None,
+                                     seed=None, diag_stamp=None):
         """
         Injects a list of OD pairs into a single continuous simulation run at fixed
         scheduled times. Egos route according to `ego_policy`. Metrics are parsed
@@ -1045,7 +1214,7 @@ class Simulation:
             vid = f"ego_{k}"
             schedule[vid] = depart_time_s
             ego_states[vid] = {
-                "metrics": {"depart_time": None, "arrive_time": None, "fuel_mg": 0.0, "reroutes": 0, "driven_edges": []},
+                "metrics": {"depart_time": None, "arrive_time": None, "fuel_mg": 0.0, "reroutes": 0, "driven_edges": [], "reroute_evals": 0},
                 "snapshot": {"route": [], "saved_weights": {}, "timestamp": 0.0},
                 "last_dijkstra_time": 0.0,
                 "origin": origin,
@@ -1055,6 +1224,7 @@ class Simulation:
 
         active_egos = set()
         completed_egos = set()
+        _last_reroute_sim_time = 0.0   # tracks last time global_map was refreshed for rerouting
         fast_forward_target = depart_start - 900.0  # default: 15-min RSU rewarm before egos
 
         # If a road condition activates before the default fast-forward end, pull the
@@ -1127,6 +1297,19 @@ class Simulation:
                         completed_egos.add(vid)
                         print(f"[{ego_policy}] SKIPPED {vid} (no route {origin} -> {dest})")
 
+            # Refresh global weights once per reroute_interval SECONDS (not per ego, not per step).
+            # With dt=0.25s and reroute_interval=30s, this fires every 120 steps — 4x less
+            # often than the old step-count modulo which fired every 30 steps = 7.5s.
+            _do_reroute = (
+                self.ego_routing == "ours"
+                and bool(active_egos)
+                and sim_time - _last_reroute_sim_time >= self.reroute_interval
+            )
+            if _do_reroute:
+                _last_reroute_sim_time = sim_time
+                self.global_map.refresh(self.edges)
+                self.net_builder.update_graph_weights(self.global_map)
+
             # Track and Reroute active egos
             for vid in list(active_egos):
                 # Bind pointers FIRST for the track loop
@@ -1137,14 +1320,10 @@ class Simulation:
 
                 self._track_ego(dt)
 
-                # reroute_interval is in steps. We can use modulo on the current integer step count
-                current_step = int(sim_time / dt)
-                if self.ego_routing == "ours" and current_step % self.reroute_interval == 0:
-                    # In _evaluate_and_reroute, it uses self.ego_id implicitly
-                    self.global_map.refresh(self.edges)
-                    self.net_builder.update_graph_weights(self.global_map)
+                if _do_reroute:
                     self._evaluate_and_reroute()
-                    
+                    ego_states[vid]["metrics"]["reroute_evals"] += 1
+
                 # Update saved state
                 ego_states[vid]["metrics"] = self.ego_metrics
                 ego_states[vid]["snapshot"] = self.route_snapshot
@@ -1161,11 +1340,20 @@ class Simulation:
                             r["reroutes"] = ego_states[vid]["metrics"]["reroutes"]
                             r["driven_edges"] = ego_states[vid]["metrics"].get("driven_edges", [])
                             break
-                    print(f"[{ego_policy}] {vid} arrived.")
+                    _evals = ego_states[vid]["metrics"].get("reroute_evals", 0)
+                    _rertes = ego_states[vid]["metrics"].get("reroutes", 0)
+                    print(f"[{ego_policy}] {vid} arrived. reroute_evals={_evals} accepted_reroutes={_rertes}")
+                    if diag_stamp:
+                        try:
+                            _driven = ego_states[vid]["metrics"].get("driven_edges", [])
+                            _k = int(vid.split("_")[1])
+                            self._write_crossing_diag(vid, ego_policy, _k, od_list, _driven, seed, diag_stamp)
+                        except Exception as _de:
+                            print(f"[crossing_diag] failed for {vid}: {_de}")
                     if progress_log_path:
                         try:
-                            import csv as _csv
-                            write_header = not os.path.exists(progress_log_path)
+                            import csv as _csv, os as _os
+                            write_header = not _os.path.exists(progress_log_path)
                             with open(progress_log_path, 'a', newline='') as f:
                                 _fieldnames = [
                                     "trip", "arm", "origin", "dest", "arrived",
@@ -1186,7 +1374,7 @@ class Simulation:
                                         break
                             if self.calc.cfs_records:
                                 cfs_path = progress_log_path.replace('progress_', 'cfs_debug_')
-                                write_cfs_hdr = not os.path.exists(cfs_path)
+                                write_cfs_hdr = not _os.path.exists(cfs_path)
                                 with open(cfs_path, 'a', newline='') as f:
                                     writer = _csv.DictWriter(f, fieldnames=list(self.calc.cfs_records[0].keys()))
                                     if write_cfs_hdr:
@@ -1195,7 +1383,7 @@ class Simulation:
                                 self.calc.cfs_records.clear()
                             if self.route_cfs_records:
                                 rcfs_path = progress_log_path.replace('progress_', 'route_cfs_')
-                                write_rcfs_hdr = not os.path.exists(rcfs_path)
+                                write_rcfs_hdr = not _os.path.exists(rcfs_path)
                                 with open(rcfs_path, 'a', newline='') as f:
                                     writer = _csv.DictWriter(f, fieldnames=list(self.route_cfs_records[0].keys()))
                                     if write_rcfs_hdr:

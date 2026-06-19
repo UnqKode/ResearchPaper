@@ -969,7 +969,8 @@ def run_parallel(od_list, traffic_seed, jobs, warmup_steps=WARMUP_STEPS,
 # ===========================================================================
 def run_paired_scenario(arm_policy, alpha, beta, gamma, od_list, traffic_seed, tag,
                         depart_start, depart_spacing, use_hysteresis,
-                        scale, teleport, road_condition_manager=None, debug_cfs=False):
+                        scale, teleport, road_condition_manager=None, debug_cfs=False,
+                        diag_stamp=None, theta_fuel=1.0, theta_time=0.10):
     out_prefix = f"{tag}."
     tripinfo_path = f"{out_prefix}tripinfo.xml"
     progress_path = f"progress_{tag}.csv"
@@ -1012,7 +1013,9 @@ def run_paired_scenario(arm_policy, alpha, beta, gamma, od_list, traffic_seed, t
             ego_routing=arm_policy if arm_policy != "ablation" else "ours",
             ego_od_list=od_list,
             debug_cfs=debug_cfs,
-            road_condition_manager=road_condition_manager
+            road_condition_manager=road_condition_manager,
+            theta_fuel=theta_fuel,
+            theta_time=theta_time,
         )
         # D3: bind the unbound manager (pickled without traci/calc refs) to live objects.
         if road_condition_manager is not None and road_condition_manager.mode != "none":
@@ -1030,7 +1033,9 @@ def run_paired_scenario(arm_policy, alpha, beta, gamma, od_list, traffic_seed, t
             ego_policy=arm_policy,
             reroute_interval=REROUTE_INTERVAL,
             use_hysteresis=use_hysteresis,
-            progress_log_path=progress_path
+            progress_log_path=progress_path,
+            seed=traffic_seed,
+            diag_stamp=diag_stamp
         )
     except traci.FatalTraCIError as e:
         print(f"TraCI error in paired scenario '{tag}': {e}")
@@ -1073,7 +1078,8 @@ def run_paired_scenario(arm_policy, alpha, beta, gamma, od_list, traffic_seed, t
 
 def _run_paired_capture(arm_policy, alpha, beta, gamma, od_list, traffic_seed, tag,
                         depart_start, depart_spacing, use_hysteresis, scale, teleport,
-                        road_condition_manager=None, debug_cfs=False):
+                        road_condition_manager=None, debug_cfs=False, diag_stamp=None,
+                        theta_fuel=1.0, theta_time=0.10):
     t0 = time.time()
     buf = io.StringIO()
     error = None
@@ -1085,7 +1091,8 @@ def _run_paired_capture(arm_policy, alpha, beta, gamma, od_list, traffic_seed, t
             res, cfs, route_cfs = run_paired_scenario(
                 arm_policy, alpha, beta, gamma, od_list, traffic_seed, tag,
                 depart_start, depart_spacing, use_hysteresis, scale, teleport,
-                road_condition_manager=road_condition_manager, debug_cfs=debug_cfs
+                road_condition_manager=road_condition_manager, debug_cfs=debug_cfs,
+                diag_stamp=diag_stamp, theta_fuel=theta_fuel, theta_time=theta_time,
             )
     except Exception as e:
         error = repr(e)
@@ -1306,9 +1313,18 @@ def main():
     ap.add_argument("--depart-spacing", type=float, default=120, help="steps between ego departures")
     ap.add_argument("--reroute-interval", type=int, default=REROUTE_INTERVAL, help="reroute cadence")
     ap.add_argument("--use-hysteresis", action="store_true", help="re-enable ours hysteresis")
+    ap.add_argument("--seed-parallelism", type=int, default=1,
+                    help="number of seeds to run concurrently (each seed uses 2 workers; "
+                         "total workers = seed-parallelism * 2; cap to available cores)")
     
     # Phase 1 & 2 additions
     ap.add_argument("--debug-cfs", action="store_true", help="enable Phase 1 C/F/S debug sink and summary")
+    ap.add_argument("--theta-fuel", type=float, default=1.0,
+                    help="Step 2: min fractional fuel saving for bypass to be accepted (e.g. 0.05 = 5%%). "
+                         "Default 1.0 disables the rule (pure CFS routing).")
+    ap.add_argument("--theta-time", type=float, default=0.10,
+                    help="Step 2: max fractional extra time allowed for bypass (e.g. 0.10 = 10%%). "
+                         "Only used when --theta-fuel < 1.0.")
     ap.add_argument("--scale-sweep", type=str, default="", help="comma-separated scales for Phase 2 congestion sweep")
     ap.add_argument("--depart-sweep", type=str, default="", help="comma-separated depart_starts for Phase 2 sweep")
     
@@ -1551,16 +1567,25 @@ def main():
                 all_res = {arm: [] for arm in arms_to_run}
                 cfs_all = []
                 route_cfs_all = []
-                
+
                 run_meta["scale"] = scale
                 run_meta["depart_start"] = depart
-                
+                diag_stamp = time.strftime("%Y%m%d_%H%M%S")
+
+                # --seed-parallelism P: run P seeds concurrently; each seed still runs
+                # its two arms in parallel within the same pool (2*P total workers).
+                _seed_p = max(1, args.seed_parallelism)
+                _max_workers = _seed_p * len(arms_to_run)
+                print(f"[seed-parallelism] P={_seed_p}, arms={len(arms_to_run)}, "
+                      f"total_workers={_max_workers}")
+                ctx = multiprocessing.get_context("spawn")
+                ex = concurrent.futures.ProcessPoolExecutor(
+                    max_workers=_max_workers, mp_context=ctx)
+
+                futs = {}
                 for seed in seeds:
-                    print(f"\n--- SEED {seed} ---")
-                    ctx = multiprocessing.get_context("spawn")
-                    ex = concurrent.futures.ProcessPoolExecutor(max_workers=len(arms_to_run), mp_context=ctx)
-                    
-                    futs = {}
+                    print(f"\n--- Queuing SEED {seed} ---")
+                    seed_diag = f"{diag_stamp}_{seed}"   # unique diag file per seed
                     for arm in arms_to_run:
                         a, b, g = (0.0, 0.0, 0.0) if arm == "ablation" else (ALPHA, BETA, GAMMA)
                         is_ours = (arm == "ours")
@@ -1570,21 +1595,25 @@ def main():
                             depart, args.depart_spacing, args.use_hysteresis,
                             scale, args.teleport,
                             road_condition_manager=manager,
-                            debug_cfs=(args.debug_cfs and is_ours)
+                            debug_cfs=(args.debug_cfs and is_ours),
+                            diag_stamp=seed_diag,
+                            theta_fuel=args.theta_fuel if is_ours else 1.0,
+                            theta_time=args.theta_time,
                         )
-                        futs[fut] = arm
-                        
-                    for fut in concurrent.futures.as_completed(futs, timeout=WORKER_TIMEOUT_S):
-                        arm = futs[fut]
-                        out = fut.result()
-                        print(f"\n# scenario '{out['tag']}' finished in {out['wall_s']:.1f}s")
-                        if out["error"]: print(f"[ERROR] {out['error']}")
-                        if out.get("log"): print(out["log"], end="" if out["log"].endswith("\n") else "\n")
-                        all_res[arm].append(out["results"])
-                        if arm == "ours" and args.debug_cfs:
-                            cfs_all.extend(out.get("cfs_records", []))
-                            route_cfs_all.extend(out.get("route_cfs_records", []))
-                    ex.shutdown(wait=False, cancel_futures=True)
+                        futs[fut] = (seed, arm)
+
+                for fut in concurrent.futures.as_completed(futs, timeout=WORKER_TIMEOUT_S):
+                    seed_done, arm_done = futs[fut]
+                    out = fut.result()
+                    print(f"\n# scenario '{out['tag']}' (seed={seed_done}) finished in {out['wall_s']:.1f}s")
+                    if out["error"]: print(f"[ERROR] {out['error']}")
+                    if out.get("log"): print(out["log"], end="" if out["log"].endswith("\n") else "\n")
+                    all_res[arm_done].append(out["results"])
+                    if arm_done == "ours" and args.debug_cfs:
+                        cfs_all.extend(out.get("cfs_records", []))
+                        route_cfs_all.extend(out.get("route_cfs_records", []))
+
+                ex.shutdown(wait=False, cancel_futures=True)
                     
                 sum_json = None
                 if "sumo" in all_res:
