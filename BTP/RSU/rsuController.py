@@ -187,12 +187,16 @@ class RSUManager:
         Called at grade-mode activation so pre-grade EU4 measurements don't
         dilute the EU0 signal used by _decompose() to compute F.  After the
         clear, only post-activation EU0 vehicle trips are averaged.
+        Also clears the per-traversal fuel window so fuel-objective routing
+        likewise sees only post-activation costs.
         """
         for edge_id in edges:
             rsu = self.edge_to_rsu.get(edge_id)
             if rsu is not None and edge_id in rsu.edge_data:
                 rsu.edge_data[edge_id]["fuel_consumption"].clear()
                 rsu.edge_data[edge_id]["co2_emissions"].clear()
+        if self._edge_cost_calc is not None:
+            self._edge_cost_calc.clear_traversal_fuel(edges)
 
     def reset_for_new_state(self):
         """
@@ -340,6 +344,11 @@ class RSUManager:
                         mean_fuel_rate = v_data["fuel"] / time_on_edge  # mg/s
                         if mean_fuel_rate > 0:
                             self._edge_cost_calc.record_vehicle_fuel(edge_id, mean_fuel_rate)
+
+                    # Also record the TOTAL traversal fuel for fuel-objective routing.
+                    # One sample per traversal; never 0 (guard inside record_traversal_fuel).
+                    if self._edge_cost_calc is not None:
+                        self._edge_cost_calc.record_traversal_fuel(edge_id, v_data["fuel"])
 
                     # Clean up memory: remove the vehicle now that it has left
                     del self.active_vehicles[edge_id][veh_id]

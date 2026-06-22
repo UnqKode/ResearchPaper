@@ -42,7 +42,9 @@ class EdgeCostCalculator:
                  max_multiplier=10.0,   # cap on the penalty bracket
                  stop_ref=5.0,          # reference stop count for S normalisation (Q3)
                  baseline_seed_n=8,     # samples collected before locking the free-flow baseline
-                 debug_cfs=False):      # flag to capture decomposed C/F/S terms
+                 debug_cfs=False,       # flag to capture decomposed C/F/S terms
+                 fuel_window_size=10,   # per-traversal sample window for fuel-objective routing
+                 nominal_fuel_rate_mg_s=50.0):  # cold-edge fallback rate (mg/s) at free-flow
         self.edge_lengths      = edge_lengths
         self.edge_speed_limits = edge_speed_limits
         self.alpha, self.beta, self.gamma = alpha, beta, gamma
@@ -76,6 +78,15 @@ class EdgeCostCalculator:
 
         self.debug_cfs = debug_cfs
         self.cfs_records = []
+
+        # --- Traversal-fuel window (for --cost-mode fuel) ---
+        # Each entry in the deque is the TOTAL fuel (mg) consumed by ONE vehicle
+        # completing a full traversal of that edge.  Only real traversals are
+        # stored; zeros are never appended (no zero-dilution).  The window size
+        # is small (default 10) so costs track current conditions quickly.
+        self._fuel_window_size = max(1, int(fuel_window_size))
+        self._nominal_fuel_rate_mg_s = float(nominal_fuel_rate_mg_s)
+        self._traversal_fuel: dict = {}   # edge_id -> deque[float] of per-traversal mg
 
     def freeze_baseline(self, edge_id):
         """Prevent further EMA updates for edge_id.
@@ -120,6 +131,69 @@ class EdgeCostCalculator:
 
         a = self._a_down if fuel_rate < cur else self._a_up
         self._fuel_baseline[edge_id] = (1.0 - a) * cur + a * fuel_rate
+
+    # --- Fuel-objective routing: per-traversal fuel window ---
+
+    def record_traversal_fuel(self, edge_id, total_fuel_mg):
+        """Append the total fuel (mg) a single vehicle burned traversing edge_id.
+
+        Called once per COMPLETED traversal; never called with 0 (callers must
+        guard).  This is separate from record_vehicle_fuel (which feeds the F
+        index EMA baseline) so the two cost models remain independent.
+        """
+        if total_fuel_mg is None or total_fuel_mg <= 0:
+            return
+        from collections import deque as _deque
+        if edge_id not in self._traversal_fuel:
+            self._traversal_fuel[edge_id] = _deque(maxlen=self._fuel_window_size)
+        self._traversal_fuel[edge_id].append(float(total_fuel_mg))
+
+    def _cold_fuel_fallback(self, edge_id):
+        """Free-flow fuel estimate for an edge with no traversal observations.
+
+        Uses free_flow_time × fuel_rate, where fuel_rate is the EMA baseline
+        (mg/s) if one has been locked, otherwise the nominal default.  This
+        gives a positive, finite cost that keeps the router from either loving
+        (weight→0) or refusing (weight→∞) unobserved edges.
+        """
+        L     = self.edge_lengths.get(edge_id, 100.0)
+        v_lim = self.edge_speed_limits.get(edge_id, 13.89)
+        t_ff  = L / v_lim
+        rate  = self._fuel_baseline.get(edge_id) or self._nominal_fuel_rate_mg_s
+        return rate * t_ff
+
+    def get_segment_fuel(self, edge_id):
+        """Return the expected fuel (mg) for ONE vehicle to traverse edge_id.
+
+        Primary:  recency-weighted average of the last `fuel_window_size`
+                  single-vehicle traversal observations stored in
+                  `_traversal_fuel[edge_id]`.  Linear weights: newest sample
+                  gets weight N, oldest gets weight 1 (N = number of samples).
+                  This gives the most recent traversal ~18× the influence of
+                  the oldest when the window is full at N=10.
+
+        Fallback: `_cold_fuel_fallback(edge_id)` when the window is empty.
+                  Never returns 0 or infinity.
+        """
+        dq = self._traversal_fuel.get(edge_id)
+        if not dq:
+            return self._cold_fuel_fallback(edge_id)
+        samples  = list(dq)            # oldest → newest
+        n        = len(samples)
+        w_sum    = n * (n + 1) / 2    # sum of 1+2+…+n
+        weighted = sum(s * (i + 1) for i, s in enumerate(samples))
+        return weighted / w_sum
+
+    def clear_traversal_fuel(self, edge_ids):
+        """Clear per-traversal fuel windows for the given edges.
+
+        Called at grade-mode activation so pre-grade EU4 traversal costs do not
+        dilute the post-activation EU0 signal used by fuel-objective routing.
+        """
+        for eid in edge_ids:
+            dq = self._traversal_fuel.get(eid)
+            if dq is not None:
+                dq.clear()
 
     @staticmethod
     def _clamp(x, lo=0.0, hi=1.0):
@@ -221,3 +295,4 @@ class EdgeCostCalculator:
         self._fuel_baseline = {}
         self._fuel_seed     = {}
         self._frozen_baseline_edges = set()
+        self._traversal_fuel = {}

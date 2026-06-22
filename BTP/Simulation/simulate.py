@@ -49,28 +49,73 @@ class GlobalMap:
     Adapter between the RSUs/calculator and the router.
 
     get_weight(edge_id) returns the most recently computed dynamic weight, or
-    float('inf') for edges we have no usable data on yet -- which is exactly the
-    signal NetworkBuilder.update_graph_weights uses to fall back to static length.
+    the appropriate fallback for edges with no data yet.
+
+    cost_mode="augtime" (default): weight = t_actual * (1 + alpha*C + beta*F + gamma*S)
+    cost_mode="fuel":              weight = per-traversal fuel estimate (mg),
+                                   the direct quantity minimised by the router.
     """
 
-    def __init__(self, rsu_manager, edge_cost_calc):
+    def __init__(self, rsu_manager, edge_cost_calc, cost_mode="augtime"):
         self.rsu_manager = rsu_manager
         self.calc = edge_cost_calc
         self.weights = {}
+        self.cost_mode = cost_mode
 
     def refresh(self, edge_ids):
-        """Recompute weights for every edge from its current smoothed stats."""
-        for edge_id in edge_ids:
-            stats = self.rsu_manager.get_edge_stats(edge_id)
-            # Skip edges with no RSU (stats None/empty) or no traffic data yet
-            # (avg_speed == 0 means the rolling window hasn't been populated).
-            if not stats or stats.get("avg_speed", 0.0) <= 0.0:
-                continue
-            self.weights[edge_id] = self.calc.compute_weight(edge_id, stats)
+        """Recompute weights for every edge from current RSU data."""
+        if self.cost_mode == "fuel":
+            # Fuel-objective: weight = per-traversal fuel (mg).
+            #
+            # Warm edge  (traversal window non-empty): use the recency-weighted
+            #            average of real per-vehicle traversal observations.
+            # Cold edge  (no traversal samples yet): estimate as
+            #            baseline_rate × t_actual, where t_actual = L / avg_speed
+            #            comes from the RSU rolling window so the estimate reflects
+            #            current congestion rather than free-flow speed.  Falling
+            #            back to free-flow speed (v_lim) only when the RSU has no
+            #            data for this edge yet.
+            #
+            # The free-flow fallback (old behaviour) made unobserved edges look
+            # cheap even when congested, causing the router to route onto them and
+            # produce the +55% fuel penalty seen in the first smoke run.
+            for edge_id in edge_ids:
+                dq = self.calc._traversal_fuel.get(edge_id)
+                if dq:
+                    self.weights[edge_id] = self.calc.get_segment_fuel(edge_id)
+                else:
+                    stats = self.rsu_manager.get_edge_stats(edge_id)
+                    L    = self.calc.edge_lengths.get(edge_id, 100.0)
+                    rate = (self.calc._fuel_baseline.get(edge_id)
+                            or self.calc._nominal_fuel_rate_mg_s)
+                    v    = (stats.get("avg_speed", 0.0) if stats else 0.0)
+                    if v <= 0.0:
+                        v = self.calc.edge_speed_limits.get(edge_id, 13.89)
+                    self.weights[edge_id] = rate * (L / v)
+        else:
+            for edge_id in edge_ids:
+                stats = self.rsu_manager.get_edge_stats(edge_id)
+                # Skip edges with no RSU (stats None/empty) or no traffic data yet
+                # (avg_speed == 0 means the rolling window hasn't been populated).
+                if not stats or stats.get("avg_speed", 0.0) <= 0.0:
+                    continue
+                self.weights[edge_id] = self.calc.compute_weight(edge_id, stats)
 
     def get_weight(self, edge_id):
         w = self.weights.get(edge_id, float("inf"))
         if w == float("inf"):
+            if self.cost_mode == "fuel":
+                # Fallback for edges not yet in self.weights (before first refresh,
+                # or edges absent from the network's edge list).  Apply the same
+                # congestion-aware logic as refresh() cold branch.
+                stats = self.rsu_manager.get_edge_stats(edge_id)
+                L    = self.calc.edge_lengths.get(edge_id, 100.0)
+                rate = (self.calc._fuel_baseline.get(edge_id)
+                        or self.calc._nominal_fuel_rate_mg_s)
+                v    = (stats.get("avg_speed", 0.0) if stats else 0.0)
+                if v <= 0.0:
+                    v = self.calc.edge_speed_limits.get(edge_id, 13.89)
+                return rate * (L / v)
             L = self.calc.edge_lengths.get(edge_id, 100.0)
             v_lim = self.calc.edge_speed_limits.get(edge_id, 13.89)
             return L / v_lim
@@ -97,7 +142,8 @@ class Simulation:
                  road_condition_manager=None,
                  theta_fuel=1.0,      # min fractional fuel saving required to accept bypass (1.0=off)
                  theta_time=0.10,     # max fractional time increase allowed for bypass
-                 bypass_f_thresh=0.1):  # F threshold above which edge is treated as "high-fuel"
+                 bypass_f_thresh=0.1,  # F threshold above which edge is treated as "high-fuel"
+                 cost_mode="augtime"):  # "augtime" (default) or "fuel" (minimise per-traversal fuel)
         # --- 1. Build the road graph (offline; uses sumolib, not TraCI) ---
         self.net_builder   = NetworkBuilder(net_file=net_file)
         self.graph         = self.net_builder.get_graph()
@@ -137,7 +183,8 @@ class Simulation:
         self.rsu_manager.set_edge_cost_calc(self.calc)
 
         # --- 5. Glue ---
-        self.global_map = GlobalMap(self.rsu_manager, self.calc)
+        self.cost_mode = cost_mode
+        self.global_map = GlobalMap(self.rsu_manager, self.calc, cost_mode=cost_mode)
         self.route_cfs_records = []
 
         self.reroute_interval = reroute_interval
@@ -743,6 +790,7 @@ class Simulation:
                         "edge_id": edge,
                         "in_current": True,
                         "in_candidate": False,
+                        "in_bypass": False,
                         "avg_speed":        m.get("avg_speed",        0.0),
                         "occupancy":        m.get("occupancy",        0.0),
                         "queue_length":     m.get("queue_length",     0.0),
@@ -1279,7 +1327,7 @@ class Simulation:
                         ego_states[vid]["metrics"] = self.ego_metrics
                         ego_states[vid]["snapshot"] = self.route_snapshot
                         ego_states[vid]["last_dijkstra_time"] = self.last_dijkstra_time
-                        results.append({
+                        rec = {
                             "trip": k,
                             "seed": None, # Will be attached by caller
                             "origin": origin,
@@ -1291,7 +1339,13 @@ class Simulation:
                             "arrived": False,
                             "reroutes": 0,
                             "driven_edges": [],
-                        })
+                        }
+                        if self.cost_mode == "fuel":
+                            # saved_weights holds per-edge fuel (mg) at routing time
+                            sw = self.route_snapshot.get("saved_weights", {})
+                            predicted = sum(sw.values())
+                            rec["predicted_fuel_mg"] = predicted if predicted > 0 else None
+                        results.append(rec)
                         print(f"[{ego_policy}] Injected {vid} at sim_time {sim_time:.1f}s (vcount={bg_vcount}, possum={bg_possum})")
                     else:
                         completed_egos.add(vid)
