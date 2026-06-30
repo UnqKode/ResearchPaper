@@ -165,6 +165,13 @@ class RoadConditionManager:
                 f"RoadConditionManager: Activating GRADE mode on edges {self.degraded_edges} "
                 f"(emission class: {self.grade_emission_class}). Speed limits unchanged."
             )
+            import sys as _sys
+            _sys.stderr.write(
+                f"[GRADE_ACTIVATE] edges={self.degraded_edges} "
+                f"activate_time={self.activate_time} "
+                f"emission_class={self.grade_emission_class}\n"
+            )
+            _sys.stderr.flush()
             # Freeze the fuel baseline for each degraded edge so the pre-activation
             # free-flow floor (EU4 rate) is preserved as the F denominator. Without
             # this the EMA absorbs the elevated EU0 departure rates and F collapses

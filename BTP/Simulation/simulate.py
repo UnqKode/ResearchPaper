@@ -86,8 +86,7 @@ class GlobalMap:
                 else:
                     stats = self.rsu_manager.get_edge_stats(edge_id)
                     L    = self.calc.edge_lengths.get(edge_id, 100.0)
-                    rate = (self.calc._fuel_baseline.get(edge_id)
-                            or self.calc._nominal_fuel_rate_mg_s)
+                    rate = self.calc.cold_nominal_rate(edge_id)
                     v    = (stats.get("avg_speed", 0.0) if stats else 0.0)
                     if v <= 0.0:
                         v = self.calc.edge_speed_limits.get(edge_id, 13.89)
@@ -110,8 +109,7 @@ class GlobalMap:
                 # congestion-aware logic as refresh() cold branch.
                 stats = self.rsu_manager.get_edge_stats(edge_id)
                 L    = self.calc.edge_lengths.get(edge_id, 100.0)
-                rate = (self.calc._fuel_baseline.get(edge_id)
-                        or self.calc._nominal_fuel_rate_mg_s)
+                rate = self.calc.cold_nominal_rate(edge_id)
                 v    = (stats.get("avg_speed", 0.0) if stats else 0.0)
                 if v <= 0.0:
                     v = self.calc.edge_speed_limits.get(edge_id, 13.89)
@@ -126,7 +124,7 @@ class Simulation:
     def __init__(self,
                  net_file,
                  reroute_interval=30,
-                 dev_threshold=0.20,
+                 dev_threshold=0.10,
                  imp_threshold=0.15,
                  alpha=1.0, beta=0.8, gamma=1.5,
                  # --- ego-vehicle configuration ---
@@ -209,6 +207,7 @@ class Simulation:
         self.ego_metrics = {"depart_time": None, "arrive_time": None, "fuel_mg": 0.0, "reroutes": 0}
         self.route_snapshot = {"route": [], "saved_weights": {}, "timestamp": 0.0}
         self.last_dijkstra_time = 0.0
+        self.last_reroute_time  = -999.0
 
         self._finalize_init(ego_routing, ego_od_list)
         # D2: store the manager so the campaign loop's hasattr() guard actually fires.
@@ -349,6 +348,8 @@ class Simulation:
                 # Fresh per-trip metrics (reuses the same schema _track_ego writes to).
                 self.ego_metrics = {"depart_time": None, "arrive_time": None,
                                     "fuel_mg": 0.0, "reroutes": 0}
+                self.last_reroute_time  = -999.0
+                self.last_dijkstra_time = 0.0
 
                 step = 0
                 while True:
@@ -629,6 +630,8 @@ class Simulation:
                     "fuel_mg":     0.0,
                     "reroutes":    0,
                 }
+                self.last_reroute_time  = -999.0
+                self.last_dijkstra_time = 0.0
                 injected = self._inject_ego_trip(origin, dest, k)
                 if not injected:
                     if verbose:
@@ -993,11 +996,16 @@ class Simulation:
             elif current_remaining_cost == float('inf') and saved_remaining_cost < float('inf'):
                 deviation_pct = float('inf')
 
-            # REROUTE_CHECK suppressed — printed every eval (every reroute_interval seconds);
-            # reroute_evals count at arrival gives the same information in aggregate.
-
             if deviation_pct <= self.dev_threshold:
                 return  # Stable route, no Dijkstra needed
+
+            now = traci.simulation.getTime()
+
+            # Reroute cooldown: once a route switch is accepted, commit to it
+            # for 120s so normal traffic noise cannot cause rapid oscillation
+            # while still allowing reaction to genuine traffic events.
+            if now - self.last_reroute_time < 30.0:
+                return
 
             cur_nodes = self.edge_to_nodes.get(cur_edge)
             dest_nodes = self.edge_to_nodes.get(dest_edge)
@@ -1009,7 +1017,6 @@ class Simulation:
             if src_node == dst_node:
                 return
 
-            now = traci.simulation.getTime()
             if now - self.last_dijkstra_time < 30.0:
                 return
             self.last_dijkstra_time = now
@@ -1092,6 +1099,7 @@ class Simulation:
             if accepted:
                 traci.vehicle.setRoute(self.ego_id, chosen_route)
                 self.ego_metrics["reroutes"] += 1
+                self.last_reroute_time = now
                 actual_route = traci.vehicle.getRoute(self.ego_id)
                 self.route_snapshot = {
                     "route": actual_route,
@@ -1313,6 +1321,30 @@ class Simulation:
                     _vid_list = traci.vehicle.getIDList()
                     bg_possum = round(sum(traci.vehicle.getLanePosition(v) for v in _vid_list), 1)
 
+                    # Pre-injection network state snapshot for arm comparison
+                    _deg_edges = (self.road_condition_manager.degraded_edges
+                                  if hasattr(self, 'road_condition_manager')
+                                  and self.road_condition_manager
+                                  and self.road_condition_manager.mode != "none"
+                                  else [])
+                    _deg_snap = {}
+                    for _de in _deg_edges:
+                        _dq = self.calc._traversal_fuel.get(_de)
+                        _mean_fuel = round(sum(_dq) / len(_dq), 1) if _dq else None
+                        _deg_snap[_de] = {
+                            "n_veh":     traci.edge.getLastStepVehicleNumber(_de),
+                            "mean_spd":  round(traci.edge.getLastStepMeanSpeed(_de), 2),
+                            "occupancy": round(traci.edge.getLastStepOccupancy(_de), 2),
+                            "mean_traversal_fuel_mg": _mean_fuel,
+                        }
+                    if _deg_snap:
+                        _snap_str = "  ".join(
+                            f"{_de}:[n={v['n_veh']} spd={v['mean_spd']}m/s "
+                            f"occ={v['occupancy']}% fuel={v['mean_traversal_fuel_mg']}mg]"
+                            for _de, v in _deg_snap.items()
+                        )
+                        print(f"[PRE_INJECT] {vid} t={sim_time:.1f}s  {_snap_str}")
+
                     # Temporarily bind pointers to THIS ego's entry
                     self.ego_id = vid
                     self.ego_metrics = ego_states[vid]["metrics"]
@@ -1387,12 +1419,17 @@ class Simulation:
                 if ego_states[vid]["metrics"]["arrive_time"] is not None:
                     active_egos.remove(vid)
                     completed_egos.add(vid)
-                    # Update reroutes in results
+                    # Update arrival metrics in results
+                    _m = ego_states[vid]["metrics"]
+                    _dur = ((_m["arrive_time"] - _m["depart_time"])
+                            if _m.get("arrive_time") and _m.get("depart_time") else None)
                     for r in results:
                         if r["trip"] == int(vid.split("_")[1]):
                             r["arrived"] = True
-                            r["reroutes"] = ego_states[vid]["metrics"]["reroutes"]
-                            r["driven_edges"] = ego_states[vid]["metrics"].get("driven_edges", [])
+                            r["reroutes"] = _m["reroutes"]
+                            r["driven_edges"] = _m.get("driven_edges", [])
+                            r["fuel_mg"] = _m.get("fuel_mg")
+                            r["duration_s"] = _dur
                             break
                     _evals = ego_states[vid]["metrics"].get("reroute_evals", 0)
                     _rertes = ego_states[vid]["metrics"].get("reroutes", 0)

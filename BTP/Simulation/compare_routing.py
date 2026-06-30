@@ -978,6 +978,8 @@ def run_paired_scenario(arm_policy, alpha, beta, gamma, od_list, traffic_seed, t
 
     try: os.remove(tripinfo_path)
     except OSError: pass
+    try: os.remove(progress_path)
+    except OSError: pass
 
     # Compute end time
     n = len(od_list)
@@ -1001,6 +1003,8 @@ def run_paired_scenario(arm_policy, alpha, beta, gamma, od_list, traffic_seed, t
         "--device.rerouting.period", str(REROUTE_INTERVAL),
         "--route-steps", "0"
     ]
+    print(f"[SUMO_CMD] tag={tag} seed={traffic_seed} cmd={' '.join(sumo_cmd)}")
+    sys.stdout.flush()
     started = False
     live_results = []
     try:

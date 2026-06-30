@@ -107,6 +107,27 @@ class EdgeCostCalculator:
         """Re-enable EMA updates after grade mode deactivates."""
         self._frozen_baseline_edges.discard(edge_id)
 
+    def cold_nominal_rate(self, edge_id=None):
+        """Best available fuel rate (mg/s) for a cold-edge fallback.
+
+        Priority:
+          1. This edge's own locked baseline (most accurate).
+          2. Median of all locked baselines across the network — self-calibrates
+             to the real fuel-rate distribution so unvisited edges aren't priced
+             at the hardcoded 50 mg/s default, which is ~9x below the observed
+             median of ~457 mg/s in the Monaco MoST scenario.
+          3. _nominal_fuel_rate_mg_s (50 mg/s) when no baselines are locked yet
+             (early warm-up).
+        """
+        if edge_id is not None:
+            b = self._fuel_baseline.get(edge_id)
+            if b:
+                return b
+        if self._fuel_baseline:
+            vals = sorted(self._fuel_baseline.values())
+            return vals[len(vals) // 2]
+        return self._nominal_fuel_rate_mg_s
+
     # --- called once per completed vehicle trip by RSUManager (rate in mg/s) ---
     def record_vehicle_fuel(self, edge_id, fuel_rate):
         # Ignore non-physical / zero samples outright.
@@ -151,16 +172,14 @@ class EdgeCostCalculator:
     def _cold_fuel_fallback(self, edge_id):
         """Free-flow fuel estimate for an edge with no traversal observations.
 
-        Uses free_flow_time × fuel_rate, where fuel_rate is the EMA baseline
-        (mg/s) if one has been locked, otherwise the nominal default.  This
-        gives a positive, finite cost that keeps the router from either loving
-        (weight→0) or refusing (weight→∞) unobserved edges.
+        Uses free_flow_time × fuel_rate, where fuel_rate comes from
+        cold_nominal_rate() — the edge's own baseline if locked, otherwise the
+        network-median baseline, otherwise the hardcoded nominal.
         """
         L     = self.edge_lengths.get(edge_id, 100.0)
         v_lim = self.edge_speed_limits.get(edge_id, 13.89)
         t_ff  = L / v_lim
-        rate  = self._fuel_baseline.get(edge_id) or self._nominal_fuel_rate_mg_s
-        return rate * t_ff
+        return self.cold_nominal_rate(edge_id) * t_ff
 
     def get_segment_fuel(self, edge_id):
         """Return the expected fuel (mg) for ONE vehicle to traverse edge_id.
