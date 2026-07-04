@@ -413,7 +413,8 @@ class Simulation:
     def run_checkpointed_campaign(self, checkpoints, per_trip_timeout=3000,
                                    rewarm_steps=240, seed=None,
                                    verbose=True, progress_log_path=None,
-                                   log_every=1):
+                                   log_every=1, road_condition_manager=None,
+                                   sumo_reload_args=None):
         """
         A/B campaign using pre-built reference-pass checkpoints for drift-free
         comparison of the two routing strategies.
@@ -559,22 +560,47 @@ class Simulation:
             for k in range(n_pairs):
                 origin, dest = self.ego_od_list[k]
                 ckpt_path = checkpoints[k]
+                _trip_disconnected = False
+                pre_inject_vcount = None
+                pre_inject_possum = None
 
                 # --- 1. Restore the reference traffic state ------------------------------
-                # loadState() resets the ENTIRE simulation -- vehicles, positions, speeds,
-                # queues, and SUMO's internal RNG -- to the saved snapshot.  Any ego from
-                # the previous trip and all traffic accumulated during that trip are
-                # discarded atomically.  Both arms receive the same snapshot for trip k,
-                # so the only difference that can affect outcomes is who routes the ego.
-                # VERIFY: traci.simulation.loadState is the correct TraCI API call.
-                traci.simulation.loadState(ckpt_path)
+                # After trip k-1 the simulation time is past ckpt_k. SUMO 1.27.0
+                # crashes when loadState goes backward in sim time. Fix: send
+                # CMD_LOAD (traci.load) to reset SUMO to its sumocfg begin time
+                # (14400s) while keeping the TraCI socket open. The subsequent
+                # loadState(ckpt_k) is then always a forward jump.
+                # traci.load() takes the option list without the binary (index [1:]).
+                # If the connection is dead (mid-trip disconnect in prior iteration),
+                # CMD_LOAD fails and we fall back to starting a fresh SUMO process.
+                if k > 0 and sumo_reload_args is not None:
+                    try:
+                        traci.load(sumo_reload_args[1:])
+                    except Exception:
+                        try: traci.close()
+                        except Exception: pass
+                        traci.start(sumo_reload_args)
+                # loadState can fail if the fresh SUMO from a fallback traci.start()
+                # isn't ready yet. One retry with a clean process prevents arm death.
+                try:
+                    traci.simulation.loadState(ckpt_path)
+                except Exception:
+                    if sumo_reload_args is not None:
+                        try: traci.close()
+                        except Exception: pass
+                        traci.start(sumo_reload_args)
+                        traci.simulation.loadState(ckpt_path)
+                    else:
+                        raise
 
                 # --- 2. Re-arm the RSU layer ---------------------------------------------
-                # The loaded state has a completely different vehicle population.  Clearing
-                # the RSU rolling windows and re-subscribing edges ensures step() sees only
-                # fresh data from the new state.  Fuel baselines are intentionally preserved
-                # (see docstring STATE-PERSISTENCE POLICY above).
                 self.rsu_manager.reset_for_new_state()
+
+                # Re-arm road condition manager: grade is already active in the saved state
+                # so we skip re-activation (which would clear fuel deques mid-rewarm).
+                if road_condition_manager is not None and road_condition_manager.mode != "none":
+                    road_condition_manager.active = True
+                    road_condition_manager._grade_modified_vehicles = {}
 
                 # --- 3. Per-trip re-warm (background traffic only) -----------------------
                 # Step ``rewarm_steps`` steps with no ego present.  This gives the RSU
@@ -584,15 +610,42 @@ class Simulation:
                 # SAME checkpoint, so the traffic state at ego injection is provably
                 # identical -- this is the core A/B fairness guarantee.
                 early_drain = False
+                rewarm_disconnected = False
                 for _ in range(rewarm_steps):
-                    traci.simulationStep()
+                    try:
+                        traci.simulationStep()
+                    except traci.FatalTraCIError as _rfte:
+                        if verbose:
+                            print(f"[trip {k}] SUMO disconnected during rewarm: {_rfte!r}")
+                        rewarm_disconnected = True
+                        break
                     self.rsu_manager.step()
+                    if road_condition_manager is not None:
+                        road_condition_manager.step(traci.simulation.getTime())
                     if traci.simulation.getMinExpectedNumber() <= 0:
                         if verbose:
                             print(f"[trip {k}] network drained during re-warm; "
                                   f"trip skipped.")
                         early_drain = True
                         break
+
+                if rewarm_disconnected:
+                    rec = {
+                        **self._trip_record(k, origin, dest, skipped=False),
+                        "seed":              seed,
+                        "pre_inject_vcount": pre_inject_vcount,
+                        "pre_inject_possum": pre_inject_possum,
+                    }
+                    results.append(rec)
+                    _log_rec(rec)
+                    if verbose:
+                        print(f"[{self.ego_routing}|seed={seed}] "
+                              f"run {k+1}/{n_pairs} | SUMO disconnected during rewarm; non-arrived")
+                    if sumo_reload_args is not None:
+                        try: traci.close()
+                        except Exception: pass
+                        traci.start(sumo_reload_args)
+                    continue
 
                 if early_drain:
                     rec = {
@@ -649,17 +702,37 @@ class Simulation:
                 # --- 6. Trip step loop --------------------------------------------------
                 step = 0
                 while True:
-                    traci.simulationStep()
-                    self.rsu_manager.step()
-                    self._track_ego(dt)
+                    try:
+                        traci.simulationStep()
+                        self.rsu_manager.step()
+                        if road_condition_manager is not None:
+                            road_condition_manager.step(traci.simulation.getTime())
+                        self._track_ego(dt)
+                    except traci.FatalTraCIError as _fte:
+                        if verbose:
+                            print(f"[trip {k}] SUMO disconnected during step: {_fte!r}")
+                        _trip_disconnected = True
+                        break
 
-                    # Reroute the ego with our Dijkstra every reroute_interval steps,
-                    # but only when WE are routing it; "sumo" mode lets SUMO handle it.
-                    if (self.ego_routing == "ours"
-                            and step % self.reroute_interval == 0):
-                        self.global_map.refresh(self.edges)
-                        self.net_builder.update_graph_weights(self.global_map)
-                        self._evaluate_and_reroute()
+                    # Reroute the ego every reroute_interval steps.
+                    # "ours": our fuel-aware Dijkstra.
+                    # "sumo": SUMO's traveltime-based rerouter via TraCI
+                    #   (replaces --device.rerouting.probability 1 which crashes on loadState).
+                    if step % self.reroute_interval == 0:
+                        if self.ego_routing == "ours":
+                            self.global_map.refresh(self.edges)
+                            self.net_builder.update_graph_weights(self.global_map)
+                            self._evaluate_and_reroute()
+                        elif (self.ego_routing == "sumo"
+                              and self.ego_id in traci.vehicle.getIDList()):
+                            try:
+                                traci.vehicle.rerouteTraveltime(self.ego_id)
+                                self.ego_metrics["reroutes"] += 1
+                            except traci.FatalTraCIError as _fte:
+                                if verbose:
+                                    print(f"[trip {k}] SUMO disconnected during reroute: {_fte!r}")
+                                _trip_disconnected = True
+                                break
 
                     step += 1
 
@@ -677,6 +750,26 @@ class Simulation:
                         break
 
                 # --- 7. Record the trip outcome ----------------------------------------
+                if _trip_disconnected:
+                    # SUMO dropped mid-trip; record as non-arrived and restart for k+1.
+                    rec = {
+                        **self._trip_record(k, origin, dest, skipped=False),
+                        "seed":              seed,
+                        "pre_inject_vcount": pre_inject_vcount,
+                        "pre_inject_possum": pre_inject_possum,
+                    }
+                    results.append(rec)
+                    _log_rec(rec)
+                    if verbose:
+                        n_total = n_pairs
+                        print(f"[{self.ego_routing}|seed={seed}] "
+                              f"run {k+1}/{n_total} | SUMO disconnected; non-arrived")
+                    if sumo_reload_args is not None:
+                        try: traci.close()
+                        except Exception: pass
+                        traci.start(sumo_reload_args)
+                    continue
+
                 rec = {
                     **self._trip_record(k, origin, dest, skipped=False),
                     "seed":              seed,

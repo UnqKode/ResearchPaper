@@ -93,7 +93,7 @@ PROGRESS_LOG_EVERY = 1               # flush the live per-trip log every N trips
 # see repeated TIMEOUTs, drop the scale or set a finite teleport threshold.
 DEFAULT_SCALE    = 3.0               # background demand multiplier
 DEFAULT_TELEPORT = -1                # seconds stuck before teleport (-1 = never)
-WORKER_TIMEOUT_S = 86400             # HP-1: hard wall-clock cap per parallel scenario
+WORKER_TIMEOUT_S = 259200            # HP-1: 72h cap; sequential arms need 2× single-arm time (~40h total)
 TRIPINFO_FLUSH_WAIT_S = 10.0         # HP-5: max seconds to wait for SUMO to flush tripinfo
 
 # --- Checkpointed Campaign Knobs ---
@@ -434,6 +434,117 @@ def build_checkpoints(n_pairs, seed, scale, teleport, spacing=CKPT_SPACING, warm
     return paths
 
 
+def build_checkpoints_for_paired(n_pairs, seed, scale, teleport,
+                                  depart_start, depart_spacing,
+                                  rewarm_steps=REWARM_STEPS,
+                                  road_condition_mode="none",
+                                  degraded_edges=None,
+                                  road_condition_activate_time=None):
+    """
+    Phase A for paired/counterfactual mode.
+
+    Runs a background-only SUMO instance (no egos) with road condition active.
+    Saves one checkpoint per OD pair at exactly ``depart_start + k*depart_spacing
+    - rewarm_steps*dt`` seconds, so that after re-warm the ego injection happens
+    at the original scheduled departure time.
+
+    Returns a list of N absolute checkpoint paths (index k = trip k).
+    """
+    from Simulation.road_conditions import RoadConditionManager
+
+    os.makedirs(CHECKPOINT_DIR, exist_ok=True)
+    prefix = f"paired_ckpt_seed{seed}"
+
+    # Skip rebuild if all N checkpoints already exist on disk.
+    dt0 = 0.25
+    _expected = [os.path.abspath(os.path.join(CHECKPOINT_DIR, f"{prefix}_{k}.xml"))
+                 for k in range(n_pairs)]
+    if all(os.path.exists(p) for p in _expected):
+        print(f"[Phase A - Paired] All {n_pairs} checkpoints already exist for seed {seed} — skipping rebuild.")
+        return _expected
+
+    for f in os.listdir(CHECKPOINT_DIR):
+        if f.startswith(prefix):
+            os.remove(os.path.join(CHECKPOINT_DIR, f))
+
+    dt = 0.25  # fixed step length (s)
+    rewarm_time = rewarm_steps * dt  # seconds
+
+    # Checkpoint time for trip k: the moment we save state, so that after
+    # rewarm_steps the sim is at depart_start + k*depart_spacing.
+    ckpt_times = [depart_start + k * depart_spacing - rewarm_time
+                  for k in range(n_pairs)]
+
+    activate_time = road_condition_activate_time if road_condition_activate_time is not None \
+                    else (depart_start - 300)
+
+    print(f"\n[Phase A - Paired] Building {n_pairs} checkpoints for seed {seed} ...")
+    print(f"  First ckpt at t={ckpt_times[0]:.1f}s, spacing={depart_spacing}s, "
+          f"rewarm={rewarm_time}s, road_condition={road_condition_mode}")
+
+    # Set up road condition manager (bound to traci only, no calc/rsu needed here)
+    rcm = None
+    if road_condition_mode != "none" and degraded_edges:
+        rcm = RoadConditionManager(
+            degraded_edges=degraded_edges,
+            mode=road_condition_mode,
+            activate_time=activate_time,
+        )
+
+    port = _free_port()
+    horizon_s = int(depart_start + n_pairs * depart_spacing + 7200)
+    sumo_log = os.path.abspath(os.path.join(CHECKPOINT_DIR, f"phaseA_seed{seed}.log"))
+    cmd = [
+        SUMO_BIN, "-c", CONFIG_FILE,
+        "--seed", str(seed),
+        "--scale", str(scale),
+        "--time-to-teleport", str(teleport),
+        "--no-step-log", "true",
+        "--no-warnings", "true",
+        "--end", str(horizon_s),
+        "--output-prefix", "",
+        "--device.rerouting.probability", "0",
+        "--route-steps", "0",
+    ]
+
+    paths = [None] * n_pairs
+    ckpt_index = 0  # next checkpoint to save
+
+    traci.start(cmd, port=port)
+    try:
+        if rcm is not None:
+            rcm.bind(traci, None, None)
+
+        while ckpt_index < n_pairs:
+            t = traci.simulation.getTime()
+
+            if rcm is not None:
+                rcm.step(t)
+
+            if t >= ckpt_times[ckpt_index]:
+                path = os.path.abspath(
+                    os.path.join(CHECKPOINT_DIR, f"{prefix}_{ckpt_index}.xml"))
+                traci.simulation.saveState(path)
+                paths[ckpt_index] = path
+                if ckpt_index % 10 == 0 or ckpt_index == n_pairs - 1:
+                    print(f"  saved checkpoint {ckpt_index+1}/{n_pairs} at t={t:.1f}s")
+                ckpt_index += 1
+                if ckpt_index >= n_pairs:
+                    break
+
+            traci.simulationStep()
+
+    finally:
+        try:
+            traci.close()
+        except Exception:
+            pass
+
+    saved = [p for p in paths if p is not None]
+    print(f"[Phase A - Paired] Done. Saved {len(saved)}/{n_pairs} checkpoints.")
+    return paths
+
+
 def run_scenario(mode, od_list, traffic_seed, tag, warmup_steps=WARMUP_STEPS,
                  log_every=PROGRESS_LOG_EVERY, scale=DEFAULT_SCALE,
                  teleport=DEFAULT_TELEPORT, checkpoints=None, rewarm_steps=REWARM_STEPS):
@@ -508,7 +619,8 @@ def run_scenario(mode, od_list, traffic_seed, tag, warmup_steps=WARMUP_STEPS,
             live_results = sim.run_checkpointed_campaign(
                 checkpoints, per_trip_timeout=PER_TRIP_TIMEOUT,
                 rewarm_steps=rewarm_steps, seed=traffic_seed,
-                verbose=True, progress_log_path=progress_path, log_every=log_every
+                verbose=True, progress_log_path=progress_path, log_every=log_every,
+                sumo_reload_args=sumo_cmd,
             )
         else:
             live_results = sim.run_od_campaign(per_trip_timeout=PER_TRIP_TIMEOUT,
@@ -971,7 +1083,7 @@ def run_paired_scenario(arm_policy, alpha, beta, gamma, od_list, traffic_seed, t
                         depart_start, depart_spacing, use_hysteresis,
                         scale, teleport, road_condition_manager=None, debug_cfs=False,
                         diag_stamp=None, theta_fuel=1.0, theta_time=0.10,
-                        cost_mode="augtime"):
+                        cost_mode="augtime", checkpoints=None):
     out_prefix = f"{tag}."
     tripinfo_path = f"{out_prefix}tripinfo.xml"
     progress_path = f"progress_{tag}.csv"
@@ -997,11 +1109,14 @@ def run_paired_scenario(arm_policy, alpha, beta, gamma, od_list, traffic_seed, t
         "--tripinfo-output", "tripinfo.xml",
         "--log", "sim.log",
         "--error-log", "errors.log",
-        # Background routing ON for paired mode
-        "--device.rerouting.probability", "1",
-        "--device.emissions.probability", "1",
-        "--device.rerouting.period", str(REROUTE_INTERVAL),
-        "--route-steps", "0"
+        # Checkpointed mode: background vehicles follow static routes from Phase A
+        # checkpoint (probability=0 avoids rerouting-device state mismatch on loadState).
+        # The "sumo" arm ego is rerouted via traci.vehicle.rerouteTraveltime in Python.
+        # --route-steps 0 is intentionally omitted: pre-loading all departures corrupts
+        # SUMO's route-loader position when loadState goes backward in sim time (k>0).
+        # Incremental route loading (default) is correctly saved/restored by loadState.
+        "--device.rerouting.probability", "0",
+        "--device.emissions.probability", "0"
     ]
     print(f"[SUMO_CMD] tag={tag} seed={traffic_seed} cmd={' '.join(sumo_cmd)}")
     sys.stdout.flush()
@@ -1031,18 +1146,29 @@ def run_paired_scenario(arm_policy, alpha, beta, gamma, od_list, traffic_seed, t
                 f"(mode={road_condition_manager.mode}, "
                 f"edges={road_condition_manager.degraded_edges})"
             )
-        live_results = sim.run_fixed_departure_campaign(
-            od_list=od_list,
-            depart_start=depart_start,
-            depart_spacing=depart_spacing,
-            per_trip_timeout=PER_TRIP_TIMEOUT,
-            ego_policy=arm_policy,
-            reroute_interval=REROUTE_INTERVAL,
-            use_hysteresis=use_hysteresis,
-            progress_log_path=progress_path,
-            seed=traffic_seed,
-            diag_stamp=diag_stamp
-        )
+        if checkpoints is not None:
+            live_results = sim.run_checkpointed_campaign(
+                checkpoints=checkpoints,
+                per_trip_timeout=PER_TRIP_TIMEOUT,
+                rewarm_steps=REWARM_STEPS,
+                seed=traffic_seed,
+                progress_log_path=progress_path,
+                road_condition_manager=road_condition_manager,
+                sumo_reload_args=sumo_cmd,
+            )
+        else:
+            live_results = sim.run_fixed_departure_campaign(
+                od_list=od_list,
+                depart_start=depart_start,
+                depart_spacing=depart_spacing,
+                per_trip_timeout=PER_TRIP_TIMEOUT,
+                ego_policy=arm_policy,
+                reroute_interval=REROUTE_INTERVAL,
+                use_hysteresis=use_hysteresis,
+                progress_log_path=progress_path,
+                seed=traffic_seed,
+                diag_stamp=diag_stamp
+            )
     except traci.FatalTraCIError as e:
         print(f"TraCI error in paired scenario '{tag}': {e}")
     finally:
@@ -1173,7 +1299,8 @@ def run_paired_scenario(arm_policy, alpha, beta, gamma, od_list, traffic_seed, t
 def _run_paired_capture(arm_policy, alpha, beta, gamma, od_list, traffic_seed, tag,
                         depart_start, depart_spacing, use_hysteresis, scale, teleport,
                         road_condition_manager=None, debug_cfs=False, diag_stamp=None,
-                        theta_fuel=1.0, theta_time=0.10, cost_mode="augtime"):
+                        theta_fuel=1.0, theta_time=0.10, cost_mode="augtime",
+                        checkpoints=None):
     t0 = time.time()
     buf = io.StringIO()
     error = None
@@ -1187,7 +1314,7 @@ def _run_paired_capture(arm_policy, alpha, beta, gamma, od_list, traffic_seed, t
                 depart_start, depart_spacing, use_hysteresis, scale, teleport,
                 road_condition_manager=road_condition_manager, debug_cfs=debug_cfs,
                 diag_stamp=diag_stamp, theta_fuel=theta_fuel, theta_time=theta_time,
-                cost_mode=cost_mode,
+                cost_mode=cost_mode, checkpoints=checkpoints,
             )
     except Exception as e:
         error = repr(e)
@@ -1464,7 +1591,10 @@ def main():
                          "corridor a larger fraction of the total trip, giving the F penalty "
                          "more leverage over bypass congestion costs.")
     ap.add_argument("--verify-degradation", action="store_true", help="Gate A verification: run headless and check fuel per edge")
-    
+    ap.add_argument("--checkpointed", action="store_true",
+                    help="paired mode: build per-trip background SUMO checkpoints so all arms "
+                         "see identical starting conditions (eliminates cross-contamination drift)")
+
     args = ap.parse_args()
 
     
@@ -1685,12 +1815,34 @@ def main():
                 run_meta["depart_start"] = depart
                 diag_stamp = time.strftime("%Y%m%d_%H%M%S")
 
-                # --seed-parallelism P: run P seeds concurrently; each seed still runs
-                # its two arms in parallel within the same pool (2*P total workers).
+                # Phase A (checkpointed mode): build per-trip background checkpoints for
+                # every seed before submitting any workers. Checkpoints are files on disk,
+                # so worker subprocesses can load them by path.
+                seed_checkpoints = {}
+                if args.checkpointed:
+                    print(f"\n[Phase A - Paired] Building per-trip background checkpoints "
+                          f"({len(seeds)} seed(s) × {len(od_list)} trips each) ...")
+                    for _s in seeds:
+                        _ckpts = build_checkpoints_for_paired(
+                            n_pairs=len(od_list),
+                            seed=_s,
+                            scale=scale,
+                            teleport=args.teleport,
+                            depart_start=depart,
+                            depart_spacing=args.depart_spacing,
+                            road_condition_mode="none",  # grade re-armed per-arm after loadState
+                        )
+                        seed_checkpoints[_s] = _ckpts
+                        n_ok = sum(1 for p in _ckpts if p is not None)
+                        print(f"  Seed {_s}: {n_ok}/{len(od_list)} checkpoints ready")
+
+                # --seed-parallelism P: run P seeds concurrently; arms within each
+                # seed run sequentially (max_workers=P) to avoid OOM on low-RAM machines
+                # (3 concurrent SUMO processes exhausted 8 GB and killed all arms at k=18).
                 _seed_p = max(1, args.seed_parallelism)
-                _max_workers = _seed_p * len(arms_to_run)
+                _max_workers = _seed_p
                 print(f"[seed-parallelism] P={_seed_p}, arms={len(arms_to_run)}, "
-                      f"total_workers={_max_workers}")
+                      f"total_workers={_max_workers} (sequential within seed)")
                 ctx = multiprocessing.get_context("spawn")
                 ex = concurrent.futures.ProcessPoolExecutor(
                     max_workers=_max_workers, mp_context=ctx)
@@ -1713,6 +1865,7 @@ def main():
                             theta_fuel=args.theta_fuel if is_ours else 1.0,
                             theta_time=args.theta_time,
                             cost_mode=args.cost_mode if is_ours else "augtime",
+                            checkpoints=seed_checkpoints.get(seed),
                         )
                         futs[fut] = (seed, arm)
 
