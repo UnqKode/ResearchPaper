@@ -972,110 +972,179 @@ def run_parallel(od_list, traffic_seed, jobs, warmup_steps=WARMUP_STEPS,
 # Change 3: Non-bottleneck grade corridor selection
 # ---------------------------------------------------------------------------
 
+def _filter_nonbottleneck_candidates(edge_records, p40_occ, speed_ratio_min,
+                                      min_len, min_traversals):
+    """Pure function: filter edge_records to non-bottleneck free-flowing candidates.
+
+    edge_records: list of dicts with keys:
+        eid, avg_occ (normalised [0,1]), avg_spd, spd_lim, length, traversals
+    p40_occ: network 40th-percentile occupancy (normalised [0,1]); upper bound
+    speed_ratio_min: lower bound on avg_spd / spd_lim (default 0.85); free-flow gate
+    min_len: minimum edge length in metres (default 100.0)
+    min_traversals: minimum expected traversal count during probe (default 30)
+
+    Returns list of eids that pass all four filters:
+    1. Non-bottleneck: occ_floor <= avg_occ <= p40_occ  (not too empty, not congested)
+    2. Free-flowing:  avg_spd / spd_lim >= speed_ratio_min
+    3. Long enough:   length >= min_len
+    4. Observed:      traversals >= min_traversals
+    """
+    OCC_FLOOR = 0.005   # exclude totally unused edges (< 0.5% occupancy)
+    out = []
+    for r in edge_records:
+        if r["avg_occ"] < OCC_FLOOR or r["avg_occ"] > p40_occ:
+            continue
+        if r["spd_lim"] <= 0:
+            continue
+        ratio = r["avg_spd"] / r["spd_lim"]
+        if ratio < speed_ratio_min:
+            continue
+        if r["length"] < min_len:
+            continue
+        if r["traversals"] < min_traversals:
+            continue
+        out.append(r["eid"])
+    return out
+
+
 def select_nonbottleneck_grade_edges(net_file, config_file, k=2,
-                                     occ_min=0.05, occ_max=0.60,
-                                     speed_ratio_max=0.75,
-                                     od_coverage_min=0.05,
+                                     speed_ratio_min=0.85,
+                                     od_coverage_min=0.20,
                                      od_list=None,
-                                     probe_seed=42, probe_n=5,
+                                     probe_seed=42,
                                      sumo_bin="sumo",
-                                     scale=1.0, teleport=300):
+                                     scale=1.0, teleport=300,
+                                     min_len=100.0,
+                                     min_traversals=30):
     """Return k edge-ids suitable for grade degradation that are:
 
-    1. Non-bottleneck: average occupancy in [occ_min, occ_max]
-    2. Speed-depressed: avg_speed / speed_limit <= speed_ratio_max
-    3. OD-relevant: appear in the Dijkstra route of >= od_coverage_min
-       fraction of the probe OD pairs (so at least some ego trips cross them)
-    4. Not already on critical arterials (occupancy > occ_max filtered out)
+    1. Non-bottleneck: normalised average occupancy in [0.005, 40th-percentile].
+       TraCI returns occupancy as a percentage [0, 100]; this function normalises
+       by dividing by 100 before applying thresholds.  The 40th-percentile cap
+       (computed from the probe run) excludes high-traffic arterials without
+       requiring a hand-tuned upper bound.
+    2. Free-flowing: avg_speed / speed_limit >= speed_ratio_min (default 0.85).
+       Degrading a free-flowing edge raises fuel WITHOUT raising travel time,
+       isolating the fuel-routing signal from a congestion-avoidance confound.
+    3. Long enough: edge length >= min_len metres (default 100 m).
+    4. Observed: expected traversal count during the probe >= min_traversals.
+       Proxy: sum(getLastStepVehicleNumber * dt) / (L / v_lim) >= 30.
+    5. OD-relevant: appears on the sumolib shortest path of >= od_coverage_min
+       fraction of the OD sample (default 0.20), ensuring ego trips cross it.
+       Coverage is computed with sumolib only (no TraCI, no Simulation instance).
+       If od_list is None or empty a throwaway 50-pair sample is generated.
 
-    Runs a short probe simulation (probe_n OD pairs, probe_seed) with no ego,
-    collecting TraCI edge occupancy and speed data. Returns a list of k edge
-    IDs, or raises RuntimeError if no eligible set found.
+    Runs a short headless probe SUMO (300 warm-up + 600 measurement steps).
+    Port is allocated via _free_port(); probe TraCI connection is always closed
+    in a finally block.
+
+    Returns a list of k edge IDs, or raises RuntimeError if no eligible set found.
     """
     import random as _rnd
     import traci as _traci
 
     rng = _rnd.Random(probe_seed)
 
-    # --- Build a minimal edge → nodes map via sumolib ---
+    # --- sumolib: load net once (used for OD coverage; probe reuses it) ---
     net = sumolib.net.readNet(net_file, withInternal=False)
     all_edges = [e for e in net.getEdges() if not e.getID().startswith(":")]
-    rng.shuffle(all_edges)
+    dt = 1.0   # SUMO default step; probe uses default step length
 
-    # --- Quick probe: one short SUMO run to gather occupancy/speed data ---
-    probe_port = 9188
+    # --- Quick probe: headless SUMO collects occ/speed/veh per edge ---
+    probe_port = _free_port()
     sumo_cmd = [sumo_bin, "-c", config_file,
                 "--no-warnings", "--no-step-log",
                 "--time-to-teleport", str(teleport),
                 "--scale", str(scale),
                 "--remote-port", str(probe_port)]
-    _traci.start(sumo_cmd, port=probe_port, label="probe_nonbottleneck")
+    probe_label = f"probe_nonbottleneck_{probe_port}"
+    _traci.start(sumo_cmd, port=probe_port, label=probe_label)
 
-    # warm up 300 steps
-    for _ in range(300):
-        _traci.simulationStep()
+    edge_stats = {}   # eid → {occ_sum, spd_sum, veh_sum, cnt}
+    try:
+        for _ in range(300):   # warm-up
+            _traci.simulationStep()
 
-    edge_stats = {}
-    for _ in range(600):
-        _traci.simulationStep()
-        for e in all_edges:
-            eid = e.getID()
-            occ = _traci.edge.getLastStepOccupancy(eid)
-            spd = _traci.edge.getLastStepMeanSpeed(eid)
-            if eid not in edge_stats:
-                edge_stats[eid] = {"occ_sum": 0.0, "spd_sum": 0.0, "cnt": 0}
-            edge_stats[eid]["occ_sum"] += occ
-            edge_stats[eid]["spd_sum"] += spd
-            edge_stats[eid]["cnt"]     += 1
+        for _ in range(600):   # measurement window
+            _traci.simulationStep()
+            for e in all_edges:
+                eid = e.getID()
+                occ = _traci.edge.getLastStepOccupancy(eid)
+                spd = _traci.edge.getLastStepMeanSpeed(eid)
+                veh = _traci.edge.getLastStepVehicleNumber(eid)
+                if eid not in edge_stats:
+                    edge_stats[eid] = {"occ_sum": 0.0, "spd_sum": 0.0,
+                                       "veh_sum": 0.0, "cnt": 0}
+                edge_stats[eid]["occ_sum"] += occ
+                edge_stats[eid]["spd_sum"] += spd
+                edge_stats[eid]["veh_sum"] += veh
+                edge_stats[eid]["cnt"]     += 1
+    finally:
+        _traci.close()
 
-    _traci.close()
-
-    # --- Filter 1 + 2: occupancy and speed ratio ---
-    candidates = []
+    # --- Compute normalised per-edge stats and the p40 occupancy threshold ---
+    edge_records = []
+    all_occ_norm = []
     for e in all_edges:
         eid = e.getID()
         s = edge_stats.get(eid)
         if not s or s["cnt"] == 0:
             continue
-        avg_occ = s["occ_sum"] / s["cnt"]
-        avg_spd = s["spd_sum"] / s["cnt"]
-        spd_lim = e.getSpeed()
-        if spd_lim <= 0:
-            continue
-        ratio = avg_spd / spd_lim
-        if occ_min <= avg_occ <= occ_max and ratio <= speed_ratio_max:
-            candidates.append(eid)
+        avg_occ_pct = s["occ_sum"] / s["cnt"]       # raw percent [0, 100]
+        avg_occ     = avg_occ_pct / 100.0            # Fix 2: normalise to [0, 1]
+        avg_spd     = s["spd_sum"] / s["cnt"]
+        spd_lim     = e.getSpeed()
+        length      = e.getLength()
+        # Expected traversals proxy: vehicle*steps * dt / t_freeflow
+        t_freeflow = length / max(spd_lim, 0.1)
+        traversals  = (s["veh_sum"] * dt) / t_freeflow if t_freeflow > 0 else 0.0
+        all_occ_norm.append(avg_occ)
+        edge_records.append({
+            "eid": eid, "avg_occ": avg_occ, "avg_spd": avg_spd,
+            "spd_lim": spd_lim, "length": length, "traversals": traversals,
+        })
+
+    # 40th-percentile occupancy upper bound (excludes arterials adaptively)
+    all_occ_norm.sort()
+    p40_idx  = int(0.40 * len(all_occ_norm))
+    p40_occ  = all_occ_norm[p40_idx] if all_occ_norm else 0.30
+
+    # --- Filter 1–4 via pure helper ---
+    candidates = _filter_nonbottleneck_candidates(
+        edge_records, p40_occ, speed_ratio_min, min_len, min_traversals)
 
     if not candidates:
         raise RuntimeError("select_nonbottleneck_grade_edges: no edges passed "
-                           "occupancy/speed filter")
+                           "occupancy/speed/length/traversal filter")
 
-    # --- Filter 3: OD coverage ---
-    if od_list and probe_n > 0:
-        from Simulation.simulate import Simulation as _Sim
-        _sim_probe = _Sim.__new__(_Sim)
-        _sim_probe.net_builder = __import__(
-            "Simulation.network_builder", fromlist=["NetworkBuilder"]
-        ).NetworkBuilder(net_file=net_file)
-        cand_set = set(candidates)
-        coverage_counts = {e: 0 for e in candidates}
-        sample_ods = rng.sample(od_list, min(probe_n * 5, len(od_list)))
-        for orig, dest in sample_ods:
-            orig_nodes = _sim_probe.net_builder.edge_to_nodes.get(orig)
-            dest_nodes = _sim_probe.net_builder.edge_to_nodes.get(dest)
-            if not orig_nodes or not dest_nodes:
+    # --- Filter 5: OD coverage via sumolib (no TraCI, no Simulation instance) ---
+    # If no od_list supplied, generate a throwaway 50-pair sample so coverage
+    # is never silently skipped (Fix 3 ordering note: caller should pass its
+    # campaign od_list when available; see IMPLEMENTATION_NOTES.md).
+    if not od_list:
+        od_list = generate_od_pairs(net_file, n=50, seed=probe_seed)
+
+    cand_set = set(candidates)
+    cov = {e: 0 for e in candidates}
+    n_od = 0
+    for orig_id, dest_id in od_list:
+        try:
+            o = net.getEdge(orig_id)
+            d = net.getEdge(dest_id)
+            path, _cost = net.getShortestPath(o, d)
+            if not path:
                 continue
-            try:
-                route_edges = _sim_probe.net_builder.get_dijkstra_route(
-                    orig_nodes[1], dest_nodes[1])
-                for re in route_edges:
-                    if re in cand_set:
-                        coverage_counts[re] += 1
-            except Exception:
-                continue
-        n_od = len(sample_ods) if sample_ods else 1
+            n_od += 1
+            for pe in path:
+                pid = pe.getID()
+                if pid in cand_set:
+                    cov[pid] += 1
+        except Exception:
+            continue
+
+    if n_od > 0:
         candidates = [e for e in candidates
-                      if coverage_counts[e] / n_od >= od_coverage_min]
+                      if cov[e] / n_od >= od_coverage_min]
 
     if not candidates:
         raise RuntimeError("select_nonbottleneck_grade_edges: no edges passed "
@@ -1764,17 +1833,15 @@ def main():
         degrade_start = args.degrade_start
 
     degraded_edges = []
+    _nonbottleneck_deferred = False   # Fix 3: selector runs after OD generation
     if args.road_condition != "none":
         if args.degraded_edges == "auto":
             degraded_edges = select_degraded_edges(NET_FILE, args.n_degraded, args.traffic_seed, args.scale, args.teleport, depart_start)
         elif args.degraded_edges == "auto-nonbottleneck":
-            # Change 3: probe-sim based non-bottleneck selection
-            degraded_edges = select_nonbottleneck_grade_edges(
-                NET_FILE, CONFIG_FILE, k=args.n_degraded,
-                probe_seed=args.traffic_seed, probe_n=args.n,
-                sumo_bin=SUMO_BIN, scale=args.scale, teleport=args.teleport,
-            )
-            print(f"[AUTO_NONBOTTLENECK] selected edges: {degraded_edges}")
+            # Fix 3: defer edge selection until after OD generation so the real
+            # campaign OD list can be passed for coverage filtering.  See
+            # IMPLEMENTATION_NOTES.md (Review fixes, Fix 3) for ordering rationale.
+            _nonbottleneck_deferred = True
         elif args.degraded_edges:
             degraded_edges = [x.strip() for x in args.degraded_edges.split(",") if x.strip()]
 
@@ -1916,6 +1983,18 @@ def main():
                 print(f"    => Gate A FAIL for {e}")
 
         sys.exit(0)
+
+    # Fix 3: generate a plain OD list first so the nonbottleneck selector can use
+    # real campaign ODs for coverage filtering, then (if targeted-od) re-generate.
+    if _nonbottleneck_deferred:
+        _plain_od = generate_od_pairs(NET_FILE, n=args.n, seed=args.od_seed)
+        degraded_edges = select_nonbottleneck_grade_edges(
+            NET_FILE, CONFIG_FILE, k=args.n_degraded,
+            probe_seed=args.traffic_seed,
+            sumo_bin=SUMO_BIN, scale=args.scale, teleport=args.teleport,
+            od_list=_plain_od,
+        )
+        print(f"[AUTO_NONBOTTLENECK] selected edges: {degraded_edges}")
 
     if args.targeted_od and degraded_edges:
         od_list = select_targeted_od_pairs(NET_FILE, degraded_edges, n=args.n,
