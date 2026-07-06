@@ -1682,50 +1682,151 @@ def analyze_paired_results(ours_lists, base_lists, base_name, run_meta,
               f"{'PASS' if gate_c_prime else 'FAIL'}")
 
     # ------------------------------------------------------------------
-    # Change 3 — Equal-time decomposition (fuel specificity)
-    # OLS fit: Δfuel% = a + b·Δtime%
-    # Intercept a is the fuel-specific effect; slope b captures co-movement.
+    # Fix 6 — Strengthened fuel-specificity statistics
     # ------------------------------------------------------------------
-    fuel_pct = [sr["fuel_saving_pct"] for sr in seed_records]
-    time_pct = [sr["dur_saving_pct"]  for sr in seed_records]
-    if K >= 3:
-        try:
-            n = K
-            sx  = sum(time_pct)
-            sy  = sum(fuel_pct)
-            sxx = sum(x**2 for x in time_pct)
-            sxy = sum(x*y for x,y in zip(time_pct, fuel_pct))
-            denom = n*sxx - sx**2
-            if denom != 0:
-                b_ols = (n*sxy - sx*sy) / denom
-                a_ols = (sy - b_ols*sx) / n
-                resids = [fy - (a_ols + b_ols*tx) for fy, tx in
-                          zip(fuel_pct, time_pct)]
-                rss = sum(r**2 for r in resids)
-                se_a = None
-                ci_a = None
-                if stats and K > 2:
-                    s2 = rss / (n - 2)
-                    sxx_bar = sxx - sx**2 / n
-                    se_a = (s2 * (1/n + (sx/n)**2 / sxx_bar)) ** 0.5 if sxx_bar > 0 else None
-                    if se_a is not None:
-                        t_crit = stats.t.ppf(0.975, n - 2)
-                        ci_a = (a_ols - t_crit * se_a, a_ols + t_crit * se_a)
-                summary["fuel_specificity"] = {
-                    "intercept_pct": a_ols,
-                    "slope": b_ols,
-                    "se_intercept": se_a,
-                    "CI_95_intercept": ci_a,
-                }
-                print(f"\n-- Equal-time decomposition (fuel specificity) --")
-                print(f"  OLS: Δfuel% = {a_ols:.2f} + {b_ols:.3f}·Δtime%")
-                print(f"  Fuel-specific effect (intercept): {a_ols:.2f}%", end="")
-                if ci_a:
-                    print(f"  95% CI [{ci_a[0]:.2f}%, {ci_a[1]:.2f}%]")
-                else:
-                    print()
-        except Exception as e:
-            print(f"  Equal-time decomposition failed: {e}")
+    # Helper: simple OLS Δfuel% = a + b·Δtime% on a list of (df, dt) pairs.
+    # Returns (a, b, se_a, ci_a) or (a, b, None, None) when scipy unavailable.
+    def _ols_intercept(pairs_df_dt, stats_mod):
+        n   = len(pairs_df_dt)
+        if n < 3:
+            return None, None, None, None
+        sx  = sum(dt for _, dt in pairs_df_dt)
+        sy  = sum(df for df, _ in pairs_df_dt)
+        sxx = sum(dt**2 for _, dt in pairs_df_dt)
+        sxy = sum(df*dt for df, dt in pairs_df_dt)
+        denom = n*sxx - sx**2
+        if denom == 0:
+            return None, None, None, None
+        b   = (n*sxy - sx*sy) / denom
+        a   = (sy - b*sx) / n
+        resids = [df - (a + b*dt) for df, dt in pairs_df_dt]
+        rss = sum(r**2 for r in resids)
+        se_a = ci_a = None
+        if stats_mod and n > 2:
+            s2      = rss / (n - 2)
+            sxx_bar = sxx - sx**2 / n
+            if sxx_bar > 0:
+                se_a  = (s2 * (1/n + (sx/n)**2 / sxx_bar)) ** 0.5
+                t_c   = stats_mod.t.ppf(0.975, n - 2)
+                ci_a  = (a - t_c * se_a, a + t_c * se_a)
+        return a, b, se_a, ci_a
+
+    fs_result = {}
+    try:
+        # --- 1. Per-seed OLS: collect per-ego Δfuel% and Δtime% within each seed ---
+        EQUAL_TIME_THRESH = 5.0   # |Δtime%| <= 5% for equal-time subset
+        MIN_EGOS_PER_SEED = 5
+
+        per_seed_intercepts = []   # a_s for each valid seed
+        eq_time_ego_dfuel_by_seed = {}  # seed → [Δfuel%] for equal-time egos
+
+        for s in seeds:
+            seed_keys = [k for k in keys if k[0] == s]
+            paired_s = [
+                k for k in seed_keys
+                if k in ours_by and k in base_by
+                and ours_by[k]["arrived"] and base_by[k]["arrived"]
+                and ours_by[k].get("fuel_abs") is not None
+                and base_by[k].get("fuel_abs") is not None
+            ]
+            if len(paired_s) < MIN_EGOS_PER_SEED:
+                continue
+            pairs_ego = []
+            eq_fuels  = []
+            for k in paired_s:
+                o_f = ours_by[k]["fuel_abs"]
+                b_f = base_by[k]["fuel_abs"]
+                o_t = ours_by[k]["duration"]
+                b_t = base_by[k]["duration"]
+                if b_f <= 0 or b_t <= 0:
+                    continue
+                df_pct = 100.0 * (b_f - o_f) / b_f   # positive = ours saves fuel
+                dt_pct = 100.0 * (b_t - o_t) / b_t
+                pairs_ego.append((df_pct, dt_pct))
+                if abs(dt_pct) <= EQUAL_TIME_THRESH:
+                    eq_fuels.append(df_pct)
+            a_s, b_s, _, _ = _ols_intercept(pairs_ego, stats)
+            if a_s is not None:
+                per_seed_intercepts.append(a_s)
+            if eq_fuels:
+                eq_time_ego_dfuel_by_seed[s] = eq_fuels
+
+        # --- 2. Seed-level stats on per-seed intercepts ---
+        n_si = len(per_seed_intercepts)
+        mean_int = ci_int = w_p_int = None
+        if n_si >= 2:
+            mean_int = sum(per_seed_intercepts) / n_si
+            if stats:
+                try:
+                    _, t_p_si = stats.ttest_1samp(per_seed_intercepts, 0.0)
+                    std_si    = (sum((x - mean_int)**2 for x in per_seed_intercepts)
+                                 / (n_si - 1)) ** 0.5
+                    t_c       = stats.t.ppf(0.975, n_si - 1)
+                    ci_int    = (mean_int - t_c * std_si / n_si**0.5,
+                                 mean_int + t_c * std_si / n_si**0.5)
+                    try:
+                        _, w_p_int = stats.wilcoxon(per_seed_intercepts,
+                                                    alternative="two-sided")
+                    except Exception:
+                        w_p_int = None
+                except Exception:
+                    pass
+
+        fs_result["per_seed_intercepts_pct"] = per_seed_intercepts
+        fs_result["mean_intercept_pct"]      = mean_int
+        fs_result["CI_95_intercept_seedlevel"] = ci_int
+        fs_result["wilcoxon_p_intercepts"]   = w_p_int
+
+        # --- 3. Equal-time subset report ---
+        eq_seed_means = [sum(v)/len(v) for v in eq_time_ego_dfuel_by_seed.values() if v]
+        n_eq_egos     = sum(len(v) for v in eq_time_ego_dfuel_by_seed.values())
+        eq_t_p        = None
+        eq_mean_dfuel = sum(eq_seed_means) / len(eq_seed_means) if eq_seed_means else None
+        if stats and len(eq_seed_means) >= 2:
+            try:
+                _, eq_t_p = stats.ttest_1samp(eq_seed_means, 0.0)
+            except Exception:
+                pass
+        fs_result["equal_time_subset"] = {
+            "n_egos": n_eq_egos,
+            "n_valid_seeds": len(eq_seed_means),
+            "mean_dfuel_pct": eq_mean_dfuel,
+            "t_p_seedlevel":  eq_t_p,
+        }
+
+        # --- 4. Seed-level OLS (kept as secondary readout) ---
+        fuel_pct_sl = [sr["fuel_saving_pct"] for sr in seed_records]
+        time_pct_sl = [sr["dur_saving_pct"]  for sr in seed_records]
+        a_sl, b_sl, se_sl, ci_sl = _ols_intercept(
+            list(zip(fuel_pct_sl, time_pct_sl)), stats)
+        fs_result["seedlevel_ols"] = {
+            "intercept_pct": a_sl, "slope": b_sl,
+            "se_intercept": se_sl, "CI_95_intercept": ci_sl,
+        }
+
+        summary["fuel_specificity"] = fs_result
+
+        print(f"\n[FUEL_SPECIFICITY] Per-seed intercept analysis "
+              f"(n_valid_seeds={n_si})")
+        if mean_int is not None:
+            print(f"[FUEL_SPECIFICITY]   mean intercept = {mean_int:.2f}%", end="")
+            if ci_int:
+                print(f"  95% CI [{ci_int[0]:.2f}%, {ci_int[1]:.2f}%]", end="")
+            print()
+            if w_p_int is not None:
+                print(f"[FUEL_SPECIFICITY]   Wilcoxon p (intercepts) = {w_p_int:.4f}")
+        if eq_mean_dfuel is not None:
+            print(f"[FUEL_SPECIFICITY] Equal-time subset "
+                  f"(|Δtime%|<={EQUAL_TIME_THRESH}): "
+                  f"n_egos={n_eq_egos}  mean_Δfuel={eq_mean_dfuel:.2f}%", end="")
+            if eq_t_p is not None:
+                print(f"  t-test p={eq_t_p:.4f}", end="")
+            print()
+        if a_sl is not None:
+            print(f"[FUEL_SPECIFICITY] Seed-level OLS: "
+                  f"Δfuel% = {a_sl:.2f} + {b_sl:.3f}·Δtime%")
+    except Exception as _fs_e:
+        print(f"[FUEL_SPECIFICITY] failed: {_fs_e}")
 
     with open(f_sum, "w") as f: json.dump(summary, f, indent=2)
     return f_sum
