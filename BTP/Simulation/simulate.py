@@ -985,11 +985,17 @@ class Simulation:
             total += self.calc.junction_weight * self.calc.get_junction_penalty(e, m)
         return total
 
-    def _reroute_fuel_mode(self, cur_edge, dest_edge, remaining_route):
+    def _reroute_fuel_mode(self, cur_edge, dest_edge, remaining_route,
+                          force=False):
         """Fuel-mode rerouting with hysteresis gate.
 
         Runs Dijkstra then only accepts if predicted fuel of new route is less
         than current route's predicted fuel by at least fuel_hysteresis fraction.
+
+        force=True (Fix 7): skip the hysteresis comparison and always apply the
+        Dijkstra route; used when the ego is off-route and there is no valid
+        remaining_route to price.  The last_dijkstra_time rate-limit still applies.
+
         Returns True if a new route was applied, False otherwise.
         """
         cur_nodes  = self.edge_to_nodes.get(cur_edge)
@@ -1012,6 +1018,21 @@ class Simulation:
             return False
 
         candidate_route = [cur_edge] + onward
+
+        if force:
+            traci.vehicle.setRoute(self.ego_id, candidate_route)
+            self.ego_metrics["reroutes"] += 1
+            self.last_reroute_time = now
+            actual_route = traci.vehicle.getRoute(self.ego_id)
+            self.route_snapshot = {
+                "route":        actual_route,
+                "saved_weights": {e: self.global_map.get_weight(e)
+                                  for e in actual_route},
+                "timestamp":    now,
+            }
+            print(f"[FUEL_HYST] vehicle={self.ego_id} action=FORCE_OFFROUTE")
+            return True
+
         cost_new = self.route_predicted_fuel(candidate_route)
         cost_cur = self.route_predicted_fuel(remaining_route)
 
@@ -1023,7 +1044,8 @@ class Simulation:
             actual_route = traci.vehicle.getRoute(self.ego_id)
             self.route_snapshot = {
                 "route":        actual_route,
-                "saved_weights": {e: self.global_map.get_weight(e) for e in actual_route},
+                "saved_weights": {e: self.global_map.get_weight(e)
+                                  for e in actual_route},
                 "timestamp":    now,
             }
             print(f"[FUEL_HYST] vehicle={self.ego_id} action=REROUTE "
@@ -1062,6 +1084,14 @@ class Simulation:
                 cur_idx = route.index(cur_edge)
                 remaining_route = route[cur_idx:]
             except ValueError:
+                # Fix 7: ego is off-route (teleport, forced turn).  In fuel mode
+                # issue a corrective reroute unconditionally (no hysteresis — there
+                # is no valid remaining_route to price against).
+                if self.cost_mode == "fuel":
+                    now = traci.simulation.getTime()
+                    if now - self.last_reroute_time >= 30.0:
+                        self._reroute_fuel_mode(cur_edge, dest_edge,
+                                                remaining_route=None, force=True)
                 return
 
             saved_remaining_cost = 0.0
