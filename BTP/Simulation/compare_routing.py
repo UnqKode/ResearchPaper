@@ -967,11 +967,35 @@ def run_parallel(od_list, traffic_seed, jobs, warmup_steps=WARMUP_STEPS,
 # ===========================================================================
 # PAIRED SAME-SEED FUEL CAMPAIGN
 # ===========================================================================
+
+def _arm_params(arm, args):
+    """Return (alpha, beta, gamma, cost_mode) for an arm name.
+
+    Change 3: supports the extended --arms flag with ours-fuel / ours-augtime /
+    ablation arm names in addition to the legacy ours / sumo / ablation.
+    Two-arm invocations (legacy) remain byte-compatible: when --arms is not set
+    the caller still uses arms_to_run built from --baseline, and arm=="ours" falls
+    through to the args.cost_mode branch.
+    """
+    if arm == "ablation":
+        return 0.0, 0.0, 0.0, "augtime"
+    elif arm == "sumo":
+        return 0.0, 0.0, 0.0, "augtime"
+    elif arm == "ours-fuel":
+        return ALPHA, BETA, GAMMA, "fuel"
+    elif arm == "ours-augtime":
+        return ALPHA, BETA, GAMMA, "augtime"
+    else:  # "ours" — use the CLI cost-mode
+        return ALPHA, BETA, GAMMA, args.cost_mode
+
+
 def run_paired_scenario(arm_policy, alpha, beta, gamma, od_list, traffic_seed, tag,
                         depart_start, depart_spacing, use_hysteresis,
                         scale, teleport, road_condition_manager=None, debug_cfs=False,
                         diag_stamp=None, theta_fuel=1.0, theta_time=0.10,
-                        cost_mode="augtime"):
+                        cost_mode="augtime",
+                        fuel_aggregator="median", fuel_sample_max_age_s=600.0,
+                        junction_weight=1.0, fuel_hysteresis=0.10):
     out_prefix = f"{tag}."
     tripinfo_path = f"{out_prefix}tripinfo.xml"
     progress_path = f"progress_{tag}.csv"
@@ -1022,6 +1046,10 @@ def run_paired_scenario(arm_policy, alpha, beta, gamma, od_list, traffic_seed, t
             theta_fuel=theta_fuel,
             theta_time=theta_time,
             cost_mode=cost_mode,
+            fuel_aggregator=fuel_aggregator,
+            fuel_sample_max_age_s=fuel_sample_max_age_s,
+            junction_weight=junction_weight,
+            fuel_hysteresis=fuel_hysteresis,
         )
         # D3: bind the unbound manager (pickled without traci/calc refs) to live objects.
         if road_condition_manager is not None and road_condition_manager.mode != "none":
@@ -1173,7 +1201,9 @@ def run_paired_scenario(arm_policy, alpha, beta, gamma, od_list, traffic_seed, t
 def _run_paired_capture(arm_policy, alpha, beta, gamma, od_list, traffic_seed, tag,
                         depart_start, depart_spacing, use_hysteresis, scale, teleport,
                         road_condition_manager=None, debug_cfs=False, diag_stamp=None,
-                        theta_fuel=1.0, theta_time=0.10, cost_mode="augtime"):
+                        theta_fuel=1.0, theta_time=0.10, cost_mode="augtime",
+                        fuel_aggregator="median", fuel_sample_max_age_s=600.0,
+                        junction_weight=1.0, fuel_hysteresis=0.10):
     t0 = time.time()
     buf = io.StringIO()
     error = None
@@ -1188,6 +1218,10 @@ def _run_paired_capture(arm_policy, alpha, beta, gamma, od_list, traffic_seed, t
                 road_condition_manager=road_condition_manager, debug_cfs=debug_cfs,
                 diag_stamp=diag_stamp, theta_fuel=theta_fuel, theta_time=theta_time,
                 cost_mode=cost_mode,
+                fuel_aggregator=fuel_aggregator,
+                fuel_sample_max_age_s=fuel_sample_max_age_s,
+                junction_weight=junction_weight,
+                fuel_hysteresis=fuel_hysteresis,
             )
     except Exception as e:
         error = repr(e)
@@ -1202,15 +1236,23 @@ def _run_paired_capture(arm_policy, alpha, beta, gamma, od_list, traffic_seed, t
         "wall_s": time.time() - t0
     }
 
-def analyze_paired_results(ours_lists, base_lists, base_name, run_meta):
+def analyze_paired_results(ours_lists, base_lists, base_name, run_meta,
+                           ours_label="ours"):
+    """Compare ours_lists against base_lists arm and write per-ego, per-seed, summary.
+
+    Change 3: `ours_label` names the "ours" arm in output files, enabling
+    multi-arm runs (ours-fuel, ours-augtime, etc.) to produce distinct files
+    without overwriting each other.  Legacy two-arm calls pass no ours_label
+    (default "ours") and remain byte-compatible.
+    """
     import json
     try: from scipy import stats
     except ImportError: stats = None
-    
+
     stamp = time.strftime("%Y%m%d_%H%M%S")
-    f_ego = f"paired_per_ego_{stamp}_ours_vs_{base_name}.csv"
-    f_seed = f"paired_per_seed_{stamp}_ours_vs_{base_name}.csv"
-    f_sum = f"paired_summary_{stamp}_ours_vs_{base_name}.json"
+    f_ego  = f"paired_per_ego_{stamp}_{ours_label}_vs_{base_name}.csv"
+    f_seed = f"paired_per_seed_{stamp}_{ours_label}_vs_{base_name}.csv"
+    f_sum  = f"paired_summary_{stamp}_{ours_label}_vs_{base_name}.json"
     
     ours_flat = [r for sub in ours_lists for r in sub]
     base_flat = [r for sub in base_lists for r in sub]
@@ -1440,6 +1482,25 @@ def main():
                          "'fuel' = minimise per-traversal fuel (mg). Ablation always uses time.")
     ap.add_argument("--scale-sweep", type=str, default="", help="comma-separated scales for Phase 2 congestion sweep")
     ap.add_argument("--depart-sweep", type=str, default="", help="comma-separated depart_starts for Phase 2 sweep")
+
+    # Phase 3 additions
+    ap.add_argument("--fuel-aggregator", choices=["wmean", "median", "trimmed"], default="median",
+                    help="Change 2A: aggregation for per-traversal fuel window. "
+                         "'wmean' = recency-weighted mean (original), 'median' = robust median (default), "
+                         "'trimmed' = mean after dropping extreme min/max. "
+                         "Use 'wmean' to reproduce pre-Change-2A behaviour.")
+    ap.add_argument("--junction-weight", type=float, default=1.0,
+                    help="Change 1: multiplier on the junction entry-stop fuel penalty. "
+                         "0.0 disables the penalty entirely (pre-Change-1 behaviour). Default 1.0.")
+    ap.add_argument("--fuel-hysteresis", type=float, default=0.10,
+                    help="Change 2B: minimum fractional fuel-saving required to accept a reroute "
+                         "in fuel mode. E.g. 0.10 = only switch if new route is >=10%% cheaper. "
+                         "0.0 disables (always accept). Default 0.10.")
+    ap.add_argument("--arms", type=str, default="",
+                    help="Change 3: comma-separated arm names to run, overrides --baseline. "
+                         "Supported: ours, ours-fuel, ours-augtime, ablation, sumo. "
+                         "Example: ours-fuel,ours-augtime,ablation. "
+                         "Default (empty) falls back to legacy --baseline behaviour.")
     
     
     # Phase 2: Degraded Road args
@@ -1662,9 +1723,15 @@ def main():
             "road_condition": args.road_condition,
         }
         
-        arms_to_run = ["ours"]
-        if args.baseline in ["sumo", "both"]: arms_to_run.append("sumo")
-        if args.baseline in ["ablation", "both"]: arms_to_run.append("ablation")
+        if args.arms:
+            # Change 3: explicit --arms flag overrides --baseline
+            arms_to_run = [a.strip() for a in args.arms.split(",") if a.strip()]
+            print(f"[arms] Using explicit --arms: {arms_to_run}")
+        else:
+            # Legacy: build from --baseline (two-arm, byte-compatible)
+            arms_to_run = ["ours"]
+            if args.baseline in ["sumo", "both"]: arms_to_run.append("sumo")
+            if args.baseline in ["ablation", "both"]: arms_to_run.append("ablation")
         
         scales = [float(x.strip()) for x in args.scale_sweep.split(",")] if args.scale_sweep else [args.scale]
         departs = [float(x.strip()) for x in args.depart_sweep.split(",")] if args.depart_sweep else [args.depart_start]
@@ -1700,8 +1767,8 @@ def main():
                     print(f"\n--- Queuing SEED {seed} ---")
                     seed_diag = f"{diag_stamp}_{seed}"   # unique diag file per seed
                     for arm in arms_to_run:
-                        a, b, g = (0.0, 0.0, 0.0) if arm == "ablation" else (ALPHA, BETA, GAMMA)
-                        is_ours = (arm == "ours")
+                        a, b, g, arm_cost_mode = _arm_params(arm, args)
+                        is_ours = arm not in ("ablation", "sumo")
                         fut = ex.submit(
                             _run_paired_capture, arm, a, b, g, od_list, seed,
                             f"{arm}_{seed}_{scale}_{depart}",
@@ -1712,7 +1779,11 @@ def main():
                             diag_stamp=seed_diag,
                             theta_fuel=args.theta_fuel if is_ours else 1.0,
                             theta_time=args.theta_time,
-                            cost_mode=args.cost_mode if is_ours else "augtime",
+                            cost_mode=arm_cost_mode,
+                            fuel_aggregator=args.fuel_aggregator if is_ours else "median",
+                            fuel_sample_max_age_s=600.0,
+                            junction_weight=args.junction_weight if is_ours else 0.0,
+                            fuel_hysteresis=args.fuel_hysteresis if is_ours else 0.0,
                         )
                         futs[fut] = (seed, arm)
 
@@ -1730,10 +1801,16 @@ def main():
                 ex.shutdown(wait=False, cancel_futures=True)
                     
                 sum_json = None
-                if "sumo" in all_res:
+                # Change 3: multi-arm analysis — compare every non-reference arm against ablation;
+                # legacy two-arm mode (ours vs sumo/ablation) is byte-compatible.
+                if "sumo" in all_res and "ours" in all_res:
                     analyze_paired_results(all_res["ours"], all_res["sumo"], "sumo", run_meta)
                 if "ablation" in all_res:
-                    sum_json = analyze_paired_results(all_res["ours"], all_res["ablation"], "ablation", run_meta)
+                    ref = all_res["ablation"]
+                    for arm_name in ("ours", "ours-fuel", "ours-augtime"):
+                        if arm_name in all_res:
+                            sum_json = analyze_paired_results(all_res[arm_name], ref, "ablation", run_meta,
+                                                              ours_label=arm_name)
                     
                 if args.debug_cfs and cfs_all:
                     stamp = time.strftime("%Y%m%d_%H%M%S")

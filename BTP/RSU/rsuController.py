@@ -256,7 +256,8 @@ class RSUManager:
         Vehicle subscriptions are created on first encounter and cleaned up
         when the vehicle is no longer on any tracked edge.
         """
-        dt = traci.simulation.getDeltaT()
+        dt       = traci.simulation.getDeltaT()
+        sim_time = traci.simulation.getTime()   # Change 2A: passed to record_traversal_fuel
 
         # --- ONE bulk call for all subscribed edge data ---
         edge_results = traci.edge.getAllSubscriptionResults()
@@ -347,8 +348,9 @@ class RSUManager:
 
                     # Also record the TOTAL traversal fuel for fuel-objective routing.
                     # One sample per traversal; never 0 (guard inside record_traversal_fuel).
+                    # Change 2A: pass sim_time so max-age eviction can work correctly.
                     if self._edge_cost_calc is not None:
-                        self._edge_cost_calc.record_traversal_fuel(edge_id, v_data["fuel"])
+                        self._edge_cost_calc.record_traversal_fuel(edge_id, v_data["fuel"], sim_time)
 
                     # Clean up memory: remove the vehicle now that it has left
                     del self.active_vehicles[edge_id][veh_id]

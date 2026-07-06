@@ -79,18 +79,22 @@ class GlobalMap:
             # The free-flow fallback (old behaviour) made unobserved edges look
             # cheap even when congested, causing the router to route onto them and
             # produce the +55% fuel penalty seen in the first smoke run.
+            # Change 1: always fetch m so junction penalty can be computed.
             for edge_id in edge_ids:
+                m  = self.rsu_manager.get_edge_stats(edge_id) or {}
                 dq = self.calc._traversal_fuel.get(edge_id)
                 if dq:
-                    self.weights[edge_id] = self.calc.get_segment_fuel(edge_id)
+                    base_w = self.calc.get_segment_fuel(edge_id)
                 else:
-                    stats = self.rsu_manager.get_edge_stats(edge_id)
                     L    = self.calc.edge_lengths.get(edge_id, 100.0)
                     rate = self.calc.cold_nominal_rate(edge_id)
-                    v    = (stats.get("avg_speed", 0.0) if stats else 0.0)
+                    v    = m.get("avg_speed", 0.0)
                     if v <= 0.0:
                         v = self.calc.edge_speed_limits.get(edge_id, 13.89)
-                    self.weights[edge_id] = rate * (L / v)
+                    base_w = rate * (L / v)
+                junction_pen = (self.calc.junction_weight
+                                * self.calc.get_junction_penalty(edge_id, m))
+                self.weights[edge_id] = base_w + junction_pen
         else:
             for edge_id in edge_ids:
                 stats = self.rsu_manager.get_edge_stats(edge_id)
@@ -105,15 +109,18 @@ class GlobalMap:
         if w == float("inf"):
             if self.cost_mode == "fuel":
                 # Fallback for edges not yet in self.weights (before first refresh,
-                # or edges absent from the network's edge list).  Apply the same
-                # congestion-aware logic as refresh() cold branch.
-                stats = self.rsu_manager.get_edge_stats(edge_id)
+                # or edges absent from the network's edge list).  Change 1: add
+                # junction penalty consistent with refresh() cold branch.
+                m    = self.rsu_manager.get_edge_stats(edge_id) or {}
                 L    = self.calc.edge_lengths.get(edge_id, 100.0)
                 rate = self.calc.cold_nominal_rate(edge_id)
-                v    = (stats.get("avg_speed", 0.0) if stats else 0.0)
+                v    = m.get("avg_speed", 0.0)
                 if v <= 0.0:
                     v = self.calc.edge_speed_limits.get(edge_id, 13.89)
-                return rate * (L / v)
+                base_w = rate * (L / v)
+                junction_pen = (self.calc.junction_weight
+                                * self.calc.get_junction_penalty(edge_id, m))
+                return base_w + junction_pen
             L = self.calc.edge_lengths.get(edge_id, 100.0)
             v_lim = self.calc.edge_speed_limits.get(edge_id, 13.89)
             return L / v_lim
@@ -141,7 +148,14 @@ class Simulation:
                  theta_fuel=1.0,      # min fractional fuel saving required to accept bypass (1.0=off)
                  theta_time=0.10,     # max fractional time increase allowed for bypass
                  bypass_f_thresh=0.1,  # F threshold above which edge is treated as "high-fuel"
-                 cost_mode="augtime"):  # "augtime" (default) or "fuel" (minimise per-traversal fuel)
+                 cost_mode="augtime",  # "augtime" (default) or "fuel" (minimise per-traversal fuel)
+                 # --- Change 2A: aggregator + max-age (threaded to EdgeCostCalculator) ---
+                 fuel_aggregator="median",      # "wmean" | "median" | "trimmed"
+                 fuel_sample_max_age_s=600.0,   # evict traversal samples older than this (s)
+                 # --- Change 1: junction penalty (threaded to EdgeCostCalculator) ---
+                 junction_weight=1.0,           # multiplier on junction penalty; 0.0 disables
+                 # --- Change 2B: fuel-mode route-switch hysteresis ---
+                 fuel_hysteresis=0.10):         # min fractional saving to accept reroute in fuel mode
         # --- 1. Build the road graph (offline; uses sumolib, not TraCI) ---
         self.net_builder   = NetworkBuilder(net_file=net_file)
         self.graph         = self.net_builder.get_graph()
@@ -176,7 +190,12 @@ class Simulation:
         self.calc = EdgeCostCalculator(
             edge_lengths, edge_speed_limits,
             alpha=alpha, beta=beta, gamma=gamma,
-            debug_cfs=debug_cfs
+            debug_cfs=debug_cfs,
+            # Change 2A: aggregator + max-age
+            fuel_aggregator=fuel_aggregator,
+            fuel_sample_max_age_s=fuel_sample_max_age_s,
+            # Change 1: junction penalty
+            junction_weight=junction_weight,
         )
         self.rsu_manager.set_edge_cost_calc(self.calc)
 
@@ -195,11 +214,12 @@ class Simulation:
         self.ego_depart = ego_depart
         self._ego_route_id = "ego_route"
         self._ego_injected = False
-        self.dev_threshold = dev_threshold
-        self.imp_threshold = imp_threshold
-        self.theta_fuel    = theta_fuel
-        self.theta_time    = theta_time
+        self.dev_threshold  = dev_threshold
+        self.imp_threshold  = imp_threshold
+        self.theta_fuel     = theta_fuel
+        self.theta_time     = theta_time
         self.bypass_f_thresh = bypass_f_thresh
+        self.fuel_hysteresis = float(fuel_hysteresis)  # Change 2B
         self._bypass_G     = None       # cached bypass graph (rebuilt each reroute interval)
         self._bypass_G_time = -999.0    # sim_time when bypass_G was last built
         self.active_egos = {}
@@ -955,6 +975,69 @@ class Simulation:
             return []
 
     # -----------------------------------------------------------------
+    # Change 2B helpers
+    def route_predicted_fuel(self, edge_list):
+        """Sum get_segment_fuel + junction_penalty for every edge in edge_list."""
+        total = 0.0
+        for e in edge_list:
+            m = self.rsu_manager.get_edge_stats(e) or {}
+            total += self.calc.get_segment_fuel(e)
+            total += self.calc.junction_weight * self.calc.get_junction_penalty(e, m)
+        return total
+
+    def _reroute_fuel_mode(self, cur_edge, dest_edge, remaining_route):
+        """Fuel-mode rerouting with hysteresis gate.
+
+        Runs Dijkstra then only accepts if predicted fuel of new route is less
+        than current route's predicted fuel by at least fuel_hysteresis fraction.
+        Returns True if a new route was applied, False otherwise.
+        """
+        cur_nodes  = self.edge_to_nodes.get(cur_edge)
+        dest_nodes = self.edge_to_nodes.get(dest_edge)
+        if not cur_nodes or not dest_nodes:
+            return False
+
+        src_node = cur_nodes[1]
+        dst_node = dest_nodes[1]
+        if src_node == dst_node:
+            return False
+
+        now = traci.simulation.getTime()
+        if now - self.last_dijkstra_time < 30.0:
+            return False
+        self.last_dijkstra_time = now
+
+        onward = self.net_builder.get_dijkstra_route(src_node, dst_node)
+        if not onward:
+            return False
+
+        candidate_route = [cur_edge] + onward
+        cost_new = self.route_predicted_fuel(candidate_route)
+        cost_cur = self.route_predicted_fuel(remaining_route)
+
+        threshold = cost_cur * (1.0 - self.fuel_hysteresis)
+        if cost_new < threshold:
+            traci.vehicle.setRoute(self.ego_id, candidate_route)
+            self.ego_metrics["reroutes"] += 1
+            self.last_reroute_time = now
+            actual_route = traci.vehicle.getRoute(self.ego_id)
+            self.route_snapshot = {
+                "route":        actual_route,
+                "saved_weights": {e: self.global_map.get_weight(e) for e in actual_route},
+                "timestamp":    now,
+            }
+            print(f"[FUEL_HYST] vehicle={self.ego_id} action=REROUTE "
+                  f"cost_cur={cost_cur:.1f} cost_new={cost_new:.1f} "
+                  f"saving={((cost_cur-cost_new)/cost_cur*100):.1f}% "
+                  f"threshold={threshold:.1f}")
+            return True
+
+        print(f"[FUEL_HYST] vehicle={self.ego_id} action=KEEP "
+              f"cost_cur={cost_cur:.1f} cost_new={cost_new:.1f} "
+              f"threshold={threshold:.1f}")
+        return False
+
+    # -----------------------------------------------------------------
     def _evaluate_and_reroute(self):
         """
         Deviation-based rerouting: only runs Dijkstra if the current remaining
@@ -1005,6 +1088,14 @@ class Simulation:
             # for 120s so normal traffic noise cannot cause rapid oscillation
             # while still allowing reaction to genuine traffic events.
             if now - self.last_reroute_time < 30.0:
+                return
+
+            # Change 2B: fuel mode uses hysteresis-gated rerouting via dedicated method.
+            if self.cost_mode == "fuel":
+                print(f"[DIJKSTRA_TRIGGER] vehicle={self.ego_id} "
+                      f"reason=DEVIATION_THRESHOLD_EXCEEDED "
+                      f"routeDeviation={deviation_pct*100:.1f}% mode=fuel")
+                self._reroute_fuel_mode(cur_edge, dest_edge, remaining_route)
                 return
 
             cur_nodes = self.edge_to_nodes.get(cur_edge)

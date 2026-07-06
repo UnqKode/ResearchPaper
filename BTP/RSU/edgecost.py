@@ -28,6 +28,32 @@ class EdgeCostCalculator:
     and the gamma coefficient retains the same scale as before.
     A vehicle stopping stop_ref or more times per edge traversal gets the full
     penalty (S = 1.0); one stop gives S = (1/stop_ref)^2 = 0.04 (with default).
+
+    PHASE 3 — CHANGE 2A: CONFIGURABLE FUEL AGGREGATOR + MAX-AGE EVICTION
+    The per-traversal fuel window (used by cost_mode="fuel") now stores
+    (sim_time, mg) tuples instead of raw mg floats.  Three aggregators are
+    supported via the `fuel_aggregator` parameter:
+      "wmean"   — original recency-weighted mean (newest N× influence of oldest)
+      "median"  — plain median; robust to single outlier traversals (DEFAULT)
+      "trimmed" — mean after dropping the extreme min and max when n >= 4
+
+    An optional max-age eviction drops samples older than `fuel_sample_max_age_s`
+    (default 600 s sim-time) when a new sample is recorded, preventing stale
+    observations from mixing with current traffic.  Eviction is write-time only.
+
+    PHASE 3 — CHANGE 1: JUNCTION / TRANSITION FUEL PENALTY
+    `get_junction_penalty(edge_id, m)` estimates the extra fuel cost of a
+    stop-start event at the edge's upstream junction, weighted by the empirically
+    observed probability of stopping.  Physics constants (documented below) are
+    __init__ parameters so they can be overridden without subclassing.
+
+    KNOWN DOUBLE-COUNTING (Change 1):
+    `get_segment_fuel` already partially captures stop fuel when observed
+    traversals themselves included a stop.  `get_junction_penalty` prices
+    EXPECTED future stop-start on the ego's arrival; it does NOT subtract
+    from `get_segment_fuel`.  This conservative over-count is a known v1
+    limitation; it biases toward avoiding high-stop edges, which is the
+    desired behaviour.  `--junction-weight 0` disables the penalty entirely.
     """
 
     def __init__(self,
@@ -44,7 +70,16 @@ class EdgeCostCalculator:
                  baseline_seed_n=8,     # samples collected before locking the free-flow baseline
                  debug_cfs=False,       # flag to capture decomposed C/F/S terms
                  fuel_window_size=10,   # per-traversal sample window for fuel-objective routing
-                 nominal_fuel_rate_mg_s=50.0):  # cold-edge fallback rate (mg/s) at free-flow
+                 nominal_fuel_rate_mg_s=50.0,  # cold-edge fallback rate (mg/s) at free-flow
+                 # --- Change 2A: aggregator + max-age ---
+                 fuel_aggregator="median",   # "wmean" | "median" | "trimmed"
+                 fuel_sample_max_age_s=600.0, # drop samples older than this (sim-time seconds)
+                 # --- Change 1: junction penalty physics ---
+                 m_veh=1500.0,               # vehicle mass (kg)
+                 eta_engine=0.30,            # engine thermal efficiency (dimensionless)
+                 LHV_gasoline=43.5e6,        # lower heating value of gasoline (J/kg)
+                 idle_overhead_factor=1.15,  # idle-time overhead at the stop (dimensionless)
+                 junction_weight=1.0):       # multiplier on junction penalty; 0.0 disables
         self.edge_lengths      = edge_lengths
         self.edge_speed_limits = edge_speed_limits
         self.alpha, self.beta, self.gamma = alpha, beta, gamma
@@ -79,14 +114,26 @@ class EdgeCostCalculator:
         self.debug_cfs = debug_cfs
         self.cfs_records = []
 
-        # --- Traversal-fuel window (for --cost-mode fuel) ---
-        # Each entry in the deque is the TOTAL fuel (mg) consumed by ONE vehicle
-        # completing a full traversal of that edge.  Only real traversals are
-        # stored; zeros are never appended (no zero-dilution).  The window size
-        # is small (default 10) so costs track current conditions quickly.
+        # --- Change 2A: Traversal-fuel window (for --cost-mode fuel) ---
+        # Each entry is a (sim_time, total_fuel_mg) tuple for ONE vehicle completing
+        # a full traversal.  Storing sim_time enables max-age eviction so stale
+        # observations are not mixed with post-condition-change data.
+        # Zeros are never appended (no zero-dilution).
         self._fuel_window_size = max(1, int(fuel_window_size))
         self._nominal_fuel_rate_mg_s = float(nominal_fuel_rate_mg_s)
-        self._traversal_fuel: dict = {}   # edge_id -> deque[float] of per-traversal mg
+        self._traversal_fuel: dict = {}   # edge_id -> deque[(sim_time, mg)]
+
+        if fuel_aggregator not in ("wmean", "median", "trimmed"):
+            raise ValueError(f"fuel_aggregator must be 'wmean', 'median', or 'trimmed'; got {fuel_aggregator!r}")
+        self._fuel_aggregator      = fuel_aggregator
+        self._fuel_sample_max_age_s = float(fuel_sample_max_age_s)
+
+        # --- Change 1: Junction penalty physics constants ---
+        self._m_veh               = float(m_veh)
+        self._eta_engine          = float(eta_engine)
+        self._LHV_gasoline        = float(LHV_gasoline)
+        self._idle_overhead_factor = float(idle_overhead_factor)
+        self.junction_weight      = float(junction_weight)
 
     def freeze_baseline(self, edge_id):
         """Prevent further EMA updates for edge_id.
@@ -153,21 +200,32 @@ class EdgeCostCalculator:
         a = self._a_down if fuel_rate < cur else self._a_up
         self._fuel_baseline[edge_id] = (1.0 - a) * cur + a * fuel_rate
 
-    # --- Fuel-objective routing: per-traversal fuel window ---
+    # --- Fuel-objective routing: per-traversal fuel window (Change 2A) ---
 
-    def record_traversal_fuel(self, edge_id, total_fuel_mg):
+    def record_traversal_fuel(self, edge_id, total_fuel_mg, sim_time=0.0):
         """Append the total fuel (mg) a single vehicle burned traversing edge_id.
 
         Called once per COMPLETED traversal; never called with 0 (callers must
         guard).  This is separate from record_vehicle_fuel (which feeds the F
         index EMA baseline) so the two cost models remain independent.
+
+        Change 2A: stores (sim_time, mg) tuples instead of bare mg values.
+        Before appending, evicts samples whose sim_time is older than
+        fuel_sample_max_age_s from the front of the deque, preventing stale
+        pre-condition-change observations from contaminating current estimates.
+        Eviction is write-time only; reads use whatever is in the deque.
         """
         if total_fuel_mg is None or total_fuel_mg <= 0:
             return
         from collections import deque as _deque
         if edge_id not in self._traversal_fuel:
             self._traversal_fuel[edge_id] = _deque(maxlen=self._fuel_window_size)
-        self._traversal_fuel[edge_id].append(float(total_fuel_mg))
+        dq = self._traversal_fuel[edge_id]
+        # Evict samples older than the max-age cutoff
+        cutoff = float(sim_time) - self._fuel_sample_max_age_s
+        while dq and dq[0][0] < cutoff:
+            dq.popleft()
+        dq.append((float(sim_time), float(total_fuel_mg)))
 
     def _cold_fuel_fallback(self, edge_id):
         """Free-flow fuel estimate for an edge with no traversal observations.
@@ -184,12 +242,16 @@ class EdgeCostCalculator:
     def get_segment_fuel(self, edge_id):
         """Return the expected fuel (mg) for ONE vehicle to traverse edge_id.
 
-        Primary:  recency-weighted average of the last `fuel_window_size`
-                  single-vehicle traversal observations stored in
-                  `_traversal_fuel[edge_id]`.  Linear weights: newest sample
-                  gets weight N, oldest gets weight 1 (N = number of samples).
-                  This gives the most recent traversal ~18× the influence of
-                  the oldest when the window is full at N=10.
+        Change 2A: uses the configurable `fuel_aggregator` over the per-traversal
+        window.  The window stores (sim_time, mg) tuples; mg values are extracted
+        before aggregation.
+
+        Aggregators:
+          "wmean"   (original) — linear-recency-weighted mean; newest sample gets
+                    weight N, oldest gets weight 1.  Sensitive to outlier traversals.
+          "median"  (default)  — plain median; robust to single anomalous traversals.
+          "trimmed"            — mean after dropping the single min and max when
+                    n >= 4; plain mean for n < 4.
 
         Fallback: `_cold_fuel_fallback(edge_id)` when the window is empty.
                   Never returns 0 or infinity.
@@ -197,22 +259,101 @@ class EdgeCostCalculator:
         dq = self._traversal_fuel.get(edge_id)
         if not dq:
             return self._cold_fuel_fallback(edge_id)
-        samples  = list(dq)            # oldest → newest
-        n        = len(samples)
-        w_sum    = n * (n + 1) / 2    # sum of 1+2+…+n
-        weighted = sum(s * (i + 1) for i, s in enumerate(samples))
-        return weighted / w_sum
+        samples = [mg for _, mg in dq]   # extract mg; ignore sim_time here
+        n = len(samples)
+        if n == 0:
+            return self._cold_fuel_fallback(edge_id)
+
+        agg = self._fuel_aggregator
+        if agg == "wmean":
+            # Linear-recency-weighted mean: newest sample gets weight N,
+            # oldest gets weight 1 (N = number of samples in the window).
+            # This gives the most recent traversal ~18× the influence of the
+            # oldest when the window is full at N=10.
+            w_sum    = n * (n + 1) / 2    # sum of 1+2+…+n
+            weighted = sum(s * (i + 1) for i, s in enumerate(samples))
+            return weighted / w_sum
+        elif agg == "median":
+            s = sorted(samples)
+            m = n // 2
+            return s[m] if n % 2 else (s[m - 1] + s[m]) / 2.0
+        elif agg == "trimmed":
+            if n >= 4:
+                trimmed = sorted(samples)[1:-1]   # drop single min and max
+                return sum(trimmed) / len(trimmed)
+            else:
+                return sum(samples) / n
+        else:
+            # Unreachable (validated in __init__), but safe fallback
+            return sum(samples) / n
 
     def clear_traversal_fuel(self, edge_ids):
         """Clear per-traversal fuel windows for the given edges.
 
         Called at grade-mode activation so pre-grade EU4 traversal costs do not
         dilute the post-activation EU0 signal used by fuel-objective routing.
+        Works regardless of whether the deque stores bare mg or (sim_time, mg) tuples.
         """
         for eid in edge_ids:
             dq = self._traversal_fuel.get(eid)
             if dq is not None:
                 dq.clear()
+
+    # --- Change 1: Junction / transition fuel penalty ---
+
+    def get_junction_penalty(self, edge_id, m):
+        """Expected extra fuel (mg) of a stop-start event at the edge's upstream junction.
+
+        Computes: penalty = p_stop × stop_start_fuel_mg
+
+        p_stop (stop probability):
+          Derived from RSU's stop_and_go_freq (mean stop count per vehicle).
+          p_stop = clamp(stop_and_go_freq / 1.0, 0, 1).
+          One or more mean stops → p=1 (conservative); zero stops → p=0.
+          Returns 0 immediately when stop_and_go_freq <= 0 (cold / free-flowing edge).
+
+        stop_start_fuel_mg (physics-based re-acceleration fuel):
+          v_cruise = min(speed_limit, observed avg_speed if > 1 m/s else speed_limit)
+          KE       = 0.5 × m_veh × v_cruise²          (Joules)
+          fuel_kg  = KE / (eta_engine × LHV_gasoline)
+          fuel_mg  = fuel_kg × 1e6 × idle_overhead_factor
+
+        Constants (all __init__ parameters; defaults listed here):
+          m_veh               = 1500.0 kg   — typical passenger car
+          eta_engine          = 0.30         — engine thermal efficiency
+          LHV_gasoline        = 43.5e6 J/kg  — lower heating value of gasoline
+          idle_overhead_factor = 1.15        — accounts for idling time at stop
+
+        Sanity check: at v = 13.89 m/s ≈ 50 km/h the formula yields ≈ 12 700 mg
+        per full stop-start, consistent with the real-world 5–15 mL range.
+
+        Known double-counting: get_segment_fuel already partially includes stop fuel
+        from past traversal observations.  This penalty prices EXPECTED future
+        stop behaviour on the ego's arrival, so the overlap is a conservative bias
+        toward avoiding high-stop edges, not a systematic error.  Disable with
+        junction_weight=0 (--junction-weight 0) to restore pre-Change-1 behaviour.
+        """
+        stop_freq = m.get("stop_and_go_freq", 0.0)
+        if stop_freq <= 0.0:
+            return 0.0   # cold edge or free-flowing — no penalty
+
+        # p_stop: clamp stop_and_go_freq / 1.0 to [0, 1]
+        p_stop = min(float(stop_freq) / 1.0, 1.0)
+
+        # v_cruise: observed avg_speed if > 1 m/s, else speed_limit; capped by limit
+        v_lim    = self.edge_speed_limits.get(edge_id, 13.89)
+        v_obs    = m.get("avg_speed", 0.0)
+        v_cruise = min(v_lim, v_obs if v_obs > 1.0 else v_lim)
+        v_cruise = max(v_cruise, 1.0)   # floor at 1 m/s to keep computation positive
+
+        # KE = ½ m_veh v²  (Joules)
+        KE = 0.5 * self._m_veh * v_cruise ** 2
+
+        # fuel_mg = (KE / (eta × LHV)) × 1e6 × overhead
+        fuel_kg = KE / (self._eta_engine * self._LHV_gasoline)
+        fuel_mg = fuel_kg * 1e6 * self._idle_overhead_factor
+
+        return p_stop * fuel_mg
 
     @staticmethod
     def _clamp(x, lo=0.0, hi=1.0):
@@ -247,7 +388,7 @@ class EdgeCostCalculator:
         multiplier = 1.0 + self.alpha * C + self.beta * F + self.gamma * S
         multiplier = min(multiplier, self.max_multiplier)
         weight = t_actual * multiplier
-        
+
         return {
             "t_actual": t_actual, "C": C, "F": F, "S": S,
             "multiplier": multiplier, "weight": weight,
@@ -266,7 +407,7 @@ class EdgeCostCalculator:
                 sim_time = traci.simulation.getTime()
             except traci.TraCIException:
                 sim_time = 0.0
-                
+
             self.cfs_records.append({
                 "edge_id": edge_id,
                 "sim_time": sim_time,
