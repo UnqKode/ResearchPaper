@@ -50,12 +50,21 @@ the correct choice for congestion-avoidance experiments. Change 3 needs a differ
 structure: high fuel burn, low time impact. The two selectors are complementary, not
 replacements.
 
-### Why run `select_nonbottleneck_grade_edges` before OD selection?
+### Why run `select_nonbottleneck_grade_edges` AFTER plain OD generation? (Fix 3)
 
-The OD-coverage filter inside the selector needs the candidate edge set. Running it before
-OD generation means the OD pairs can then be built with `--targeted-od` to ensure ego trips
-cross the selected corridor. The alternative (pick edges after OD) would break the OD
-coverage guarantee.
+Review fix corrected the original ordering. The selector now runs after
+`generate_od_pairs` in `main()` so it receives the real campaign OD list for
+coverage filtering (preference 1 from the Fix 3 spec). The `_nonbottleneck_deferred`
+flag in `main()` records this two-step flow:
+
+1. `generate_od_pairs` → `_plain_od` (no degraded edges needed yet)
+2. `select_nonbottleneck_grade_edges(od_list=_plain_od)` → `degraded_edges`
+3. If `--targeted-od`: re-run `select_targeted_od_pairs` with the real corridor
+
+This breaks the circular dependency (targeted-OD needs edges; selector needs ODs)
+by using the plain OD list for coverage estimation and targeted-OD for the campaign
+itself. The selector also generates a 50-pair fallback internally if `od_list=None`
+is passed directly.
 
 ---
 
@@ -69,6 +78,7 @@ coverage guarantee.
 | `BTP/Simulation/compare_routing.py` | `select_nonbottleneck_grade_edges`, `_arm_params`, CLI flags, three-arm campaign loop, `analyze_paired_results` gates + decomposition |
 | `BTP/run_k10_fuelspec.bat` | New: three-arm experiment launcher |
 | `BTP/test_segment_fuel.py` | New: 14 unit tests (no SUMO/TraCI) |
+| `BTP/test_nonbottleneck_select.py` | New (round 2): 14 tests for Fixes 1-7 |
 
 ---
 
@@ -99,9 +109,10 @@ coverage guarantee.
 ```powershell
 cd C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\BTP
 conda run --no-capture-output -n ml python test_segment_fuel.py
+conda run --no-capture-output -n ml python test_nonbottleneck_select.py
 ```
 
-Expected output: `14/14 tests passed`
+Expected output: `14/14 tests passed` for each file (28 total).
 
 ---
 
@@ -125,4 +136,29 @@ The summary JSON includes:
 - `gate_c` (avoidance rates + artifact flag)
 - `gate_a_prime` (fuel/time ratio on degraded-edge trips)
 - `gate_c_prime` (ours-fuel avoidance > base, only for ours-fuel arm)
-- `fuel_specificity` (OLS intercept + CI = fuel-specific effect)
+- `fuel_specificity` (per-seed intercepts, mean, CI, Wilcoxon, equal-time subset,
+  seed-level OLS — see Fix 6)
+
+---
+
+## Review Fixes (round 2)
+
+Applied after code review of Change 3. Changes 1, 2A, 2B were approved unchanged.
+
+| Fix | Severity | Location | Summary |
+|-----|----------|----------|---------|
+| 1 | Critical | `select_nonbottleneck_grade_edges` | Inverted speed filter: `<=speed_ratio_max` → `>=speed_ratio_min=0.85`. Old filter selected congested edges, new selects free-flowing ones. |
+| 2 | High | same | Occupancy normalisation: divide by 100 at read time (TraCI returns %). Replace fixed `occ_max` with adaptive p40 threshold computed from probe run. |
+| 3 | High | same + `main()` | Replace broken `__import__`/`Simulation.__new__` OD coverage hack with pure `sumolib.net.getShortestPath` loop. `od_coverage_min` 0.05→0.20. Selector call deferred in `main()` to after `generate_od_pairs` so real OD list is passed. |
+| 4 | High | same | Two missing candidate gates: length >= 100 m; expected traversals >= 30 (proxy via vehicle*dt / t_freeflow). |
+| 5 | Medium | same | Replace hardcoded `probe_port=9188` with `_free_port()`. Unique TraCI label. Probe loop wrapped in try/finally so close always runs. |
+| 6 | Medium | `analyze_paired_results` | Replace single 10-point seed-level OLS with two-level analysis: per-seed OLS intercepts, seed-level t-CI + Wilcoxon, equal-time subset (|Δtime%|≤5%) report. Old OLS kept as `seedlevel_ols` secondary readout. |
+| 7 | Minor | `simulate.py` | Off-route ego in fuel mode now calls `_reroute_fuel_mode(force=True)` instead of returning early. `force=True` bypasses hysteresis gate, always applies Dijkstra route, logs `FORCE_OFFROUTE`. |
+
+### Fix 3 ordering decision
+
+The selector is now called **after** `generate_od_pairs` in `main()` (preference 1 from
+the spec, not the fallback). Implementation: the `_nonbottleneck_deferred = True` flag
+delays the selector call to after OD generation. The plain OD list is passed to the
+selector for coverage filtering; if `--targeted-od` is also set, OD pairs are then
+regenerated with `select_targeted_od_pairs` using the real corridor.

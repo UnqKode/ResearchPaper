@@ -75,23 +75,36 @@ Augtime mode is unchanged — the existing deviation + improvement-threshold log
 **Files:** `BTP/Simulation/compare_routing.py`
 
 **`select_nonbottleneck_grade_edges()`:** Runs a 900-step headless probe SUMO, collects per-edge occupancy and speed, then applies a 4-filter pipeline:
-1. Occupancy in [occ_min=0.05, occ_max=0.60] — non-bottleneck
-2. avg_speed / speed_limit ≤ speed_ratio_max=0.75 — speed-depressed
-3. OD coverage ≥ od_coverage_min=0.05 — on ego routes
-4. Not a critical arterial (occ > 0.60 excluded)
+1. Occupancy in [0.005, 40th-percentile] (normalised) — non-bottleneck, not empty
+2. avg_speed / speed_limit ≥ speed_ratio_min=0.85 — **free-flowing** (see round-2 fix)
+3. OD coverage ≥ od_coverage_min=0.20 — on ego routes (sumolib getShortestPath)
+4. Length ≥ 100 m; expected traversals ≥ 30
 
-`--degraded-edges auto-nonbottleneck` invokes this selector in `main()`.
+`--degraded-edges auto-nonbottleneck` invokes this selector in `main()` (after OD generation).
 
 **Three-arm campaign:** `--arms ours-fuel,ours-augtime,ablation` runs all three arms against the same OD list, seeds, and physics. Ablation is the reference; each `ours-*` arm is analyzed separately via `analyze_paired_results(..., ours_label=arm_name)` producing distinct output files.
 
 **`analyze_paired_results()` additions:**
 - **Gate A′:** On trips that cross a degraded edge: fuel_ratio≥2×, time_ratio<1.10
 - **Gate C′:** ours-fuel avoidance rate > base arm avoidance rate (labeled in summary JSON)
-- **Equal-time OLS decomposition:** `Δfuel% = a + b·Δtime%`; intercept `a` = fuel-specific effect with 95% CI. Written to `summary["fuel_specificity"]`.
+- **Fuel-specificity analysis (round 2):** per-seed OLS intercepts + seed-level t-CI +
+  Wilcoxon + equal-time subset (|Δtime%|≤5%) report. Written to `summary["fuel_specificity"]`.
 
 **`run_k10_fuelspec.bat`:** Seeds 1-10, n=25, scale=2.0, teleport=300, grade mode, auto-nonbottleneck k=2, three arms, median/0.10/1.0 flags.
 
-**`test_segment_fuel.py`:** 14 unit tests covering all three changes. 14/14 pass without SUMO/TraCI.
+**`test_segment_fuel.py`:** 14 unit tests covering Changes 1, 2A, 2B. 14/14 pass without SUMO/TraCI.
+
+**`test_nonbottleneck_select.py`:** 14 unit tests for review fixes 1-7. 14/14 pass.
+
+### ⚠ Selector correction (round 2, 2026-07-06)
+
+The original `select_nonbottleneck_grade_edges` implementation (commit `3be2646`)
+contained a **critical inverted filter**: it selected speed-*depressed* edges
+(`ratio <= 0.75`) instead of free-flowing ones (`ratio >= 0.85`). Any probe or
+experiment results produced with the original selector (before commit `3a5f65c`)
+**must not be cited** — they used a corridor that re-couples fuel and time,
+defeating the purpose of the non-bottleneck design. Only results from
+`run_k10_fuelspec.bat` run on commit `3a5f65c` or later are scientifically valid.
 
 ### Non-negotiable invariants maintained
 - Routing algorithm never reads `RoadConditionManager.degraded_edges`
