@@ -1332,7 +1332,7 @@ class Simulation:
     def run_fixed_departure_campaign(self, od_list, depart_start, depart_spacing,
                                      per_trip_timeout, ego_policy, reroute_interval,
                                      use_hysteresis, progress_log_path=None,
-                                     seed=None, diag_stamp=None):
+                                     seed=None, diag_stamp=None, drift_log_path=None):
         """
         Injects a list of OD pairs into a single continuous simulation run at fixed
         scheduled times. Egos route according to `ego_policy`. Metrics are parsed
@@ -1341,6 +1341,39 @@ class Simulation:
         dt = traci.simulation.getDeltaT()
         results = []
         self.rsu_manager.subscribe_edges()
+
+        # ------------------------------------------------------------------
+        # Drift logging: sample background vehicle state every 60 s starting
+        # at depart_start, to quantify how far the two arms diverge.
+        # Enabled only when drift_log_path is set (--drift-log flag).
+        # ------------------------------------------------------------------
+        _drift_file = None
+        _drift_writer = None
+        _drift_monitored_edges = []
+        _drift_corridor_edges = []
+        _last_drift_time = depart_start - 9999.0  # force first sample at depart_start
+        _all_ego_ids = {f"ego_{k}" for k in range(len(od_list))}
+
+        if drift_log_path:
+            import csv as _dcsv
+            _rcm = getattr(self, 'road_condition_manager', None)
+            _drift_corridor_edges = list(getattr(_rcm, 'degraded_edges', []) or [])
+            _corridor_set = set(_drift_corridor_edges)
+            # Pick ~40 edges evenly distributed across the network, away from corridor
+            _all_sorted = sorted(e for e in self.edges if e not in _corridor_set)
+            _dstep = max(1, len(_all_sorted) // 40)
+            _drift_monitored_edges = _all_sorted[::_dstep][:40]
+            print(f"[DRIFT_LOG] arm={ego_policy} file={drift_log_path}")
+            print(f"[DRIFT_LOG] corridor_edges={_drift_corridor_edges}")
+            print(f"[DRIFT_LOG] n_monitored={len(_drift_monitored_edges)} "
+                  f"first5={_drift_monitored_edges[:5]}")
+            _fieldnames = (["sim_time", "arm", "veh_in_network", "corridor_count"]
+                           + _drift_monitored_edges)
+            _drift_file = open(drift_log_path, 'w', newline='')
+            _drift_writer = _dcsv.DictWriter(_drift_file, fieldnames=_fieldnames)
+            _drift_writer.writeheader()
+            _drift_file.flush()
+        # ------------------------------------------------------------------
 
         # Temporarily override instance config for this mode
         original_routing = self.ego_routing
@@ -1393,13 +1426,45 @@ class Simulation:
         )
         _sys.stderr.flush()
 
-        while len(completed_egos) < len(od_list) and traci.simulation.getMinExpectedNumber() > 0:
+        sim_time = depart_start  # always defined even if loop never runs
+        while len(completed_egos) < len(od_list):
+            _min_exp = traci.simulation.getMinExpectedNumber()
+            if _min_exp == 0:
+                # Normal mode: exit immediately on background depletion.
+                # Drift mode: keep going while egos are still active or scheduled
+                # so the sampler covers the full ego-trip window.
+                if drift_log_path is None or not (
+                    active_egos or any(v not in completed_egos for v in schedule)
+                ):
+                    break
             traci.simulationStep()
             sim_time = traci.simulation.getTime()
 
             if sim_time < fast_forward_target:
                 # Fast forward without expensive Python processing
                 continue
+
+            # ------ drift snapshot (60 s cadence, background vehicles only) ------
+            if _drift_writer is not None and sim_time >= depart_start and \
+                    sim_time - _last_drift_time >= 59.9:
+                _last_drift_time = sim_time
+                _cur_veh = traci.vehicle.getIDList()
+                _bg_count = sum(1 for v in _cur_veh if v not in _all_ego_ids)
+                _corr_count = sum(
+                    traci.edge.getLastStepVehicleNumber(e)
+                    for e in _drift_corridor_edges
+                )
+                _drow = {
+                    "sim_time": round(sim_time, 1),
+                    "arm": ego_policy,
+                    "veh_in_network": _bg_count,
+                    "corridor_count": _corr_count,
+                }
+                for _me in _drift_monitored_edges:
+                    _drow[_me] = traci.edge.getLastStepVehicleNumber(_me)
+                _drift_writer.writerow(_drow)
+                _drift_file.flush()
+            # -----------------------------------------------------------------------
 
             self.rsu_manager.step()
             if hasattr(self, 'road_condition_manager') and self.road_condition_manager:
@@ -1582,10 +1647,33 @@ class Simulation:
                     active_egos.remove(vid)
                     completed_egos.add(vid)
 
+        # --- loop-exit diagnostic (always printed to stderr) ---
+        try:
+            _min_exp_exit = traci.simulation.getMinExpectedNumber()
+        except Exception:
+            _min_exp_exit = -1
+        _exit_reason = ("all_egos_done" if len(completed_egos) >= len(od_list)
+                        else f"min_expected={_min_exp_exit}")
+        _loop_exit_msg = (
+            f"[LOOP_EXIT] arm={ego_policy} t={round(sim_time, 1)} "
+            f"completed={len(completed_egos)}/{len(od_list)} "
+            f"active={len(active_egos)} reason={_exit_reason}\n"
+        )
+        _sys.stderr.write(_loop_exit_msg)
+        _sys.stderr.flush()
+        try:
+            with open("loop_exit_diag.txt", "a") as _lef:
+                _lef.write(_loop_exit_msg)
+        except Exception:
+            pass
+
         # Restore instance config
         self.ego_routing = original_routing
         self.reroute_interval = original_interval
         self.imp_threshold = orig_imp
         self.dev_threshold = orig_dev
+
+        if _drift_file is not None:
+            _drift_file.close()
 
         return results

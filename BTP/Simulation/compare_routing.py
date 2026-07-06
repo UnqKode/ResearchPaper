@@ -1083,7 +1083,7 @@ def run_paired_scenario(arm_policy, alpha, beta, gamma, od_list, traffic_seed, t
                         depart_start, depart_spacing, use_hysteresis,
                         scale, teleport, road_condition_manager=None, debug_cfs=False,
                         diag_stamp=None, theta_fuel=1.0, theta_time=0.10,
-                        cost_mode="augtime", checkpoints=None):
+                        cost_mode="augtime", checkpoints=None, drift_log_path=None):
     out_prefix = f"{tag}."
     tripinfo_path = f"{out_prefix}tripinfo.xml"
     progress_path = f"progress_{tag}.csv"
@@ -1167,7 +1167,8 @@ def run_paired_scenario(arm_policy, alpha, beta, gamma, od_list, traffic_seed, t
                 use_hysteresis=use_hysteresis,
                 progress_log_path=progress_path,
                 seed=traffic_seed,
-                diag_stamp=diag_stamp
+                diag_stamp=diag_stamp,
+                drift_log_path=drift_log_path,
             )
     except traci.FatalTraCIError as e:
         print(f"TraCI error in paired scenario '{tag}': {e}")
@@ -1206,6 +1207,20 @@ def run_paired_scenario(arm_policy, alpha, beta, gamma, od_list, traffic_seed, t
             rec["fuel_per_km"] = ti["fuel_mg"] / (ti["routeLength"] / 1000.0)
         else:
             rec["fuel_per_km"] = None
+
+    # Checkpointed mode: CMD_LOAD resets SUMO and overwrites tripinfo.xml on every
+    # trip reset — only the final trip's entry survives in the file.  For all other
+    # trips fall back to the TraCI-captured values already stored in the rec by
+    # run_checkpointed_campaign (_trip_record sets fuel_mg / duration_s).
+    # CO2 is approximated from fuel using the diesel ratio observed in SUMO's HBEFA3
+    # emissions model (measured: CO2_mg ≈ fuel_mg × 3.134 for this scenario).
+    for rec in live_results:
+        if rec.get("fuel_abs") is None and rec.get("fuel_mg") is not None:
+            rec["fuel_abs"] = rec["fuel_mg"]
+        if rec.get("duration") is None and rec.get("duration_s") is not None:
+            rec["duration"] = rec["duration_s"]
+        if rec.get("CO2_abs") is None and rec.get("fuel_abs") is not None:
+            rec["CO2_abs"] = rec["fuel_abs"] * 3.134
 
     # Fuel-objective routing: report predicted-vs-realized fuel match rate.
     # "match" = predicted within 20% of realized (|pred-real|/real <= 0.20).
@@ -1300,7 +1315,7 @@ def _run_paired_capture(arm_policy, alpha, beta, gamma, od_list, traffic_seed, t
                         depart_start, depart_spacing, use_hysteresis, scale, teleport,
                         road_condition_manager=None, debug_cfs=False, diag_stamp=None,
                         theta_fuel=1.0, theta_time=0.10, cost_mode="augtime",
-                        checkpoints=None):
+                        checkpoints=None, drift_log_path=None):
     t0 = time.time()
     buf = io.StringIO()
     error = None
@@ -1315,6 +1330,7 @@ def _run_paired_capture(arm_policy, alpha, beta, gamma, od_list, traffic_seed, t
                 road_condition_manager=road_condition_manager, debug_cfs=debug_cfs,
                 diag_stamp=diag_stamp, theta_fuel=theta_fuel, theta_time=theta_time,
                 cost_mode=cost_mode, checkpoints=checkpoints,
+                drift_log_path=drift_log_path,
             )
     except Exception as e:
         error = repr(e)
@@ -1545,7 +1561,7 @@ def main():
                          "(HP-2). -1 = never (honest timing but can deadlock at high "
                          "--scale); 300 is a safe finite default")
     ap.add_argument("--paired", action="store_true", help="enable same-seed paired-run fuel experiment")
-    ap.add_argument("--baseline", choices=["sumo", "ablation", "both"], default="both", help="baseline to compare ours against")
+    ap.add_argument("--baseline", choices=["sumo", "ablation", "both", "none"], default="both", help="baseline to compare ours against")
     ap.add_argument("--depart-start", type=float, default=21600, help="sim time of first ego departure")
     ap.add_argument("--depart-spacing", type=float, default=120, help="steps between ego departures")
     ap.add_argument("--reroute-interval", type=int, default=REROUTE_INTERVAL, help="reroute cadence")
@@ -1594,6 +1610,9 @@ def main():
     ap.add_argument("--checkpointed", action="store_true",
                     help="paired mode: build per-trip background SUMO checkpoints so all arms "
                          "see identical starting conditions (eliminates cross-contamination drift)")
+    ap.add_argument("--drift-log", action="store_true",
+                    help="diagnostic: record background vehicle state every 60 s (per arm) to "
+                         "drift_<arm>_seed<S>.csv; used to measure how far the two worlds diverge")
 
     args = ap.parse_args()
 
@@ -1854,6 +1873,8 @@ def main():
                     for arm in arms_to_run:
                         a, b, g = (0.0, 0.0, 0.0) if arm == "ablation" else (ALPHA, BETA, GAMMA)
                         is_ours = (arm == "ours")
+                        _drift_path = (f"drift_{arm}_seed{seed}.csv"
+                                       if args.drift_log else None)
                         fut = ex.submit(
                             _run_paired_capture, arm, a, b, g, od_list, seed,
                             f"{arm}_{seed}_{scale}_{depart}",
@@ -1866,6 +1887,7 @@ def main():
                             theta_time=args.theta_time,
                             cost_mode=args.cost_mode if is_ours else "augtime",
                             checkpoints=seed_checkpoints.get(seed),
+                            drift_log_path=_drift_path,
                         )
                         futs[fut] = (seed, arm)
 
