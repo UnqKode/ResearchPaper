@@ -968,6 +968,124 @@ def run_parallel(od_list, traffic_seed, jobs, warmup_steps=WARMUP_STEPS,
 # PAIRED SAME-SEED FUEL CAMPAIGN
 # ===========================================================================
 
+# ---------------------------------------------------------------------------
+# Change 3: Non-bottleneck grade corridor selection
+# ---------------------------------------------------------------------------
+
+def select_nonbottleneck_grade_edges(net_file, config_file, k=2,
+                                     occ_min=0.05, occ_max=0.60,
+                                     speed_ratio_max=0.75,
+                                     od_coverage_min=0.05,
+                                     od_list=None,
+                                     probe_seed=42, probe_n=5,
+                                     sumo_bin="sumo",
+                                     scale=1.0, teleport=300):
+    """Return k edge-ids suitable for grade degradation that are:
+
+    1. Non-bottleneck: average occupancy in [occ_min, occ_max]
+    2. Speed-depressed: avg_speed / speed_limit <= speed_ratio_max
+    3. OD-relevant: appear in the Dijkstra route of >= od_coverage_min
+       fraction of the probe OD pairs (so at least some ego trips cross them)
+    4. Not already on critical arterials (occupancy > occ_max filtered out)
+
+    Runs a short probe simulation (probe_n OD pairs, probe_seed) with no ego,
+    collecting TraCI edge occupancy and speed data. Returns a list of k edge
+    IDs, or raises RuntimeError if no eligible set found.
+    """
+    import random as _rnd
+    import traci as _traci
+
+    rng = _rnd.Random(probe_seed)
+
+    # --- Build a minimal edge → nodes map via sumolib ---
+    net = sumolib.net.readNet(net_file, withInternal=False)
+    all_edges = [e for e in net.getEdges() if not e.getID().startswith(":")]
+    rng.shuffle(all_edges)
+
+    # --- Quick probe: one short SUMO run to gather occupancy/speed data ---
+    probe_port = 9188
+    sumo_cmd = [sumo_bin, "-c", config_file,
+                "--no-warnings", "--no-step-log",
+                "--time-to-teleport", str(teleport),
+                "--scale", str(scale),
+                "--remote-port", str(probe_port)]
+    _traci.start(sumo_cmd, port=probe_port, label="probe_nonbottleneck")
+
+    # warm up 300 steps
+    for _ in range(300):
+        _traci.simulationStep()
+
+    edge_stats = {}
+    for _ in range(600):
+        _traci.simulationStep()
+        for e in all_edges:
+            eid = e.getID()
+            occ = _traci.edge.getLastStepOccupancy(eid)
+            spd = _traci.edge.getLastStepMeanSpeed(eid)
+            if eid not in edge_stats:
+                edge_stats[eid] = {"occ_sum": 0.0, "spd_sum": 0.0, "cnt": 0}
+            edge_stats[eid]["occ_sum"] += occ
+            edge_stats[eid]["spd_sum"] += spd
+            edge_stats[eid]["cnt"]     += 1
+
+    _traci.close()
+
+    # --- Filter 1 + 2: occupancy and speed ratio ---
+    candidates = []
+    for e in all_edges:
+        eid = e.getID()
+        s = edge_stats.get(eid)
+        if not s or s["cnt"] == 0:
+            continue
+        avg_occ = s["occ_sum"] / s["cnt"]
+        avg_spd = s["spd_sum"] / s["cnt"]
+        spd_lim = e.getSpeed()
+        if spd_lim <= 0:
+            continue
+        ratio = avg_spd / spd_lim
+        if occ_min <= avg_occ <= occ_max and ratio <= speed_ratio_max:
+            candidates.append(eid)
+
+    if not candidates:
+        raise RuntimeError("select_nonbottleneck_grade_edges: no edges passed "
+                           "occupancy/speed filter")
+
+    # --- Filter 3: OD coverage ---
+    if od_list and probe_n > 0:
+        from Simulation.simulate import Simulation as _Sim
+        _sim_probe = _Sim.__new__(_Sim)
+        _sim_probe.net_builder = __import__(
+            "Simulation.network_builder", fromlist=["NetworkBuilder"]
+        ).NetworkBuilder(net_file=net_file)
+        cand_set = set(candidates)
+        coverage_counts = {e: 0 for e in candidates}
+        sample_ods = rng.sample(od_list, min(probe_n * 5, len(od_list)))
+        for orig, dest in sample_ods:
+            orig_nodes = _sim_probe.net_builder.edge_to_nodes.get(orig)
+            dest_nodes = _sim_probe.net_builder.edge_to_nodes.get(dest)
+            if not orig_nodes or not dest_nodes:
+                continue
+            try:
+                route_edges = _sim_probe.net_builder.get_dijkstra_route(
+                    orig_nodes[1], dest_nodes[1])
+                for re in route_edges:
+                    if re in cand_set:
+                        coverage_counts[re] += 1
+            except Exception:
+                continue
+        n_od = len(sample_ods) if sample_ods else 1
+        candidates = [e for e in candidates
+                      if coverage_counts[e] / n_od >= od_coverage_min]
+
+    if not candidates:
+        raise RuntimeError("select_nonbottleneck_grade_edges: no edges passed "
+                           "OD coverage filter")
+
+    # Return k edges; prefer shorter IDs (tends to pick canonical segment names)
+    candidates.sort(key=lambda e: (len(e), e))
+    return candidates[:k]
+
+
 def _arm_params(arm, args):
     """Return (alpha, beta, gamma, cost_mode) for an arm name.
 
@@ -1432,6 +1550,114 @@ def analyze_paired_results(ours_lists, base_lists, base_name, run_meta,
         else:
             summary["gate_c"]["artifact_flag"] = False
 
+    # ------------------------------------------------------------------
+    # Change 3 — Gate A′: degraded-edge fuel ≥2×, time <10% on crossed trips
+    # ------------------------------------------------------------------
+    if degraded_edges:
+        crossed_ours_fuel  = []
+        crossed_ours_time  = []
+        crossed_base_fuel  = []
+        crossed_base_time  = []
+        for r in ours_flat:
+            if not r.get("arrived"): continue
+            driven = r.get("driven_edges", [])
+            if isinstance(driven, str): driven = driven.split("|") if driven else []
+            if any(de in driven for de in degraded_edges):
+                if r.get("fuel_abs") is not None:
+                    crossed_ours_fuel.append(r["fuel_abs"])
+                if r.get("duration") is not None:
+                    crossed_ours_time.append(r["duration"])
+        for r in base_flat:
+            if not r.get("arrived"): continue
+            driven = r.get("driven_edges", [])
+            if isinstance(driven, str): driven = driven.split("|") if driven else []
+            if any(de in driven for de in degraded_edges):
+                if r.get("fuel_abs") is not None:
+                    crossed_base_fuel.append(r["fuel_abs"])
+                if r.get("duration") is not None:
+                    crossed_base_time.append(r["duration"])
+        if crossed_ours_fuel and crossed_base_fuel and crossed_ours_time and crossed_base_time:
+            ratio_fuel = (sum(crossed_ours_fuel)/len(crossed_ours_fuel)) / \
+                         (sum(crossed_base_fuel)/len(crossed_base_fuel))
+            ratio_time = (sum(crossed_ours_time)/len(crossed_ours_time)) / \
+                         (sum(crossed_base_time)/len(crossed_base_time))
+            gate_a_prime = (ratio_fuel >= 2.0) and (abs(ratio_time - 1.0) < 0.10)
+            summary["gate_a_prime"] = {
+                "fuel_ratio_on_degraded": ratio_fuel,
+                "time_ratio_on_degraded": ratio_time,
+                "passes": gate_a_prime,
+            }
+            print(f"\n-- Gate A′ (degraded-edge impact) --")
+            print(f"  fuel ratio (ours/base on degraded): {ratio_fuel:.2f}x  "
+                  f"(need >=2.0)  {'PASS' if ratio_fuel >= 2.0 else 'FAIL'}")
+            print(f"  time ratio (ours/base on degraded): {ratio_time:.3f}  "
+                  f"(need <1.10)  {'PASS' if abs(ratio_time-1.0)<0.10 else 'FAIL'}")
+            print(f"  Gate A′ overall: {'PASS' if gate_a_prime else 'FAIL'}")
+
+    # ------------------------------------------------------------------
+    # Change 3 — Gate C′: ours-fuel avoidance > base avoidance
+    # ------------------------------------------------------------------
+    if degraded_edges and ours_label == "ours-fuel":
+        ours_avoidance_rate_c = summary.get("gate_c", {}).get("avoidance_rate_ours_pct", 0.0)
+        base_avoidance_rate_c = summary.get("gate_c", {}).get(
+            f"avoidance_rate_{base_name}_pct", 0.0)
+        gate_c_prime = ours_avoidance_rate_c > base_avoidance_rate_c
+        summary["gate_c_prime"] = {
+            "ours_fuel_avoidance_pct": ours_avoidance_rate_c,
+            f"{base_name}_avoidance_pct": base_avoidance_rate_c,
+            "passes": gate_c_prime,
+        }
+        print(f"\n-- Gate C′ (ours-fuel avoids > {base_name}) --")
+        print(f"  ours-fuel={ours_avoidance_rate_c:.1f}%  "
+              f"{base_name}={base_avoidance_rate_c:.1f}%  "
+              f"{'PASS' if gate_c_prime else 'FAIL'}")
+
+    # ------------------------------------------------------------------
+    # Change 3 — Equal-time decomposition (fuel specificity)
+    # OLS fit: Δfuel% = a + b·Δtime%
+    # Intercept a is the fuel-specific effect; slope b captures co-movement.
+    # ------------------------------------------------------------------
+    fuel_pct = [sr["fuel_saving_pct"] for sr in seed_records]
+    time_pct = [sr["dur_saving_pct"]  for sr in seed_records]
+    if K >= 3:
+        try:
+            n = K
+            sx  = sum(time_pct)
+            sy  = sum(fuel_pct)
+            sxx = sum(x**2 for x in time_pct)
+            sxy = sum(x*y for x,y in zip(time_pct, fuel_pct))
+            denom = n*sxx - sx**2
+            if denom != 0:
+                b_ols = (n*sxy - sx*sy) / denom
+                a_ols = (sy - b_ols*sx) / n
+                resids = [fy - (a_ols + b_ols*tx) for fy, tx in
+                          zip(fuel_pct, time_pct)]
+                rss = sum(r**2 for r in resids)
+                se_a = None
+                ci_a = None
+                if stats and K > 2:
+                    s2 = rss / (n - 2)
+                    sxx_bar = sxx - sx**2 / n
+                    se_a = (s2 * (1/n + (sx/n)**2 / sxx_bar)) ** 0.5 if sxx_bar > 0 else None
+                    if se_a is not None:
+                        t_crit = stats.t.ppf(0.975, n - 2)
+                        ci_a = (a_ols - t_crit * se_a, a_ols + t_crit * se_a)
+                summary["fuel_specificity"] = {
+                    "intercept_pct": a_ols,
+                    "slope": b_ols,
+                    "se_intercept": se_a,
+                    "CI_95_intercept": ci_a,
+                }
+                print(f"\n-- Equal-time decomposition (fuel specificity) --")
+                print(f"  OLS: Δfuel% = {a_ols:.2f} + {b_ols:.3f}·Δtime%")
+                print(f"  Fuel-specific effect (intercept): {a_ols:.2f}%", end="")
+                if ci_a:
+                    print(f"  95% CI [{ci_a[0]:.2f}%, {ci_a[1]:.2f}%]")
+                else:
+                    print()
+        except Exception as e:
+            print(f"  Equal-time decomposition failed: {e}")
+
     with open(f_sum, "w") as f: json.dump(summary, f, indent=2)
     return f_sum
 
@@ -1505,7 +1731,9 @@ def main():
     
     # Phase 2: Degraded Road args
     ap.add_argument("--road-condition", choices=["none", "rough", "accident", "grade"], default="none", help="degradation mode")
-    ap.add_argument("--degraded-edges", type=str, default="", help="comma-separated list of edges, or 'auto'")
+    ap.add_argument("--degraded-edges", type=str, default="",
+                    help="comma-separated list of edges, 'auto' (bottleneck), or "
+                         "'auto-nonbottleneck' (Change 3: non-bottleneck grade corridor)")
     ap.add_argument("--n-degraded", type=int, default=3, help="k for auto-selection")
     ap.add_argument("--degrade-start", type=float, default=-1, help="time to start degradation (-1 = depart_start - 300)")
     ap.add_argument("--degrade-vlow", type=float, default=5.0, help="v_low for rough mode")
@@ -1539,6 +1767,14 @@ def main():
     if args.road_condition != "none":
         if args.degraded_edges == "auto":
             degraded_edges = select_degraded_edges(NET_FILE, args.n_degraded, args.traffic_seed, args.scale, args.teleport, depart_start)
+        elif args.degraded_edges == "auto-nonbottleneck":
+            # Change 3: probe-sim based non-bottleneck selection
+            degraded_edges = select_nonbottleneck_grade_edges(
+                NET_FILE, CONFIG_FILE, k=args.n_degraded,
+                probe_seed=args.traffic_seed, probe_n=args.n,
+                sumo_bin=SUMO_BIN, scale=args.scale, teleport=args.teleport,
+            )
+            print(f"[AUTO_NONBOTTLENECK] selected edges: {degraded_edges}")
         elif args.degraded_edges:
             degraded_edges = [x.strip() for x in args.degraded_edges.split(",") if x.strip()]
 
