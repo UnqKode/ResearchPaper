@@ -1007,115 +1007,52 @@ def _filter_nonbottleneck_candidates(edge_records, p40_occ, speed_ratio_min,
     return out
 
 
-def select_nonbottleneck_grade_edges(net_file, config_file, k=2,
-                                     speed_ratio_min=0.85,
+def select_nonbottleneck_grade_edges(net_file, config_file=None, k=2,
                                      od_coverage_min=0.20,
                                      od_list=None,
                                      probe_seed=42,
                                      sumo_bin="sumo",
                                      scale=1.0, teleport=300,
                                      min_len=100.0,
-                                     min_traversals=30):
-    """Return k edge-ids suitable for grade degradation that are:
+                                     spd_lim_min=7.0,
+                                     spd_lim_max=20.0,
+                                     probe_begin=None):
+    """Return k edge-ids suitable for grade degradation using sumolib only (no probe).
 
-    1. Non-bottleneck: normalised average occupancy in [0.005, 40th-percentile].
-       TraCI returns occupancy as a percentage [0, 100]; this function normalises
-       by dividing by 100 before applying thresholds.  The 40th-percentile cap
-       (computed from the probe run) excludes high-traffic arterials without
-       requiring a hand-tuned upper bound.
-    2. Free-flowing: avg_speed / speed_limit >= speed_ratio_min (default 0.85).
-       Degrading a free-flowing edge raises fuel WITHOUT raising travel time,
-       isolating the fuel-routing signal from a congestion-avoidance confound.
-    3. Long enough: edge length >= min_len metres (default 100 m).
-    4. Observed: expected traversal count during the probe >= min_traversals.
-       Proxy: sum(getLastStepVehicleNumber * dt) / (L / v_lim) >= 30.
-    5. OD-relevant: appears on the sumolib shortest path of >= od_coverage_min
+    Selection criteria (all evaluated offline via sumolib — no SUMO/TraCI probe):
+
+    1. Urban speed limit: spd_lim_min <= speed_limit <= spd_lim_max (default 7–20 m/s).
+       This encodes "free-flowing at baseline" structurally: urban arterials at
+       their posted limit are not chronically congested.  Highways (>20 m/s) and
+       side streets (<7 m/s) are excluded.  Degrading these edges under the
+       HBEFA grade emission class raises fuel WITHOUT materially raising travel time.
+    2. Long enough: edge length >= min_len metres (default 100 m).
+    3. OD-relevant: appears on the sumolib shortest path of >= od_coverage_min
        fraction of the OD sample (default 0.20), ensuring ego trips cross it.
-       Coverage is computed with sumolib only (no TraCI, no Simulation instance).
        If od_list is None or empty a throwaway 50-pair sample is generated.
 
-    Runs a short headless probe SUMO (300 warm-up + 600 measurement steps).
-    Port is allocated via _free_port(); probe TraCI connection is always closed
-    in a finally block.
+    config_file and probe-related parameters (sumo_bin, scale, teleport,
+    probe_begin) are accepted but unused — kept for call-site compatibility.
 
     Returns a list of k edge IDs, or raises RuntimeError if no eligible set found.
     """
-    import random as _rnd
-    import traci as _traci
-
-    rng = _rnd.Random(probe_seed)
-
-    # --- sumolib: load net once (used for OD coverage; probe reuses it) ---
+    # --- Load net (sumolib only — no SUMO process needed) ---
     net = sumolib.net.readNet(net_file, withInternal=False)
     all_edges = [e for e in net.getEdges() if not e.getID().startswith(":")]
-    dt = 1.0   # SUMO default step; probe uses default step length
 
-    # --- Quick probe: headless SUMO collects occ/speed/veh per edge ---
-    probe_port = _free_port()
-    sumo_cmd = [sumo_bin, "-c", config_file,
-                "--no-warnings", "--no-step-log",
-                "--time-to-teleport", str(teleport),
-                "--scale", str(scale),
-                "--remote-port", str(probe_port)]
-    probe_label = f"probe_nonbottleneck_{probe_port}"
-    _traci.start(sumo_cmd, port=probe_port, label=probe_label)
-
-    edge_stats = {}   # eid → {occ_sum, spd_sum, veh_sum, cnt}
-    try:
-        for _ in range(300):   # warm-up
-            _traci.simulationStep()
-
-        for _ in range(600):   # measurement window
-            _traci.simulationStep()
-            for e in all_edges:
-                eid = e.getID()
-                occ = _traci.edge.getLastStepOccupancy(eid)
-                spd = _traci.edge.getLastStepMeanSpeed(eid)
-                veh = _traci.edge.getLastStepVehicleNumber(eid)
-                if eid not in edge_stats:
-                    edge_stats[eid] = {"occ_sum": 0.0, "spd_sum": 0.0,
-                                       "veh_sum": 0.0, "cnt": 0}
-                edge_stats[eid]["occ_sum"] += occ
-                edge_stats[eid]["spd_sum"] += spd
-                edge_stats[eid]["veh_sum"] += veh
-                edge_stats[eid]["cnt"]     += 1
-    finally:
-        _traci.close()
-
-    # --- Compute normalised per-edge stats and the p40 occupancy threshold ---
-    edge_records = []
-    all_occ_norm = []
+    # --- Filter 1 + 2: speed limit range and length ---
+    candidates = []
     for e in all_edges:
-        eid = e.getID()
-        s = edge_stats.get(eid)
-        if not s or s["cnt"] == 0:
+        spd_lim = e.getSpeed()
+        if spd_lim < spd_lim_min or spd_lim > spd_lim_max:
             continue
-        avg_occ_pct = s["occ_sum"] / s["cnt"]       # raw percent [0, 100]
-        avg_occ     = avg_occ_pct / 100.0            # Fix 2: normalise to [0, 1]
-        avg_spd     = s["spd_sum"] / s["cnt"]
-        spd_lim     = e.getSpeed()
-        length      = e.getLength()
-        # Expected traversals proxy: vehicle*steps * dt / t_freeflow
-        t_freeflow = length / max(spd_lim, 0.1)
-        traversals  = (s["veh_sum"] * dt) / t_freeflow if t_freeflow > 0 else 0.0
-        all_occ_norm.append(avg_occ)
-        edge_records.append({
-            "eid": eid, "avg_occ": avg_occ, "avg_spd": avg_spd,
-            "spd_lim": spd_lim, "length": length, "traversals": traversals,
-        })
-
-    # 40th-percentile occupancy upper bound (excludes arterials adaptively)
-    all_occ_norm.sort()
-    p40_idx  = int(0.40 * len(all_occ_norm))
-    p40_occ  = all_occ_norm[p40_idx] if all_occ_norm else 0.30
-
-    # --- Filter 1–4 via pure helper ---
-    candidates = _filter_nonbottleneck_candidates(
-        edge_records, p40_occ, speed_ratio_min, min_len, min_traversals)
+        if e.getLength() < min_len:
+            continue
+        candidates.append(e.getID())
 
     if not candidates:
         raise RuntimeError("select_nonbottleneck_grade_edges: no edges passed "
-                           "occupancy/speed/length/traversal filter")
+                           "speed-limit/length filter")
 
     # --- Filter 5: OD coverage via sumolib (no TraCI, no Simulation instance) ---
     # If no od_list supplied, generate a throwaway 50-pair sample so coverage
@@ -2094,6 +2031,7 @@ def main():
             probe_seed=args.traffic_seed,
             sumo_bin=SUMO_BIN, scale=args.scale, teleport=args.teleport,
             od_list=_plain_od,
+            probe_begin=max(0, depart_start - 300),
         )
         print(f"[AUTO_NONBOTTLENECK] selected edges: {degraded_edges}")
 
