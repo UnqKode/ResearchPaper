@@ -1163,7 +1163,7 @@ def run_paired_scenario(arm_policy, alpha, beta, gamma, od_list, traffic_seed, t
             reroute_interval=REROUTE_INTERVAL,
             alpha=alpha, beta=beta, gamma=gamma,
             ego_type=EGO_TYPE,
-            ego_routing=arm_policy if arm_policy != "ablation" else "ours",
+            ego_routing="sumo" if arm_policy == "sumo" else "ours",
             ego_od_list=od_list,
             debug_cfs=debug_cfs,
             road_condition_manager=road_condition_manager,
