@@ -1153,6 +1153,11 @@ def run_paired_scenario(arm_policy, alpha, beta, gamma, od_list, traffic_seed, t
     ]
     print(f"[SUMO_CMD] tag={tag} seed={traffic_seed} cmd={' '.join(sumo_cmd)}")
     sys.stdout.flush()
+    # Close any stale TraCI connection left by worker-process reuse across seeds
+    try:
+        traci.close()
+    except Exception:
+        pass
     started = False
     live_results = []
     try:
