@@ -16,7 +16,26 @@ _EDGE_VARS = (
     tc.LAST_STEP_VEHICLE_ID_LIST,
     tc.LAST_STEP_OCCUPANCY,
     tc.LAST_STEP_VEHICLE_HALTING_NUMBER,
+    tc.VAR_FUELCONSUMPTION,   # edge-level total fuel this step (mg/s sum)
+    tc.LAST_STEP_MEAN_SPEED,  # for speed_ratio in corridor gate
 )
+
+# --- Vehicle sampling (Fix B) -------------------------------------------------
+# Per-vehicle subscriptions are the dominant socket cost each step. We subscribe
+# only a deterministic 1/sample_mod fraction of ordinary vehicles (plus every
+# ego), keeping per-vehicle fuel/speed/halt tracking for that sample. The
+# sampling is edge-blind (hash of the vehicle ID), so a given vehicle is either
+# sampled everywhere or nowhere for the whole run.
+_DEFAULT_SAMPLE_MOD = 5
+
+
+def _is_sampled(vid: str, sample_mod: int) -> bool:
+    """Deterministic vehicle sampling by ID hash. Edge-blind."""
+    return (zlib.crc32(vid.encode()) % sample_mod) == 0
+
+
+def _is_ego(vid: str) -> bool:
+    return vid.startswith("ego_")
 
 # Per-vehicle variables subscribed when a vehicle first enters a tracked edge.
 # Results are returned by getAllSubscriptionResults() in bulk each step.
@@ -75,7 +94,8 @@ class RSUManager:
         not the departed vehicles).
     """
 
-    def __init__(self, intersections, edges, window_size=60):
+    def __init__(self, intersections, edges, window_size=60,
+                 sample_mod=_DEFAULT_SAMPLE_MOD):
         # Window size for RSU rolling statistics: number of vehicle-departure
         # EVENTS kept per edge (not simulation steps). At typical Monaco traffic
         # rates (~2-3 veh/min on busy edges), 60 events ≈ 20-30 min of history --
@@ -88,6 +108,10 @@ class RSUManager:
         # giving F≈0.165 at the 45-min ego-injection window.  The value is
         # stored here so initialize_from_network can pass it through to each RSU.
         self.window_size = window_size
+        # Fix B: only 1/sample_mod of ordinary vehicles (plus every ego) are
+        # subscribed and tracked per-vehicle. Trades fuel-window fill rate for a
+        # large reduction in per-step socket traffic.
+        self.sample_mod = max(1, int(sample_mod))
         # RSU objects are built in initialize_from_network once TraCI is live.
         self.rsus:               dict = {}
         self.edge_to_rsu:        dict = {}
@@ -180,7 +204,9 @@ class RSUManager:
         for edge_id in self.edge_to_rsu:
             traci.edge.subscribe(edge_id, _EDGE_VARS)
         print(f"[RSU] subscribed {len(self.edge_to_rsu)} edges "
-              f"(VEHICLE_ID_LIST + OCCUPANCY + HALTING_NUMBER).")
+              f"(VEHICLE_ID_LIST + OCCUPANCY + HALTING_NUMBER + FUEL + MEAN_SPEED).")
+        print(f"[RSU] vehicle sampling 1/{self.sample_mod}: "
+              f"expect ~{self.sample_mod}x slower fuel-window fill")
 
     def clear_fuel_deques(self, edges):
         """Clear fuel/CO2 rolling windows for the given edges.
@@ -274,21 +300,35 @@ class RSUManager:
             # --- 1. TRACK ACTIVE VEHICLES ---
             for veh_id in current_veh_ids:
                 if veh_id not in self.active_vehicles[edge_id]:
-                    # Vehicle just entered the edge. Initialize its tracking data.
-                    self.active_vehicles[edge_id][veh_id] = {
-                        "speeds":      [],
-                        "wait_time":   0,
-                        "fuel":        0.0,   # accumulated mass (mg)
-                        "co2":         0.0,   # accumulated mass (mg)
-                        "halts":       0,     # rising-edge stop counter (Q3)
-                        "was_stopped": False, # previous-step stopped flag
-                    }
-                    # Subscribe this vehicle if not already tracked.
-                    # Results will be available from the NEXT step onwards;
-                    # the first step on this edge is skipped (see NOTE in docstring).
-                    if veh_id not in self._subscribed_vehicles:
-                        traci.vehicle.subscribe(veh_id, _VEH_VARS)
-                        self._subscribed_vehicles.add(veh_id)
+                    # Vehicle just entered the edge. Fix B: only sampled vehicles
+                    # (deterministic 1/sample_mod hash) and egos get full per-vehicle
+                    # tracking + a subscription. Unsampled vehicles get a lightweight
+                    # sentinel so departed_veh_ids still detects them leaving the edge.
+                    sampled = _is_ego(veh_id) or _is_sampled(veh_id, self.sample_mod)
+                    if sampled:
+                        self.active_vehicles[edge_id][veh_id] = {
+                            "sampled":     True,
+                            "speeds":      [],
+                            "wait_time":   0,
+                            "fuel":        0.0,   # accumulated mass (mg)
+                            "co2":         0.0,   # accumulated mass (mg)
+                            "halts":       0,     # rising-edge stop counter (Q3)
+                            "was_stopped": False, # previous-step stopped flag
+                        }
+                        # Subscribe this vehicle if not already tracked.
+                        # Results will be available from the NEXT step onwards;
+                        # the first step on this edge is skipped (see NOTE in docstring).
+                        if veh_id not in self._subscribed_vehicles:
+                            traci.vehicle.subscribe(veh_id, _VEH_VARS)
+                            self._subscribed_vehicles.add(veh_id)
+                    else:
+                        # Lightweight sentinel: track presence only.
+                        self.active_vehicles[edge_id][veh_id] = {"sampled": False}
+
+                # Accumulate only for sampled vehicles.
+                v_data = self.active_vehicles[edge_id][veh_id]
+                if not v_data.get("sampled"):
+                    continue
 
                 # Read from bulk subscription results (no individual TraCI call).
                 v_sub = veh_results.get(veh_id)
@@ -303,7 +343,6 @@ class RSUManager:
 
                 # Accumulate this unique vehicle's stats.
                 # rate (mg/s) * dt (s) = mass (mg) consumed this step.
-                v_data = self.active_vehicles[edge_id][veh_id]
                 v_data["speeds"].append(speed)
                 v_data["wait_time"] = max(v_data["wait_time"], wait)
                 v_data["fuel"] += fuel_rate * dt
@@ -322,9 +361,17 @@ class RSUManager:
 
             # --- 3. PUSH UNIQUE DATA TO RSU ---
             if departed_veh_ids:
+                # Fix B: only SAMPLED departed vehicles carry per-vehicle stats and
+                # feed the fuel cost model. Unsampled vehicles are invisible to the
+                # fuel model (accepted sampling trade-off) but still cleaned up.
+                sampled_departed = [
+                    v for v in departed_veh_ids
+                    if self.active_vehicles[edge_id].get(v, {}).get("sampled")
+                ]
+
                 agg_speed, agg_wait, agg_fuel, agg_co2, agg_halts = 0, 0, 0.0, 0.0, 0
 
-                for veh_id in departed_veh_ids:
+                for veh_id in sampled_departed:
                     v_data = self.active_vehicles[edge_id][veh_id]
 
                     # True average speed of this vehicle over its entire transit
@@ -353,39 +400,60 @@ class RSUManager:
                     if self._edge_cost_calc is not None:
                         self._edge_cost_calc.record_traversal_fuel(edge_id, v_data["fuel"], sim_time)
 
-                    # Clean up memory: remove the vehicle now that it has left
+                # Clean up memory for EVERY departed vehicle (sampled or not).
+                for veh_id in departed_veh_ids:
                     del self.active_vehicles[edge_id][veh_id]
 
-                num_departed = len(departed_veh_ids)
+                # Instantaneous edge snapshot (queue_length/occupancy) always pushed.
+                queue_length = edge_data.get(tc.LAST_STEP_VEHICLE_HALTING_NUMBER, 0)
+                occupancy    = edge_data.get(tc.LAST_STEP_OCCUPANCY,              0.0)
 
-                # queue_length and occupancy come from the edge subscription
-                # (no extra TraCI call needed).
-                data_point = {
-                    # --- trip aggregates over the departed vehicles ---
-                    "vehicle_count":    num_departed,
-                    "avg_speed":        agg_speed / num_departed,
-                    "waiting_time":     agg_wait  / num_departed,
-                    # Q3: halts is now a mean stop-COUNT per vehicle (not a 0/1 flag).
-                    # EdgeCostCalculator.compute_weight normalises by stop_ref before squaring.
-                    "stop_and_go_freq": agg_halts / num_departed,
-                    "fuel_consumption": agg_fuel  / num_departed,  # mean mass per trip (mg)
-                    "co2_emissions":    agg_co2   / num_departed,  # mean mass per trip (mg)
-                    # --- instantaneous edge snapshot from subscription ---
-                    "queue_length": edge_data.get(tc.LAST_STEP_VEHICLE_HALTING_NUMBER, 0),
-                    "occupancy":    edge_data.get(tc.LAST_STEP_OCCUPANCY,              0.0),
-                }
-
-                # Update the RSU with completed unique vehicle trips
-                rsu.update_edge_data(edge_id, data_point)
+                num_departed = len(sampled_departed)
+                if num_departed > 0:
+                    # Full trip-aggregate data point over sampled departed vehicles.
+                    data_point = {
+                        # --- trip aggregates over the sampled departed vehicles ---
+                        "vehicle_count":    num_departed,
+                        "avg_speed":        agg_speed / num_departed,
+                        "waiting_time":     agg_wait  / num_departed,
+                        # Q3: halts is now a mean stop-COUNT per vehicle (not a 0/1 flag).
+                        # EdgeCostCalculator.compute_weight normalises by stop_ref before squaring.
+                        "stop_and_go_freq": agg_halts / num_departed,
+                        "fuel_consumption": agg_fuel  / num_departed,  # mean mass per trip (mg)
+                        "co2_emissions":    agg_co2   / num_departed,  # mean mass per trip (mg)
+                        # --- instantaneous edge snapshot from subscription ---
+                        "queue_length": queue_length,
+                        "occupancy":    occupancy,
+                    }
+                    rsu.update_edge_data(edge_id, data_point)
+                else:
+                    # Only unsampled vehicles departed: push the edge snapshot alone
+                    # (occupancy/queue), preserving the road-state signal without
+                    # fabricating per-vehicle aggregates. avg_speed=0 keeps GlobalMap
+                    # from treating this as a fresh trip observation.
+                    snapshot_point = {
+                        "vehicle_count":    0,
+                        "avg_speed":        0.0,
+                        "waiting_time":     0,
+                        "stop_and_go_freq": 0,
+                        "fuel_consumption": 0,
+                        "co2_emissions":    0,
+                        "queue_length":     queue_length,
+                        "occupancy":        occupancy,
+                    }
+                    rsu.update_edge_data(edge_id, snapshot_point)
 
             # --- 4. HANDLE EDGE CASES (Jams & Empty Roads) ---
             elif len(current_veh_ids) > 0:
                 # JAM PREVENTION: vehicles present but none departing. If anyone is
                 # stuck past the threshold, push a warning snapshot so the RSU's
-                # rolling window reflects the congestion.
-                max_current_wait = max(
+                # rolling window reflects the congestion. Fix B: only sampled
+                # vehicles carry wait_time; unsampled sentinels are skipped.
+                _waits = [
                     v["wait_time"] for v in self.active_vehicles[edge_id].values()
-                )
+                    if v.get("sampled")
+                ]
+                max_current_wait = max(_waits) if _waits else 0
                 if max_current_wait > 30:
                     jam_data_point = {
                         "vehicle_count":    len(current_veh_ids),

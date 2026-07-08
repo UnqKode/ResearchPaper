@@ -155,7 +155,9 @@ class Simulation:
                  # --- Change 1: junction penalty (threaded to EdgeCostCalculator) ---
                  junction_weight=1.0,           # multiplier on junction penalty; 0.0 disables
                  # --- Change 2B: fuel-mode route-switch hysteresis ---
-                 fuel_hysteresis=0.10):         # min fractional saving to accept reroute in fuel mode
+                 fuel_hysteresis=0.10,          # min fractional saving to accept reroute in fuel mode
+                 # --- Fix B: RSU vehicle sampling rate (1/sample_mod) ---
+                 vehicle_sample_mod=5):
         # --- 1. Build the road graph (offline; uses sumolib, not TraCI) ---
         self.net_builder   = NetworkBuilder(net_file=net_file)
         self.graph         = self.net_builder.get_graph()
@@ -183,7 +185,8 @@ class Simulation:
             )
 
         # --- 3. RSUs (one per intersection) ---
-        self.rsu_manager = RSUManager(self.intersections, self.edges)
+        self.rsu_manager = RSUManager(self.intersections, self.edges,
+                                      sample_mod=vehicle_sample_mod)
         self.rsu_manager.initialize_from_network(self.net_builder)
 
         # --- 4. Cost calculator, wired to the RSUs for fuel observations ---

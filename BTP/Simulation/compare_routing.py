@@ -1124,7 +1124,8 @@ def run_paired_scenario(arm_policy, alpha, beta, gamma, od_list, traffic_seed, t
                         diag_stamp=None, theta_fuel=1.0, theta_time=0.10,
                         cost_mode="augtime",
                         fuel_aggregator="median", fuel_sample_max_age_s=600.0,
-                        junction_weight=1.0, fuel_hysteresis=0.10):
+                        junction_weight=1.0, fuel_hysteresis=0.10,
+                        vehicle_sample_mod=5):
     out_prefix = f"{tag}."
     tripinfo_path = f"{out_prefix}tripinfo.xml"
     progress_path = f"progress_{tag}.csv"
@@ -1190,6 +1191,7 @@ def run_paired_scenario(arm_policy, alpha, beta, gamma, od_list, traffic_seed, t
             fuel_sample_max_age_s=fuel_sample_max_age_s,
             junction_weight=junction_weight,
             fuel_hysteresis=fuel_hysteresis,
+            vehicle_sample_mod=vehicle_sample_mod,
         )
         # D3: bind the unbound manager (pickled without traci/calc refs) to live objects.
         if road_condition_manager is not None and road_condition_manager.mode != "none":
@@ -1343,7 +1345,8 @@ def _run_paired_capture(arm_policy, alpha, beta, gamma, od_list, traffic_seed, t
                         road_condition_manager=None, debug_cfs=False, diag_stamp=None,
                         theta_fuel=1.0, theta_time=0.10, cost_mode="augtime",
                         fuel_aggregator="median", fuel_sample_max_age_s=600.0,
-                        junction_weight=1.0, fuel_hysteresis=0.10):
+                        junction_weight=1.0, fuel_hysteresis=0.10,
+                        vehicle_sample_mod=5):
     t0 = time.time()
     buf = io.StringIO()
     error = None
@@ -1362,6 +1365,7 @@ def _run_paired_capture(arm_policy, alpha, beta, gamma, od_list, traffic_seed, t
                 fuel_sample_max_age_s=fuel_sample_max_age_s,
                 junction_weight=junction_weight,
                 fuel_hysteresis=fuel_hysteresis,
+                vehicle_sample_mod=vehicle_sample_mod,
             )
     except Exception as e:
         error = repr(e)
@@ -1845,6 +1849,10 @@ def main():
                     help="Change 2B: minimum fractional fuel-saving required to accept a reroute "
                          "in fuel mode. E.g. 0.10 = only switch if new route is >=10%% cheaper. "
                          "0.0 disables (always accept). Default 0.10.")
+    ap.add_argument("--vehicle-sample-mod", type=int, default=5,
+                    help="Fix B: RSU subscribes/tracks only 1/N of ordinary vehicles "
+                         "(egos always tracked). Higher N = faster steps, slower "
+                         "fuel-window fill. Default 5.")
     ap.add_argument("--arms", type=str, default="",
                     help="Change 3: comma-separated arm names to run, overrides --baseline. "
                          "Supported: ours, ours-fuel, ours-augtime, ablation, sumo. "
@@ -2154,6 +2162,7 @@ def main():
                             fuel_sample_max_age_s=600.0,
                             junction_weight=args.junction_weight if is_ours else 0.0,
                             fuel_hysteresis=args.fuel_hysteresis if is_ours else 0.0,
+                            vehicle_sample_mod=args.vehicle_sample_mod,
                         )
                         futs[fut] = (seed, arm)
 
