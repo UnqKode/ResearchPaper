@@ -1,11 +1,11 @@
 @echo off
 REM ============================================================
 REM run_k10_fuelspec.bat
-REM Change 3: Three-arm fuel-specificity campaign
+REM Round-3 three-arm fuel-specificity campaign (k=10 seeds)
 REM   arms: ours-fuel, ours-augtime, ablation  (ablation = reference)
 REM   seeds 1-10, n=25 OD pairs, scale=2.0, teleport=300
-REM   grade mode on auto-selected non-bottleneck corridor (k=2)
-REM   fuel-aggregator=median, fuel-hysteresis=0.10, junction-weight=1.0
+REM   grade mode on corridor selected by per-seed saveState gate (k=6 candidates -> top-2)
+REM   vehicle-sample-mod=5 (~20%% of background vehicles subscribed per step)
 REM
 REM Launch from the BTP\ directory:
 REM   cd /d C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\BTP
@@ -27,7 +27,7 @@ echo [run_k10_fuelspec] arms: ours-fuel,ours-augtime,ablation >> "%OUTLOG%"
 conda run --no-capture-output -n ml ^
     python -u -m Simulation.compare_routing ^
     --paired ^
-    --seeds 1 2 3 4 5 6 7 8 9 10 ^
+    --seeds 1,2,3,4,5,6,7,8,9,10 ^
     --n 25 ^
     --road-condition grade ^
     --degraded-edges auto-nonbottleneck ^
@@ -43,6 +43,8 @@ conda run --no-capture-output -n ml ^
     --junction-weight 1.0 ^
     --cost-mode fuel ^
     --use-hysteresis ^
+    --warmup-savestate ^
+    --vehicle-sample-mod 5 ^
     >> "%OUTLOG%" 2>> "%ERRLOG%"
 
 echo [run_k10_fuelspec] Done. Exit code: %ERRORLEVEL% >> "%OUTLOG%"
