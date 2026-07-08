@@ -1118,6 +1118,189 @@ def _arm_params(arm, args):
         return ALPHA, BETA, GAMMA, args.cost_mode
 
 
+# Scenario begin time (matches <begin> in most.sumocfg). All arms and the warmup
+# share this so a saved state is consistent with each arm's --begin.
+WARMUP_BEGIN_TIME = 14400
+# Length of the measurement window at the end of the warmup used by the corridor
+# gate (last 30 min of warmup).
+CORRIDOR_MEASURE_WINDOW_S = 1800.0
+# Corridor validity thresholds (Fix E).
+CORRIDOR_SPEED_RATIO_MIN = 0.85
+CORRIDOR_OCC_MAX = 0.40
+
+
+def _run_warmup_phase(seed, candidate_edges, state_path, warmup_end_time,
+                      scale, teleport, net_file=None,
+                      measure_window_s=CORRIDOR_MEASURE_WINDOW_S,
+                      force_corridor=False):
+    """FIX D + E: phase-0 warmup with saved SUMO state and corridor validity gate.
+
+    Runs ONE headless SUMO instance (same net/routes/config as the arms, same
+    seed) from WARMUP_BEGIN_TIME to ``warmup_end_time``.  During the last
+    ``measure_window_s`` sim-seconds it measures a rolling average of occupancy
+    and speed_ratio on each of the ``candidate_edges`` (the top-k structural
+    candidates from ``select_nonbottleneck_grade_edges``).  It then:
+
+      1. saveState(state_path)          -- so both arms load byte-identical traffic
+      2. corridor gate                  -- selects the best 2 candidates that pass
+                                           speed_ratio >= 0.85 AND avg_occ <= 0.40
+
+    Returns (degraded_edges, warmup_end_time).  Raises RuntimeError if fewer than
+    2 candidates pass the gate (unless ``force_corridor`` is True, in which case
+    it falls back to the top-2 by speed_ratio and warns).
+
+    The RSU Python state built here is discarded: only the SUMO state file
+    survives.  Each arm re-warms its own RSU windows from warmup_end_time to the
+    first ego departure.  This is arm-symmetric by construction.
+    """
+    from traci_compat import traci as _traci, USING_LIBSUMO as _USING_LIBSUMO
+    _tc = _traci.constants   # resolves through the active backend (traci or libsumo)
+
+    net = sumolib.net.readNet(net_file or NET_FILE, withInternal=False)
+    speed_limits = {}
+    for e in candidate_edges:
+        try:
+            speed_limits[e] = net.getEdge(e).getSpeed()
+        except Exception:
+            speed_limits[e] = 13.89
+
+    port = _free_port()
+    sumo_cmd = [
+        SUMO_BIN, "-c", CONFIG_FILE,
+        "--seed", str(seed),
+        "--scale", str(scale),
+        "--no-step-log", "true",
+        "--no-warnings", "true",
+        "--time-to-teleport", str(teleport),
+        "--begin", str(int(WARMUP_BEGIN_TIME)),
+        "--end", str(int(warmup_end_time) + 10),
+        "--device.rerouting.probability", "1",
+        "--device.emissions.probability", "1",
+        "--device.rerouting.period", str(REROUTE_INTERVAL),
+        "--route-steps", "0",
+    ]
+    print(f"[WARMUP] seed={seed} begin={WARMUP_BEGIN_TIME} end={warmup_end_time} "
+          f"candidates={candidate_edges} state={state_path}")
+    sys.stdout.flush()
+
+    # rolling sums for the measurement window
+    occ_sum = {e: 0.0 for e in candidate_edges}
+    ratio_sum = {e: 0.0 for e in candidate_edges}
+    n_samples = {e: 0 for e in candidate_edges}
+    measure_start = warmup_end_time - measure_window_s
+
+    if not _USING_LIBSUMO:
+        try:
+            _traci.close()
+        except Exception:
+            pass
+
+    started = False
+    try:
+        if _USING_LIBSUMO:
+            _traci.start(sumo_cmd)
+        else:
+            _traci.start(sumo_cmd, port=port)
+        started = True
+
+        for e in candidate_edges:
+            _traci.edge.subscribe(
+                e, (_tc.LAST_STEP_OCCUPANCY, _tc.LAST_STEP_MEAN_SPEED))
+
+        while _traci.simulation.getTime() < warmup_end_time:
+            _traci.simulationStep()
+            t = _traci.simulation.getTime()
+            if t < measure_start:
+                continue
+            results = _traci.edge.getAllSubscriptionResults()
+            for e in candidate_edges:
+                r = results.get(e, {})
+                occ = r.get(_tc.LAST_STEP_OCCUPANCY, 0.0) / 100.0
+                spd = r.get(_tc.LAST_STEP_MEAN_SPEED, 0.0)
+                v_lim = speed_limits.get(e, 13.89)
+                ratio = (spd / v_lim) if v_lim > 0 else 0.0
+                occ_sum[e] += occ
+                ratio_sum[e] += ratio
+                n_samples[e] += 1
+
+        # Persist the warmed traffic state for both arms.
+        _traci.simulation.saveState(state_path)
+        print(f"[WARMUP] saved state -> {state_path}")
+    finally:
+        if started:
+            try:
+                _traci.close()
+            except Exception:
+                pass
+        sys.stdout.flush()
+
+    # --- Corridor validity gate (Fix E) ---
+    lengths = {}
+    for e in candidate_edges:
+        try:
+            lengths[e] = net.getEdge(e).getLength()
+        except Exception:
+            lengths[e] = 0.0
+    measurements = []
+    for e in candidate_edges:
+        n = n_samples[e]
+        measurements.append({
+            "eid": e,
+            "avg_occ": (occ_sum[e] / n) if n else 0.0,
+            "speed_ratio": (ratio_sum[e] / n) if n else 0.0,
+            "length": lengths.get(e, 0.0),
+        })
+
+    degraded_edges = _corridor_gate(measurements, force_corridor=force_corridor,
+                                    seed=seed)
+    return degraded_edges, warmup_end_time
+
+
+def _corridor_gate(measurements, force_corridor=False, seed=None):
+    """FIX E: corridor validity gate over per-candidate warmup measurements.
+
+    ``measurements`` is a list of dicts with keys eid, avg_occ (normalised [0,1]),
+    speed_ratio (avg_speed / speed_limit), length.
+
+    PASS = speed_ratio >= CORRIDOR_SPEED_RATIO_MIN AND avg_occ <= CORRIDOR_OCC_MAX.
+    Passing candidates are ranked by speed_ratio desc, then length desc, and the
+    top 2 are returned as the degraded edges.
+
+    If fewer than 2 pass: raise RuntimeError (aborting the campaign) unless
+    ``force_corridor`` is True, in which case fall back to the top-2 structural
+    candidates by speed_ratio.
+    """
+    passing = []
+    for m in measurements:
+        m_passed = (m["speed_ratio"] >= CORRIDOR_SPEED_RATIO_MIN
+                    and m["avg_occ"] <= CORRIDOR_OCC_MAX)
+        if m_passed:
+            passing.append(m)
+            print(f"[CORRIDOR_GATE] PASS edge={m['eid']} "
+                  f"ratio={m['speed_ratio']:.3f} occ={m['avg_occ']:.3f}")
+        else:
+            print(f"[CORRIDOR_GATE] FAILED edge={m['eid']} "
+                  f"ratio={m['speed_ratio']:.3f} occ={m['avg_occ']:.3f} "
+                  f"(need ratio>={CORRIDOR_SPEED_RATIO_MIN} "
+                  f"occ<={CORRIDOR_OCC_MAX})")
+
+    if len(passing) < 2:
+        if not force_corridor:
+            raise RuntimeError(
+                f"[CORRIDOR_GATE] only {len(passing)}/2 candidates passed "
+                f"(seed={seed}); aborting (use --force-corridor to override).")
+        print("[CORRIDOR_GATE] WARNING: fewer than 2 passed; --force-corridor "
+              "set, falling back to top-2 by speed_ratio.")
+        ranked = sorted(measurements,
+                        key=lambda m: (-m["speed_ratio"], -m["length"]))
+    else:
+        ranked = sorted(passing, key=lambda m: (-m["speed_ratio"], -m["length"]))
+
+    degraded_edges = [m["eid"] for m in ranked[:2]]
+    print(f"[CORRIDOR_GATE] selected degraded_edges={degraded_edges}")
+    return degraded_edges
+
+
 def run_paired_scenario(arm_policy, alpha, beta, gamma, od_list, traffic_seed, tag,
                         depart_start, depart_spacing, use_hysteresis,
                         scale, teleport, road_condition_manager=None, debug_cfs=False,
@@ -1125,7 +1308,8 @@ def run_paired_scenario(arm_policy, alpha, beta, gamma, od_list, traffic_seed, t
                         cost_mode="augtime",
                         fuel_aggregator="median", fuel_sample_max_age_s=600.0,
                         junction_weight=1.0, fuel_hysteresis=0.10,
-                        vehicle_sample_mod=5):
+                        vehicle_sample_mod=5,
+                        warm_state_path=None, warmup_end_time=None):
     out_prefix = f"{tag}."
     tripinfo_path = f"{out_prefix}tripinfo.xml"
     progress_path = f"progress_{tag}.csv"
@@ -1157,6 +1341,13 @@ def run_paired_scenario(arm_policy, alpha, beta, gamma, od_list, traffic_seed, t
         "--device.rerouting.period", str(REROUTE_INTERVAL),
         "--route-steps", "0"
     ]
+    # FIX D: load the warmed traffic state at SUMO startup (not via a live
+    # loadState). --begin must match the saved time so SUMO resumes cleanly.
+    if warm_state_path is not None and warmup_end_time is not None:
+        sumo_cmd += [
+            "--load-state", str(warm_state_path),
+            "--begin", str(int(warmup_end_time)),
+        ]
     print(f"[SUMO_CMD] tag={tag} seed={traffic_seed} cmd={' '.join(sumo_cmd)}")
     sys.stdout.flush()
     # Close any stale TraCI connection left by worker-process reuse across seeds.
@@ -1346,7 +1537,8 @@ def _run_paired_capture(arm_policy, alpha, beta, gamma, od_list, traffic_seed, t
                         theta_fuel=1.0, theta_time=0.10, cost_mode="augtime",
                         fuel_aggregator="median", fuel_sample_max_age_s=600.0,
                         junction_weight=1.0, fuel_hysteresis=0.10,
-                        vehicle_sample_mod=5):
+                        vehicle_sample_mod=5,
+                        warm_state_path=None, warmup_end_time=None):
     t0 = time.time()
     buf = io.StringIO()
     error = None
@@ -1366,6 +1558,8 @@ def _run_paired_capture(arm_policy, alpha, beta, gamma, od_list, traffic_seed, t
                 junction_weight=junction_weight,
                 fuel_hysteresis=fuel_hysteresis,
                 vehicle_sample_mod=vehicle_sample_mod,
+                warm_state_path=warm_state_path,
+                warmup_end_time=warmup_end_time,
             )
     except Exception as e:
         error = repr(e)
@@ -1853,6 +2047,17 @@ def main():
                     help="Fix B: RSU subscribes/tracks only 1/N of ordinary vehicles "
                          "(egos always tracked). Higher N = faster steps, slower "
                          "fuel-window fill. Default 5.")
+    ap.add_argument("--warmup-savestate", action="store_true",
+                    help="Fix D/E: run a per-seed phase-0 warmup that saves the SUMO "
+                         "state (both arms --load-state it) and applies the corridor "
+                         "validity gate to pick the 2 degraded edges from 6 candidates. "
+                         "Requires --degraded-edges auto-nonbottleneck.")
+    ap.add_argument("--keep-warmstate", action="store_true",
+                    help="Fix D: keep per-seed warmup state files instead of deleting "
+                         "them after all arms complete.")
+    ap.add_argument("--force-corridor", action="store_true",
+                    help="Fix E: do not abort when fewer than 2 candidates pass the "
+                         "corridor gate; fall back to top-2 by speed_ratio.")
     ap.add_argument("--arms", type=str, default="",
                     help="Change 3: comma-separated arm names to run, overrides --baseline. "
                          "Supported: ours, ours-fuel, ours-augtime, ablation, sumo. "
@@ -2048,16 +2253,27 @@ def main():
 
     # Fix 3: generate a plain OD list first so the nonbottleneck selector can use
     # real campaign ODs for coverage filtering, then (if targeted-od) re-generate.
+    # Fix E: when the warmup/corridor-gate is enabled, over-select to 6 structural
+    # candidates so the per-seed gate can pick the best 2.
+    corridor_candidates = []
     if _nonbottleneck_deferred:
         _plain_od = generate_od_pairs(NET_FILE, n=args.n, seed=args.od_seed)
-        degraded_edges = select_nonbottleneck_grade_edges(
-            NET_FILE, CONFIG_FILE, k=args.n_degraded,
+        _select_k = 6 if args.warmup_savestate else args.n_degraded
+        _selected = select_nonbottleneck_grade_edges(
+            NET_FILE, CONFIG_FILE, k=_select_k,
             probe_seed=args.traffic_seed,
             sumo_bin=SUMO_BIN, scale=args.scale, teleport=args.teleport,
             od_list=_plain_od,
             probe_begin=max(0, depart_start - 300),
         )
-        print(f"[AUTO_NONBOTTLENECK] selected edges: {degraded_edges}")
+        if args.warmup_savestate:
+            corridor_candidates = _selected
+            print(f"[AUTO_NONBOTTLENECK] {len(corridor_candidates)} corridor "
+                  f"candidates for per-seed gate: {corridor_candidates}")
+            # degraded_edges will be resolved per-seed by the corridor gate.
+        else:
+            degraded_edges = _selected
+            print(f"[AUTO_NONBOTTLENECK] selected edges: {degraded_edges}")
 
     if args.targeted_od and degraded_edges:
         od_list = select_targeted_od_pairs(NET_FILE, degraded_edges, n=args.n,
@@ -2076,7 +2292,10 @@ def main():
 
     # D4: only import/construct when degradation is requested; otherwise pass None so
     # all existing modes (no road-condition flags) behave exactly as before.
-    if args.road_condition != "none" and degraded_edges:
+    # Fix D/E: in warmup-savestate mode the degraded edges are chosen per-seed by
+    # the corridor gate, so the RoadConditionManager is built inside the seed loop.
+    if (args.road_condition != "none" and degraded_edges
+            and not args.warmup_savestate):
         from Simulation.road_conditions import RoadConditionManager
         manager = RoadConditionManager(
             degraded_edges, args.road_condition, degrade_start,
@@ -2141,9 +2360,39 @@ def main():
                     max_workers=_max_workers, mp_context=ctx)
 
                 futs = {}
+                warm_state_files = []   # Fix D: per-seed state files for cleanup
                 for seed in seeds:
                     print(f"\n--- Queuing SEED {seed} ---")
                     seed_diag = f"{diag_stamp}_{seed}"   # unique diag file per seed
+
+                    # --- FIX D/E: per-seed phase-0 warmup + corridor gate ---------------
+                    # Runs SERIALLY in the parent process before submitting this seed's
+                    # parallel arm workers, so all arms load the SAME saved traffic state
+                    # and use the SAME (gate-selected) degraded edges.
+                    seed_warm_state = None
+                    seed_warm_end = None
+                    seed_manager = manager
+                    if args.warmup_savestate:
+                        seed_warm_end = depart - 600.0
+                        seed_warm_state = os.path.abspath(
+                            f"warmstate_{seed}_{scale}_{depart}.xml.gz")
+                        seed_degraded, seed_warm_end = _run_warmup_phase(
+                            seed, corridor_candidates, seed_warm_state,
+                            seed_warm_end, scale, args.teleport,
+                            net_file=NET_FILE,
+                            force_corridor=args.force_corridor,
+                        )
+                        warm_state_files.append(seed_warm_state)
+                        if args.road_condition != "none" and seed_degraded:
+                            from Simulation.road_conditions import RoadConditionManager
+                            seed_manager = RoadConditionManager(
+                                seed_degraded, args.road_condition, degrade_start,
+                                v_low=args.degrade_vlow, v_high=args.degrade_vhigh,
+                                period_s=args.degrade_period,
+                                event_duration=args.event_duration,
+                                grade_emission_class=args.grade_emission_class
+                            )
+
                     for arm in arms_to_run:
                         a, b, g, arm_cost_mode = _arm_params(arm, args)
                         is_ours = arm not in ("ablation", "sumo")
@@ -2152,7 +2401,7 @@ def main():
                             f"{arm}_{seed}_{scale}_{depart}",
                             depart, args.depart_spacing, args.use_hysteresis,
                             scale, args.teleport,
-                            road_condition_manager=manager,
+                            road_condition_manager=seed_manager,
                             debug_cfs=(args.debug_cfs and is_ours),
                             diag_stamp=seed_diag,
                             theta_fuel=args.theta_fuel if is_ours else 1.0,
@@ -2163,6 +2412,8 @@ def main():
                             junction_weight=args.junction_weight if is_ours else 0.0,
                             fuel_hysteresis=args.fuel_hysteresis if is_ours else 0.0,
                             vehicle_sample_mod=args.vehicle_sample_mod,
+                            warm_state_path=seed_warm_state,
+                            warmup_end_time=seed_warm_end,
                         )
                         futs[fut] = (seed, arm)
 
@@ -2178,7 +2429,15 @@ def main():
                         route_cfs_all.extend(out.get("route_cfs_records", []))
 
                 ex.shutdown(wait=False, cancel_futures=True)
-                    
+
+                # Fix D: delete per-seed warmup state files unless --keep-warmstate.
+                if args.warmup_savestate and not args.keep_warmstate:
+                    for _sf in warm_state_files:
+                        try:
+                            os.remove(_sf)
+                        except OSError:
+                            pass
+
                 sum_json = None
                 # Change 3: multi-arm analysis — compare every non-reference arm against ablation;
                 # legacy two-arm mode (ours vs sumo/ablation) is byte-compatible.
