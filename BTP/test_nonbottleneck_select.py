@@ -19,7 +19,10 @@ import os
 import math
 
 sys.path.insert(0, os.path.dirname(__file__))
-from Simulation.compare_routing import _filter_nonbottleneck_candidates
+from Simulation.compare_routing import (
+    _filter_nonbottleneck_candidates,
+    _corridor_gate,
+)
 
 
 # ---------------------------------------------------------------------------
@@ -259,6 +262,71 @@ def test_equal_time_subset_mean():
 
 
 # ---------------------------------------------------------------------------
+# Test 8 — Fix E: corridor validity gate
+#   PASS = speed_ratio >= 0.85 AND avg_occ <= 0.40; rank by ratio desc, then
+#   length desc; top-2 returned. Fewer than 2 pass -> abort unless force.
+# ---------------------------------------------------------------------------
+
+def _cand(eid, avg_occ, speed_ratio, length=200.0):
+    return dict(eid=eid, avg_occ=avg_occ, speed_ratio=speed_ratio, length=length)
+
+
+def test_corridor_gate_selects_top2_by_ratio():
+    ms = [
+        _cand("a", avg_occ=0.10, speed_ratio=0.90),
+        _cand("b", avg_occ=0.20, speed_ratio=0.95),
+        _cand("c", avg_occ=0.50, speed_ratio=0.50),  # fails speed
+    ]
+    result = _corridor_gate(ms)
+    assert result == ["b", "a"], f"expected [b,a] ranked by ratio, got {result}"
+
+
+def test_corridor_gate_occupancy_upper_bound():
+    ms = [
+        _cand("a", avg_occ=0.10, speed_ratio=0.90),
+        _cand("b", avg_occ=0.90, speed_ratio=0.95),  # fails occ (>0.40)
+        _cand("c", avg_occ=0.30, speed_ratio=0.88),
+    ]
+    result = _corridor_gate(ms)
+    assert result == ["a", "c"], f"congested 'b' must be excluded, got {result}"
+
+
+def test_corridor_gate_length_tiebreak():
+    ms = [
+        _cand("short", avg_occ=0.10, speed_ratio=0.90, length=120.0),
+        _cand("long",  avg_occ=0.10, speed_ratio=0.90, length=400.0),
+        _cand("mid",   avg_occ=0.10, speed_ratio=0.88, length=300.0),
+    ]
+    # short/long tie on ratio 0.90; longer wins the tiebreak -> long first.
+    result = _corridor_gate(ms)
+    assert result == ["long", "short"], f"length tiebreak failed, got {result}"
+
+
+def test_corridor_gate_aborts_when_fewer_than_two_pass():
+    ms = [
+        _cand("a", avg_occ=0.10, speed_ratio=0.90),   # passes
+        _cand("b", avg_occ=0.90, speed_ratio=0.40),   # fails
+        _cand("c", avg_occ=0.80, speed_ratio=0.30),   # fails
+    ]
+    try:
+        _corridor_gate(ms)
+        assert False, "expected RuntimeError when <2 pass"
+    except RuntimeError:
+        pass
+
+
+def test_corridor_gate_force_fallback():
+    ms = [
+        _cand("a", avg_occ=0.10, speed_ratio=0.90),   # passes
+        _cand("b", avg_occ=0.90, speed_ratio=0.70),   # fails
+        _cand("c", avg_occ=0.80, speed_ratio=0.60),   # fails
+    ]
+    # force=True: fall back to top-2 by speed_ratio regardless of pass.
+    result = _corridor_gate(ms, force_corridor=True)
+    assert result == ["a", "b"], f"force fallback should pick top-2 ratios, got {result}"
+
+
+# ---------------------------------------------------------------------------
 # Entry point
 # ---------------------------------------------------------------------------
 
@@ -278,6 +346,11 @@ if __name__ == "__main__":
         test_normal_reroute_respects_hysteresis,
         test_fuel_specificity_intercept_range,
         test_equal_time_subset_mean,
+        test_corridor_gate_selects_top2_by_ratio,
+        test_corridor_gate_occupancy_upper_bound,
+        test_corridor_gate_length_tiebreak,
+        test_corridor_gate_aborts_when_fewer_than_two_pass,
+        test_corridor_gate_force_fallback,
     ]
     passed = 0
     for t in tests:
