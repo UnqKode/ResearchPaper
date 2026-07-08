@@ -257,9 +257,10 @@ class Simulation:
         step = 0
         while traci.simulation.getMinExpectedNumber() > 0:
             traci.simulationStep()
+            sim_time = traci.simulation.getTime()
 
             # Collect this step's traffic data from ALL vehicles into the RSUs.
-            self.rsu_manager.step()
+            self.rsu_manager.step(sim_time)
 
             # Track the ego's outcome.
             self._track_ego(dt)
@@ -353,7 +354,7 @@ class Simulation:
                       f"to seed fuel baselines ...")
             for _ in range(warmup_steps):
                 traci.simulationStep()
-                self.rsu_manager.step()
+                self.rsu_manager.step(traci.simulation.getTime())
                 if traci.simulation.getMinExpectedNumber() <= 0:
                     if verbose:
                         print("[warm-up] network drained early; stopping warm-up.")
@@ -377,7 +378,7 @@ class Simulation:
                 step = 0
                 while True:
                     traci.simulationStep()
-                    self.rsu_manager.step()
+                    self.rsu_manager.step(traci.simulation.getTime())
                     self._track_ego(dt)
 
                     if self.ego_routing == "ours" and step % self.reroute_interval == 0:
@@ -609,7 +610,7 @@ class Simulation:
                 early_drain = False
                 for _ in range(rewarm_steps):
                     traci.simulationStep()
-                    self.rsu_manager.step()
+                    self.rsu_manager.step(traci.simulation.getTime())
                     if traci.simulation.getMinExpectedNumber() <= 0:
                         if verbose:
                             print(f"[trip {k}] network drained during re-warm; "
@@ -673,7 +674,7 @@ class Simulation:
                 step = 0
                 while True:
                     traci.simulationStep()
-                    self.rsu_manager.step()
+                    self.rsu_manager.step(traci.simulation.getTime())
                     self._track_ego(dt)
 
                     # Reroute the ego with our Dijkstra every reroute_interval steps,
@@ -1432,7 +1433,7 @@ class Simulation:
                 # Fast forward without expensive Python processing
                 continue
 
-            self.rsu_manager.step()
+            self.rsu_manager.step(sim_time)
             if hasattr(self, 'road_condition_manager') and self.road_condition_manager:
                 self.road_condition_manager.step(sim_time)
 

@@ -123,6 +123,9 @@ class RSUManager:
         # Set of vehicle IDs currently subscribed (maintained to avoid duplicate
         # subscribe() calls and to clean up stale subscriptions each step).
         self._subscribed_vehicles: set = set()
+        # Fix C: cache the fixed simulation step-length once (in subscribe_edges)
+        # instead of a getDeltaT() socket round-trip every step().
+        self._dt: float = 0.0
 
     def set_edge_cost_calc(self, edge_cost_calc):
         """Wire in the EdgeCostCalculator so RSU can push fuel observations."""
@@ -201,6 +204,9 @@ class RSUManager:
         call to step(). After this call, step() issues only two TraCI bulk
         calls (getAllSubscriptionResults) instead of one per edge/vehicle.
         """
+        # Fix C: cache the fixed step-length once; it never changes across the run
+        # (or across loadState), so per-step getDeltaT() calls are pure overhead.
+        self._dt = traci.simulation.getDeltaT()
         for edge_id in self.edge_to_rsu:
             traci.edge.subscribe(edge_id, _EDGE_VARS)
         print(f"[RSU] subscribed {len(self.edge_to_rsu)} edges "
@@ -272,7 +278,7 @@ class RSUManager:
         # bulk results from the newly-loaded network state.
         self.subscribe_edges()
 
-    def step(self):
+    def step(self, sim_time: float):
         """
         Collect per-edge traffic data using TraCI subscription bulk results.
 
@@ -282,9 +288,12 @@ class RSUManager:
 
         Vehicle subscriptions are created on first encounter and cleaned up
         when the vehicle is no longer on any tracked edge.
+
+        Fix C: ``sim_time`` is now passed in by the caller (which already reads it
+        once per step) and ``dt`` is the cached step-length, eliminating two
+        per-step getTime()/getDeltaT() socket round-trips.
         """
-        dt       = traci.simulation.getDeltaT()
-        sim_time = traci.simulation.getTime()   # Change 2A: passed to record_traversal_fuel
+        dt = self._dt   # Fix C: cached in subscribe_edges(); no per-step socket call
 
         # --- ONE bulk call for all subscribed edge data ---
         edge_results = traci.edge.getAllSubscriptionResults()
