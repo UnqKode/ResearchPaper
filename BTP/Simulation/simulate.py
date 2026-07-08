@@ -1425,6 +1425,11 @@ class Simulation:
         )
         _sys.stderr.flush()
 
+        # --- FIX G: step-rate telemetry ---
+        import time as _time
+        _perf_step = 0
+        _perf_window_start = _time.perf_counter()
+
         while len(completed_egos) < len(od_list) and traci.simulation.getMinExpectedNumber() > 0:
             traci.simulationStep()
             sim_time = traci.simulation.getTime()
@@ -1432,6 +1437,19 @@ class Simulation:
             if sim_time < fast_forward_target:
                 # Fast forward without expensive Python processing
                 continue
+
+            # Step-rate telemetry: emit steps/s over 500-step windows to stderr so
+            # a live run's throughput (and slowdowns) are visible per arm.
+            _perf_step += 1
+            if _perf_step % 500 == 0:
+                _now = _time.perf_counter()
+                _rate = 500 / (_now - _perf_window_start) if _now > _perf_window_start else 0.0
+                _n_active = len(active_egos)
+                _sys.stderr.write(
+                    f"[PERF] seed={seed} arm={ego_policy} sim_t={sim_time:.0f} "
+                    f"steps/s={_rate:.1f} active_veh={_n_active}\n")
+                _sys.stderr.flush()
+                _perf_window_start = _now
 
             self.rsu_manager.step(sim_time)
             if hasattr(self, 'road_condition_manager') and self.road_condition_manager:
