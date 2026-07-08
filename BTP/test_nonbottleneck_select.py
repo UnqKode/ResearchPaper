@@ -22,6 +22,8 @@ sys.path.insert(0, os.path.dirname(__file__))
 from Simulation.compare_routing import (
     _filter_nonbottleneck_candidates,
     _corridor_gate,
+    _arm_params,
+    ALPHA, BETA, GAMMA,
 )
 
 
@@ -327,6 +329,49 @@ def test_corridor_gate_force_fallback():
 
 
 # ---------------------------------------------------------------------------
+# Test 9 — Fix F: arm-params integrity
+#   _arm_params must return the (alpha, beta, gamma, cost_mode) tuple expected
+#   by the run_paired_scenario assertions for each arm name.
+# ---------------------------------------------------------------------------
+
+class _ArgsStub:
+    """Minimal stand-in for argparse.Namespace with the fields _arm_params reads."""
+    def __init__(self, cost_mode="augtime"):
+        self.cost_mode = cost_mode
+
+
+def test_arm_params_all_arms():
+    args = _ArgsStub(cost_mode="augtime")
+
+    # ours-fuel: fuel objective, full (alpha, beta, gamma)
+    a, b, g, cm = _arm_params("ours-fuel", args)
+    assert cm == "fuel", f"ours-fuel cost_mode should be fuel, got {cm}"
+    assert (a, b, g) == (ALPHA, BETA, GAMMA)
+
+    # ours-augtime: augmented time with the canonical (1.0, 8.0, 10.0)
+    a, b, g, cm = _arm_params("ours-augtime", args)
+    assert cm == "augtime", f"ours-augtime cost_mode should be augtime, got {cm}"
+    assert (a, b, g) == (1.0, 8.0, 10.0), \
+        f"ours-augtime must be (1.0,8.0,10.0), got {(a, b, g)}"
+    assert (ALPHA, BETA, GAMMA) == (1.0, 8.0, 10.0), \
+        "module ALPHA/BETA/GAMMA must equal the ours-augtime assertion values"
+
+    # ablation: augmented time with all zeros
+    a, b, g, cm = _arm_params("ablation", args)
+    assert cm == "augtime", f"ablation cost_mode should be augtime, got {cm}"
+    assert (a, b, g) == (0.0, 0.0, 0.0), f"ablation must be zeros, got {(a, b, g)}"
+
+    # sumo: zeros (background routing; alpha/beta/gamma irrelevant)
+    a, b, g, cm = _arm_params("sumo", args)
+    assert (a, b, g) == (0.0, 0.0, 0.0), f"sumo must be zeros, got {(a, b, g)}"
+
+    # legacy "ours": inherits the CLI cost-mode
+    a, b, g, cm = _arm_params("ours", _ArgsStub(cost_mode="fuel"))
+    assert cm == "fuel", f"ours should inherit CLI cost_mode, got {cm}"
+    assert (a, b, g) == (ALPHA, BETA, GAMMA)
+
+
+# ---------------------------------------------------------------------------
 # Entry point
 # ---------------------------------------------------------------------------
 
@@ -351,6 +396,7 @@ if __name__ == "__main__":
         test_corridor_gate_length_tiebreak,
         test_corridor_gate_aborts_when_fewer_than_two_pass,
         test_corridor_gate_force_fallback,
+        test_arm_params_all_arms,
     ]
     passed = 0
     for t in tests:

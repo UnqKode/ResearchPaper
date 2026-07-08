@@ -1384,6 +1384,35 @@ def run_paired_scenario(arm_policy, alpha, beta, gamma, od_list, traffic_seed, t
             fuel_hysteresis=fuel_hysteresis,
             vehicle_sample_mod=vehicle_sample_mod,
         )
+
+        # --- FIX F: arm-params integrity assertion ---------------------------
+        # The alpha/beta/gamma/cost_mode passed to each arm must match the arm
+        # policy; a silent mismatch (e.g. an ablation arm accidentally routing on
+        # fuel weights) would invalidate the whole comparison. Log the resolved
+        # config then assert it against the expected per-arm parameters.
+        _cost_mode = sim.cost_mode
+        _alpha, _beta, _gamma = sim.calc.alpha, sim.calc.beta, sim.calc.gamma
+        _jw = sim.calc.junction_weight
+        _hyst = getattr(sim, "imp_threshold", None)
+        _agg = getattr(sim.calc, "_fuel_aggregator", None)
+        print(f"[ARM_CONFIG] arm={arm_policy} cost_mode={_cost_mode} "
+              f"alpha={_alpha} beta={_beta} gamma={_gamma} "
+              f"junction_weight={_jw} hysteresis={_hyst} aggregator={_agg}")
+
+        if arm_policy == "ours-fuel":
+            assert _cost_mode == "fuel", \
+                f"ours-fuel arm must use cost_mode=fuel, got {_cost_mode}"
+        elif arm_policy == "ours-augtime":
+            assert _cost_mode == "augtime", \
+                f"ours-augtime arm must use cost_mode=augtime, got {_cost_mode}"
+            assert (_alpha, _beta, _gamma) == (1.0, 8.0, 10.0), \
+                f"ours-augtime must use (1.0,8.0,10.0), got {(_alpha, _beta, _gamma)}"
+        elif arm_policy == "ablation":
+            assert _cost_mode == "augtime", \
+                f"ablation arm must use cost_mode=augtime, got {_cost_mode}"
+            assert (_alpha, _beta, _gamma) == (0.0, 0.0, 0.0), \
+                f"ablation must use zeros, got {(_alpha, _beta, _gamma)}"
+
         # D3: bind the unbound manager (pickled without traci/calc refs) to live objects.
         if road_condition_manager is not None and road_condition_manager.mode != "none":
             road_condition_manager.bind(traci, sim.calc, sim.rsu_manager)
