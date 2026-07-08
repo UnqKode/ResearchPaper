@@ -1,7 +1,8 @@
-import traci
-import traci.constants as tc
+from traci_compat import traci, USING_LIBSUMO
+tc = traci.constants
 from RSU.rsu import RSU
 from collections import deque
+import zlib
 
 # ---------------------------------------------------------------------------
 # TraCI subscription variable sets (fetched in bulk each step).

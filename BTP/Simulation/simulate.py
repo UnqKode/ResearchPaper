@@ -37,7 +37,7 @@ for the full design.
 """
 
 import csv
-import traci
+from traci_compat import traci, USING_LIBSUMO
 
 from Routing.routingManager import NetworkBuilder
 from RSU.rsuController import RSUManager

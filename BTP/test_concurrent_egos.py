@@ -2,7 +2,7 @@ import sys
 import unittest
 from unittest.mock import MagicMock, patch
 
-import traci
+from traci_compat import traci, USING_LIBSUMO
 from Simulation.simulate import Simulation
 
 class TestConcurrentEgos(unittest.TestCase):

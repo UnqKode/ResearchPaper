@@ -56,8 +56,13 @@ if "SUMO_HOME" in os.environ:
 else:
     sys.exit("Error: Please declare the environment variable 'SUMO_HOME'")
 
-import traci
+from traci_compat import traci, USING_LIBSUMO
 import sumolib
+
+# Resolve the fatal-error exception type through whichever backend is active.
+# libsumo does not define FatalTraCIError; fall back to the base Exception so
+# the except clauses below remain valid regardless of backend.
+_FatalTraCIError = getattr(traci, "FatalTraCIError", Exception)
 
 from Simulation.simulate import Simulation
 
@@ -174,7 +179,7 @@ def select_degraded_edges(net_file, k, traffic_seed, scale, teleport, depart_sta
     Selects the k edges with the highest vehicle counts that are >= 50m and >= 8m/s.
     """
     print(f"Running headless calibration to select {k} degraded edges...")
-    import traci
+    from traci_compat import traci
     from Simulation.simulate import RSUManager
     
     port = _free_port()
@@ -515,7 +520,7 @@ def run_scenario(mode, od_list, traffic_seed, tag, warmup_steps=WARMUP_STEPS,
                                                warmup_steps=warmup_steps,
                                                progress_log_path=progress_path,
                                                log_every=log_every)
-    except traci.FatalTraCIError as e:
+    except _FatalTraCIError as e:
         print(f"TraCI error in scenario '{tag}': {e}")
     finally:
         # CR-4: SUMO may already be dead; closing then can raise. Guard it so a
@@ -1153,15 +1158,21 @@ def run_paired_scenario(arm_policy, alpha, beta, gamma, od_list, traffic_seed, t
     ]
     print(f"[SUMO_CMD] tag={tag} seed={traffic_seed} cmd={' '.join(sumo_cmd)}")
     sys.stdout.flush()
-    # Close any stale TraCI connection left by worker-process reuse across seeds
-    try:
-        traci.close()
-    except Exception:
-        pass
+    # Close any stale TraCI connection left by worker-process reuse across seeds.
+    # Under libsumo there is one simulation per process and calling close() with
+    # no active sim can raise; guard it so it only runs for network TraCI.
+    if not USING_LIBSUMO:
+        try:
+            traci.close()
+        except Exception:
+            pass
     started = False
     live_results = []
     try:
-        traci.start(sumo_cmd, port=port)
+        if USING_LIBSUMO:
+            traci.start(sumo_cmd)
+        else:
+            traci.start(sumo_cmd, port=port)
         started = True
         sim = Simulation(
             net_file=NET_FILE,
@@ -1200,7 +1211,7 @@ def run_paired_scenario(arm_policy, alpha, beta, gamma, od_list, traffic_seed, t
             seed=traffic_seed,
             diag_stamp=diag_stamp
         )
-    except traci.FatalTraCIError as e:
+    except _FatalTraCIError as e:
         print(f"TraCI error in paired scenario '{tag}': {e}")
     finally:
         if started:
@@ -1894,7 +1905,7 @@ def main():
         print(f"\n=======================================================")
         print(f" GATE A VERIFICATION: Running headless to measure fuel ")
         print(f"=======================================================")
-        import traci
+        from traci_compat import traci
         from Simulation.simulate import RSUManager
         from Simulation.road_conditions import RoadConditionManager
         

@@ -1,5 +1,10 @@
+import os
 import sys
 from unittest.mock import MagicMock
+
+# Force network-TraCI path in traci_compat so the stubbed 'traci' module is used
+# (rather than attempting to import libsumo).
+os.environ["FORCE_TRACI"] = "1"
 
 # Stub dependencies
 sys.modules['traci'] = MagicMock()
@@ -9,7 +14,7 @@ sys.modules['sumolib'] = MagicMock()
 sys.modules['networkx'] = MagicMock()
 
 from Simulation.simulate import Simulation
-import traci
+from traci_compat import traci
 
 def test_persistence():
     sim = Simulation(net_file="dummy.net.xml")

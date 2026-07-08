@@ -402,7 +402,7 @@ class EdgeCostCalculator:
         weight = d["weight"]
 
         if self.debug_cfs:
-            import traci
+            from traci_compat import traci
             try:
                 sim_time = traci.simulation.getTime()
             except traci.TraCIException:

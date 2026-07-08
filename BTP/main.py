@@ -18,7 +18,7 @@ if 'SUMO_HOME' in os.environ:
 else:
     sys.exit("Error: Please declare the environment variable 'SUMO_HOME'")
 
-import traci
+from traci_compat import traci, USING_LIBSUMO
 
 from Simulation.simulate import Simulation
 
