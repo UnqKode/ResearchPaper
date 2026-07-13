@@ -1473,7 +1473,7 @@ class Simulation:
                     _deg_snap = {}
                     for _de in _deg_edges:
                         _dq = self.calc._traversal_fuel.get(_de)
-                        _mean_fuel = round(sum(_dq) / len(_dq), 1) if _dq else None
+                        _mean_fuel = round(sum(mg for _, mg in _dq) / len(_dq), 1) if _dq else None
                         _deg_snap[_de] = {
                             "n_veh":     traci.edge.getLastStepVehicleNumber(_de),
                             "mean_spd":  round(traci.edge.getLastStepMeanSpeed(_de), 2),
