@@ -1178,12 +1178,11 @@ def _run_warmup_phase(seed, candidate_edges, state_path, warmup_end_time,
         "--device.emissions.probability", "1",
         "--device.rerouting.period", str(REROUTE_INTERVAL),
         "--route-steps", "0",
-        # Clear the sumocfg output-prefix ("most.") so --save-state.files
-        # writes to exactly state_path with no prefix mangling.
-        "--output-prefix", "",
-        # Save state via SUMO's own mechanism (more reliable than TraCI saveState).
-        "--save-state.times", str(int(warmup_end_time)),
-        "--save-state.files", str(state_path),
+        # Clear the sumocfg output-prefix ("most.") so traci.simulation.saveState
+        # writes to exactly the basename we pass with no prefix mangling.
+        # Use the single-arg equals form ("--output-prefix=") because Windows
+        # subprocess silently drops a separate empty-string argument.
+        "--output-prefix=",
     ]
     print(f"[WARMUP] seed={seed} begin={WARMUP_BEGIN_TIME} end={warmup_end_time} "
           f"candidates={candidate_edges} state={state_path}")
@@ -1228,6 +1227,11 @@ def _run_warmup_phase(seed, candidate_edges, state_path, warmup_end_time,
                 occ_sum[e] += occ
                 ratio_sum[e] += ratio
                 n_samples[e] += 1
+
+        # Save the warmed traffic state for both arms.
+        # Pass only the basename so SUMO writes it relative to its CWD
+        # (the BTP working directory) with no output-prefix mangling.
+        _traci.simulation.saveState(os.path.basename(state_path))
 
     finally:
         if started:
