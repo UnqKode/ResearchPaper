@@ -1178,6 +1178,12 @@ def _run_warmup_phase(seed, candidate_edges, state_path, warmup_end_time,
         "--device.emissions.probability", "1",
         "--device.rerouting.period", str(REROUTE_INTERVAL),
         "--route-steps", "0",
+        # Clear the sumocfg output-prefix ("most.") so --save-state.files
+        # writes to exactly state_path with no prefix mangling.
+        "--output-prefix", "",
+        # Save state via SUMO's own mechanism (more reliable than TraCI saveState).
+        "--save-state.times", str(int(warmup_end_time)),
+        "--save-state.files", str(state_path),
     ]
     print(f"[WARMUP] seed={seed} begin={WARMUP_BEGIN_TIME} end={warmup_end_time} "
           f"candidates={candidate_edges} state={state_path}")
@@ -1223,9 +1229,6 @@ def _run_warmup_phase(seed, candidate_edges, state_path, warmup_end_time,
                 ratio_sum[e] += ratio
                 n_samples[e] += 1
 
-        # Persist the warmed traffic state for both arms.
-        _traci.simulation.saveState(state_path)
-        print(f"[WARMUP] saved state -> {state_path}")
     finally:
         if started:
             try:
@@ -1233,6 +1236,14 @@ def _run_warmup_phase(seed, candidate_edges, state_path, warmup_end_time,
             except Exception:
                 pass
         sys.stdout.flush()
+
+    # Verify SUMO wrote the state file (--save-state.times/files).
+    if not os.path.exists(state_path):
+        raise RuntimeError(
+            f"[WARMUP] state file not found after warmup: {state_path}\n"
+            "SUMO may not have stepped to the save time, or --save-state.files "
+            "was not honoured. Check the warmup SUMO log.")
+    print(f"[WARMUP] state file verified: {state_path} ({os.path.getsize(state_path)} bytes)")
 
     # --- Corridor validity gate (Fix E) ---
     lengths = {}
@@ -1360,6 +1371,7 @@ def run_paired_scenario(arm_policy, alpha, beta, gamma, od_list, traffic_seed, t
             pass
     started = False
     live_results = []
+    sim = None
     try:
         if USING_LIBSUMO:
             traci.start(sumo_cmd)
@@ -1558,7 +1570,9 @@ def run_paired_scenario(arm_policy, alpha, beta, gamma, od_list, traffic_seed, t
         except Exception as _dm_e:
             print(f"[DRIVEN_MATCH] failed: {_dm_e}")
 
-    return live_results, sim.calc.cfs_records if sim.calc else [], sim.route_cfs_records
+    return (live_results,
+            sim.calc.cfs_records if (sim is not None and sim.calc) else [],
+            sim.route_cfs_records if sim is not None else [])
 
 def _run_paired_capture(arm_policy, alpha, beta, gamma, od_list, traffic_seed, tag,
                         depart_start, depart_spacing, use_hysteresis, scale, teleport,
@@ -2404,7 +2418,7 @@ def main():
                     if args.warmup_savestate:
                         seed_warm_end = depart - 600.0
                         seed_warm_state = os.path.abspath(
-                            f"warmstate_{seed}_{scale}_{depart}.xml.gz")
+                            f"ws_{seed}_{int(scale*100)}_{int(depart)}.xml.gz")
                         seed_degraded, seed_warm_end = _run_warmup_phase(
                             seed, corridor_candidates, seed_warm_state,
                             seed_warm_end, scale, args.teleport,
