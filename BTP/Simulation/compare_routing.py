@@ -1022,22 +1022,30 @@ def select_nonbottleneck_grade_edges(net_file, config_file=None, k=2,
                                      spd_lim_min=7.0,
                                      spd_lim_max=20.0,
                                      probe_begin=None):
-    """Return k edge-ids suitable for grade degradation using sumolib only (no probe).
+    """Return k edge-ids as structural candidates for grade degradation (no SUMO probe).
 
-    Selection criteria (all evaluated offline via sumolib — no SUMO/TraCI probe):
+    Fix K: OD coverage via sumolib static shortest paths is removed.  Sumolib
+    paths use free-flow geometry and diverge significantly from SUMO's dynamic
+    routing, causing the selected edges to have zero occupancy in every observed
+    run (occ=0.000 for all candidates).  Without background traffic, the EU0
+    grade signal never enters _traversal_fuel, so fuel-mode routing cannot
+    detect the corridor elevation.
 
-    1. Urban speed limit: spd_lim_min <= speed_limit <= spd_lim_max (default 7–20 m/s).
-       This encodes "free-flowing at baseline" structurally: urban arterials at
-       their posted limit are not chronically congested.  Highways (>20 m/s) and
-       side streets (<7 m/s) are excluded.  Degrading these edges under the
-       HBEFA grade emission class raises fuel WITHOUT materially raising travel time.
-    2. Long enough: edge length >= min_len metres (default 100 m).
-    3. OD-relevant: appears on the sumolib shortest path of >= od_coverage_min
-       fraction of the OD sample (default 0.20), ensuring ego trips cross it.
-       If od_list is None or empty a throwaway 50-pair sample is generated.
+    Selection criteria (sumolib offline, no SUMO/TraCI probe):
+    1. Urban speed limit: spd_lim_min <= speed_limit <= spd_lim_max (7–20 m/s).
+    2. Edge length >= min_len metres (default 100 m).
+    3. Sort by network degree DESC (total in+out connections at endpoints):
+       highly connected edges tend to carry real background traffic and are
+       therefore more likely to accumulate EU0 signal after grade activation.
+
+    The corridor-validity gate (run AFTER warmup, in _corridor_gate) is the
+    primary traffic filter: it requires avg_occ >= CORRIDOR_OCC_MIN and
+    speed_ratio >= CORRIDOR_SPEED_RATIO_MIN on warmup measurements.  This
+    function returns k over-selected candidates so the gate has enough to pick 2.
 
     config_file and probe-related parameters (sumo_bin, scale, teleport,
-    probe_begin) are accepted but unused — kept for call-site compatibility.
+    probe_begin, od_coverage_min, od_list) are accepted but unused — kept for
+    call-site compatibility.
 
     Returns a list of k edge IDs, or raises RuntimeError if no eligible set found.
     """
@@ -1059,41 +1067,17 @@ def select_nonbottleneck_grade_edges(net_file, config_file=None, k=2,
         raise RuntimeError("select_nonbottleneck_grade_edges: no edges passed "
                            "speed-limit/length filter")
 
-    # --- Filter 5: OD coverage via sumolib (no TraCI, no Simulation instance) ---
-    # If no od_list supplied, generate a throwaway 50-pair sample so coverage
-    # is never silently skipped (Fix 3 ordering note: caller should pass its
-    # campaign od_list when available; see IMPLEMENTATION_NOTES.md).
-    if not od_list:
-        od_list = generate_od_pairs(net_file, n=50, seed=probe_seed)
-
-    cand_set = set(candidates)
-    cov = {e: 0 for e in candidates}
-    n_od = 0
-    for orig_id, dest_id in od_list:
+    # --- Sort by network degree DESC then length DESC ---
+    # More-connected nodes → more traffic → more likely to accumulate EU0 signal.
+    def _degree(e_id):
         try:
-            o = net.getEdge(orig_id)
-            d = net.getEdge(dest_id)
-            path, _cost = net.getShortestPath(o, d)
-            if not path:
-                continue
-            n_od += 1
-            for pe in path:
-                pid = pe.getID()
-                if pid in cand_set:
-                    cov[pid] += 1
+            e = net.getEdge(e_id)
+            return (len(e.getFromNode().getIncoming())
+                    + len(e.getToNode().getOutgoing()))
         except Exception:
-            continue
+            return 0
 
-    if n_od > 0:
-        candidates = [e for e in candidates
-                      if cov[e] / n_od >= od_coverage_min]
-
-    if not candidates:
-        raise RuntimeError("select_nonbottleneck_grade_edges: no edges passed "
-                           "OD coverage filter")
-
-    # Return k edges; prefer shorter IDs (tends to pick canonical segment names)
-    candidates.sort(key=lambda e: (len(e), e))
+    candidates.sort(key=lambda e: (-_degree(e), -net.getEdge(e).getLength()))
     return candidates[:k]
 
 
@@ -1124,9 +1108,12 @@ WARMUP_BEGIN_TIME = 14400
 # Length of the measurement window at the end of the warmup used by the corridor
 # gate (last 30 min of warmup).
 CORRIDOR_MEASURE_WINDOW_S = 1800.0
-# Corridor validity thresholds (Fix E).
+# Corridor validity thresholds (Fix E / Fix K).
 CORRIDOR_SPEED_RATIO_MIN = 0.85
 CORRIDOR_OCC_MAX = 0.40
+# Fix K: minimum average occupancy — rejects zero-traffic structural edges
+# that carry no background vehicles and therefore can never build an EU0 signal.
+CORRIDOR_OCC_MIN = 0.005
 
 
 def _run_warmup_phase(seed, candidate_edges, state_path, warmup_end_time,
@@ -1272,32 +1259,48 @@ def _run_warmup_phase(seed, candidate_edges, state_path, warmup_end_time,
 
 
 def _corridor_gate(measurements, force_corridor=False, seed=None):
-    """FIX E: corridor validity gate over per-candidate warmup measurements.
+    """FIX E + K: corridor validity gate over per-candidate warmup measurements.
 
     ``measurements`` is a list of dicts with keys eid, avg_occ (normalised [0,1]),
     speed_ratio (avg_speed / speed_limit), length.
 
-    PASS = speed_ratio >= CORRIDOR_SPEED_RATIO_MIN AND avg_occ <= CORRIDOR_OCC_MAX.
-    Passing candidates are ranked by speed_ratio desc, then length desc, and the
-    top 2 are returned as the degraded edges.
+    PASS = speed_ratio >= CORRIDOR_SPEED_RATIO_MIN
+           AND CORRIDOR_OCC_MIN <= avg_occ <= CORRIDOR_OCC_MAX.
+
+    Fix K: added CORRIDOR_OCC_MIN to reject zero-traffic edges.  Without
+    background traffic the EU0 grade signal cannot enter _traversal_fuel and
+    fuel-mode routing sees no cost difference on the degraded corridor.
+
+    Passing candidates are ranked by speed_ratio DESC (freest-flowing first,
+    so grade raises fuel without raising time), then avg_occ DESC (more traffic =
+    stronger EU0 signal), then length DESC (longer traversal = more signal).
+    The top 2 are returned as the degraded edges.
 
     If fewer than 2 pass: raise RuntimeError (aborting the campaign) unless
-    ``force_corridor`` is True, in which case fall back to the top-2 structural
-    candidates by speed_ratio.
+    ``force_corridor`` is True, in which case fall back to the top-2 candidates
+    by speed_ratio DESC then avg_occ DESC (best free-flowing first).
     """
     passing = []
     for m in measurements:
-        m_passed = (m["speed_ratio"] >= CORRIDOR_SPEED_RATIO_MIN
-                    and m["avg_occ"] <= CORRIDOR_OCC_MAX)
+        occ_ok  = CORRIDOR_OCC_MIN <= m["avg_occ"] <= CORRIDOR_OCC_MAX
+        rate_ok = m["speed_ratio"] >= CORRIDOR_SPEED_RATIO_MIN
+        m_passed = occ_ok and rate_ok
         if m_passed:
             passing.append(m)
             print(f"[CORRIDOR_GATE] PASS edge={m['eid']} "
-                  f"ratio={m['speed_ratio']:.3f} occ={m['avg_occ']:.3f}")
+                  f"ratio={m['speed_ratio']:.3f} occ={m['avg_occ']:.4f}")
         else:
+            reasons = []
+            if not rate_ok:
+                reasons.append(f"ratio={m['speed_ratio']:.3f}<{CORRIDOR_SPEED_RATIO_MIN}")
+            if not occ_ok:
+                if m["avg_occ"] < CORRIDOR_OCC_MIN:
+                    reasons.append(f"occ={m['avg_occ']:.4f}<{CORRIDOR_OCC_MIN}(no traffic)")
+                else:
+                    reasons.append(f"occ={m['avg_occ']:.4f}>{CORRIDOR_OCC_MAX}(bottleneck)")
             print(f"[CORRIDOR_GATE] FAILED edge={m['eid']} "
-                  f"ratio={m['speed_ratio']:.3f} occ={m['avg_occ']:.3f} "
-                  f"(need ratio>={CORRIDOR_SPEED_RATIO_MIN} "
-                  f"occ<={CORRIDOR_OCC_MAX})")
+                  f"ratio={m['speed_ratio']:.3f} occ={m['avg_occ']:.4f} "
+                  f"({'; '.join(reasons)})")
 
     if len(passing) < 2:
         if not force_corridor:
@@ -1305,11 +1308,12 @@ def _corridor_gate(measurements, force_corridor=False, seed=None):
                 f"[CORRIDOR_GATE] only {len(passing)}/2 candidates passed "
                 f"(seed={seed}); aborting (use --force-corridor to override).")
         print("[CORRIDOR_GATE] WARNING: fewer than 2 passed; --force-corridor "
-              "set, falling back to top-2 by speed_ratio.")
+              "set, falling back to top-2 by speed_ratio then avg_occ.")
         ranked = sorted(measurements,
-                        key=lambda m: (-m["speed_ratio"], -m["length"]))
+                        key=lambda m: (-m["speed_ratio"], -m["avg_occ"], -m["length"]))
     else:
-        ranked = sorted(passing, key=lambda m: (-m["speed_ratio"], -m["length"]))
+        ranked = sorted(passing,
+                        key=lambda m: (-m["speed_ratio"], -m["avg_occ"], -m["length"]))
 
     degraded_edges = [m["eid"] for m in ranked[:2]]
     print(f"[CORRIDOR_GATE] selected degraded_edges={degraded_edges}")
@@ -2312,12 +2316,14 @@ def main():
 
     # Fix 3: generate a plain OD list first so the nonbottleneck selector can use
     # real campaign ODs for coverage filtering, then (if targeted-od) re-generate.
-    # Fix E: when the warmup/corridor-gate is enabled, over-select to 6 structural
+    # Fix E: when the warmup/corridor-gate is enabled, over-select structural
     # candidates so the per-seed gate can pick the best 2.
+    # Fix K: increased from 6 → 20 so the degree-sorted structural list gives
+    # the warmup gate enough high-connectivity candidates to find 2 with traffic.
     corridor_candidates = []
     if _nonbottleneck_deferred:
         _plain_od = generate_od_pairs(NET_FILE, n=args.n, seed=args.od_seed)
-        _select_k = 6 if args.warmup_savestate else args.n_degraded
+        _select_k = 20 if args.warmup_savestate else args.n_degraded
         _selected = select_nonbottleneck_grade_edges(
             NET_FILE, CONFIG_FILE, k=_select_k,
             probe_seed=args.traffic_seed,

@@ -4,11 +4,14 @@ REM run_k10_fuelspec.bat
 REM Round-4 three-arm fuel-specificity campaign (k=10 seeds)
 REM   arms: ours-fuel, ours-augtime, ablation  (ablation = reference)
 REM   seeds 1-10, n=25 OD pairs, scale=2.0, teleport=300
-REM   grade mode on corridor selected by per-seed saveState gate (k=6 candidates -> top-2)
+REM   grade mode on corridor selected by per-seed saveState gate (k=20 candidates -> top-2)
 REM   Round-4 changes:
 REM     --vehicle-sample-mod 2  (was 5; 1/2 sampling fills baseline faster)
 REM     --warmup-buffer 1200    (was 600; 20 min pre-departure RSU warmup)
 REM     --grade-lead 600        (grade activates 600s before egos; was 300s)
+REM   Fix K changes (zero-traffic corridor fix):
+REM     OD-coverage filter removed; structural candidates sorted by network degree
+REM     CORRIDOR_OCC_MIN=0.005 added to gate; _select_k raised from 6 to 20
 REM
 REM Launch from the BTP\ directory:
 REM   cd /d C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\BTP
