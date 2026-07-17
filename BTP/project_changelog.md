@@ -28,3 +28,21 @@ Implemented the seven Phase-3 changes from the research plan:
 | `Fix G` | Step-rate telemetry: `[PERF]` line to stderr every 500 heavy-phase steps with steps/s, sim\_t, active\_veh. Acceptance criterion: ≥ 30 steps/s post fast-forward. |
 
 **bat file:** `run_k10_fuelspec.bat` updated with `--seeds 1,2,3,4,5,6,7,8,9,10` (comma-separated), `--warmup-savestate`, `--vehicle-sample-mod 5`.
+
+### Round 4 — Baseline starvation fix (fuel delta = 0% → nonzero)
+
+**Root cause diagnosed in Round-4:** With warmup_buffer=600s and sample_mod=5, low-traffic
+degraded edges collected fewer than 2 samples before `freeze_baseline()` fired at grade
+activation. `_fuel_baseline` was `None`, so `F=0` on all edges, making ours-fuel/ours-augtime/ablation
+identical → 0% delta.
+
+| Fix | Description |
+|-----|-------------|
+| **Fix 1** | `--warmup-buffer 1200` (default, was 600). warmup ends at `depart_start - 1200 = 20400`, giving RSU 1200 s before grade activation. |
+| **Fix 2** | `--vehicle-sample-mod 2` (default, was 5). Doubles the traversal sample rate; baseline fills in ~half the time at minimal step-rate cost. |
+| **Fix 3** | `--grade-lead 600` (default, was 300). Grade activates at `depart_start - 600 = 21000`, giving RSU 600 s of free-flow data before egos depart. |
+| **Fix 4** | `[BASELINE_GATE]` per edge at activation: `PASS baseline=Xmg` or `FAILED baseline=None`. Raises `RuntimeError` aborting the seed on failure (use `--force-baseline` to demote to warning). `[FUEL_WINDOW]` at first ego departure shows n_traversals / baseline / frozen for each degraded edge. |
+| **Fix 5** | End-of-arm `[REROUTE_SUMMARY]` with `reroute_evals=N accepted=M best_rejected_margin=X%`. Per-decision `[FUEL_HYST]` KEEP lines now include `margin=X%`. Per-decision `[DECISION]` KEEP lines include `improvement=X%`. |
+| **Fix 6** | End-of-arm `[PERF_SUMMARY]` to stderr: `total_steps`, `mean_steps_s`, `peak_active_veh`, `wall_s`, and projected k=10 wall-clock estimate. |
+
+**bat file:** `run_k10_fuelspec.bat` updated with `--vehicle-sample-mod 2 --warmup-buffer 1200 --grade-lead 600`.

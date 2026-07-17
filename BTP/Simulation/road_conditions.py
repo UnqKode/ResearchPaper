@@ -4,7 +4,8 @@ import logging
 class RoadConditionManager:
     def __init__(self, degraded_edges, mode, activate_time,
                  v_low=5.0, v_high=12.0, period_s=20.0, event_duration=600.0, dt=1.0,
-                 grade_emission_class="HBEFA3/PC_G_EU0"):
+                 grade_emission_class="HBEFA3/PC_G_EU0",
+                 force_baseline=False):
         """
         Manages mid-simulation physical road degradations.
 
@@ -40,6 +41,7 @@ class RoadConditionManager:
         self.event_duration = event_duration
         self.dt = dt
         self.grade_emission_class = grade_emission_class
+        self.force_baseline = force_baseline
 
         self.active = False
         self.restored = False
@@ -84,26 +86,35 @@ class RoadConditionManager:
                 self._apply_grade()
 
     def _verify_baseline_locks(self):
-        """Enforce that baselines for degraded edges are locked before activation."""
+        """Emit [BASELINE_GATE] per edge and raise RuntimeError on failure unless force_baseline."""
         if not self._calc:
+            print(f"[BASELINE_GATE] SKIPPED (no calc bound) at t={self.activate_time}")
             return
 
         unlocked = []
         for edge in self.degraded_edges:
-            if edge not in self._calc._fuel_baseline:
+            baseline = self._calc._fuel_baseline.get(edge)
+            frozen   = edge in getattr(self._calc, '_frozen_baseline_edges', set())
+            if baseline is None:
                 unlocked.append(edge)
+                print(f"[BASELINE_GATE] FAILED edge={edge} baseline=None frozen={frozen} "
+                      f"at t={self.activate_time}")
+            else:
+                print(f"[BASELINE_GATE] PASS edge={edge} baseline={baseline:.1f}mg "
+                      f"frozen={frozen} at t={self.activate_time}")
 
         if unlocked:
-            logging.warning(
-                f"WARNING: RoadConditionManager activating at {self.activate_time}s but baselines "
-                f"are UNLOCKED for edges {unlocked}. The RSU will be blind to the extra fuel "
-                f"on these edges because it will absorb the degraded rate into the baseline."
-            )
+            msg = (f"[BASELINE_GATE] FAILED: {len(unlocked)}/{len(self.degraded_edges)} "
+                   f"edges have no baseline at activation t={self.activate_time}: {unlocked}. "
+                   f"Increase --warmup-buffer or use --force-baseline to suppress.")
+            if self.force_baseline:
+                print(f"[BASELINE_GATE] WARNING (--force-baseline): continuing despite failure. {msg}")
+                logging.warning(msg)
+            else:
+                raise RuntimeError(msg)
         else:
-            logging.info(
-                f"RoadConditionManager: baselines locked for "
-                f"{len(self.degraded_edges)}/{len(self.degraded_edges)} degraded edges."
-            )
+            print(f"[BASELINE_GATE] PASS all {len(self.degraded_edges)} degraded edges "
+                  f"have baselines at t={self.activate_time}")
 
     def _activate(self):
         """Activates the degradation."""

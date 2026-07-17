@@ -1323,7 +1323,7 @@ def run_paired_scenario(arm_policy, alpha, beta, gamma, od_list, traffic_seed, t
                         cost_mode="augtime",
                         fuel_aggregator="median", fuel_sample_max_age_s=600.0,
                         junction_weight=1.0, fuel_hysteresis=0.10,
-                        vehicle_sample_mod=5,
+                        vehicle_sample_mod=2,
                         warm_state_path=None, warmup_end_time=None):
     out_prefix = f"{tag}."
     tripinfo_path = f"{out_prefix}tripinfo.xml"
@@ -1584,7 +1584,7 @@ def _run_paired_capture(arm_policy, alpha, beta, gamma, od_list, traffic_seed, t
                         theta_fuel=1.0, theta_time=0.10, cost_mode="augtime",
                         fuel_aggregator="median", fuel_sample_max_age_s=600.0,
                         junction_weight=1.0, fuel_hysteresis=0.10,
-                        vehicle_sample_mod=5,
+                        vehicle_sample_mod=2,
                         warm_state_path=None, warmup_end_time=None):
     t0 = time.time()
     buf = io.StringIO()
@@ -2090,10 +2090,13 @@ def main():
                     help="Change 2B: minimum fractional fuel-saving required to accept a reroute "
                          "in fuel mode. E.g. 0.10 = only switch if new route is >=10%% cheaper. "
                          "0.0 disables (always accept). Default 0.10.")
-    ap.add_argument("--vehicle-sample-mod", type=int, default=5,
+    ap.add_argument("--vehicle-sample-mod", type=int, default=2,
                     help="Fix B: RSU subscribes/tracks only 1/N of ordinary vehicles "
                          "(egos always tracked). Higher N = faster steps, slower "
-                         "fuel-window fill. Default 5.")
+                         "fuel-window fill. Default 2 (Round-4).")
+    ap.add_argument("--warmup-buffer", type=float, default=1200.0,
+                    help="Fix 1/Round-4: seconds before depart_start that warmup ends. "
+                         "warmup_end = depart_start - warmup_buffer. Default 1200.")
     ap.add_argument("--warmup-savestate", action="store_true",
                     help="Fix D/E: run a per-seed phase-0 warmup that saves the SUMO "
                          "state (both arms --load-state it) and applies the corridor "
@@ -2118,7 +2121,14 @@ def main():
                     help="comma-separated list of edges, 'auto' (bottleneck), or "
                          "'auto-nonbottleneck' (Change 3: non-bottleneck grade corridor)")
     ap.add_argument("--n-degraded", type=int, default=3, help="k for auto-selection")
-    ap.add_argument("--degrade-start", type=float, default=-1, help="time to start degradation (-1 = depart_start - 300)")
+    ap.add_argument("--degrade-start", type=float, default=-1,
+                    help="absolute sim time to start degradation. Negative = use --grade-lead.")
+    ap.add_argument("--grade-lead", type=float, default=600.0,
+                    help="Fix 3/Round-4: seconds before depart_start that grade activates. "
+                         "degrade_start = depart_start - grade_lead. Default 600.")
+    ap.add_argument("--force-baseline", action="store_true",
+                    help="Fix 4/Round-4: continue even if baselines are not locked at grade "
+                         "activation (suppress RuntimeError from [BASELINE_GATE]).")
     ap.add_argument("--degrade-vlow", type=float, default=5.0, help="v_low for rough mode")
     ap.add_argument("--degrade-vhigh", type=float, default=12.0, help="v_high for rough mode")
     ap.add_argument("--degrade-period", type=float, default=20.0, help="period for rough mode")
@@ -2142,9 +2152,11 @@ def main():
     
     depart_start = args.depart_start
     if args.degrade_start < 0:
-        degrade_start = depart_start - 300
+        degrade_start = depart_start - args.grade_lead
     else:
         degrade_start = args.degrade_start
+    print(f"[CAMPAIGN] degrade_start={degrade_start} "
+          f"(depart_start={depart_start} grade_lead={args.grade_lead})")
 
     degraded_edges = []
     _nonbottleneck_deferred = False   # Fix 3: selector runs after OD generation
@@ -2420,9 +2432,11 @@ def main():
                     seed_warm_end = None
                     seed_manager = manager
                     if args.warmup_savestate:
-                        seed_warm_end = depart - 600.0
+                        seed_warm_end = depart - args.warmup_buffer
                         seed_warm_state = os.path.abspath(
                             f"ws_{seed}_{int(scale*100)}_{int(depart)}.xml.gz")
+                        print(f"[WARMUP] seed={seed} warmup_buffer={args.warmup_buffer} "
+                              f"warmup_end={seed_warm_end} degrade_start={degrade_start}")
                         seed_degraded, seed_warm_end = _run_warmup_phase(
                             seed, corridor_candidates, seed_warm_state,
                             seed_warm_end, scale, args.teleport,
@@ -2437,7 +2451,8 @@ def main():
                                 v_low=args.degrade_vlow, v_high=args.degrade_vhigh,
                                 period_s=args.degrade_period,
                                 event_duration=args.event_duration,
-                                grade_emission_class=args.grade_emission_class
+                                grade_emission_class=args.grade_emission_class,
+                                force_baseline=args.force_baseline,
                             )
 
                     for arm in arms_to_run:

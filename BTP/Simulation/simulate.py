@@ -1058,9 +1058,12 @@ class Simulation:
                   f"threshold={threshold:.1f}")
             return True
 
+        _rej_margin = ((cost_cur - cost_new) / cost_cur * 100) if cost_cur > 0 else 0.0
         print(f"[FUEL_HYST] vehicle={self.ego_id} action=KEEP "
               f"cost_cur={cost_cur:.1f} cost_new={cost_new:.1f} "
-              f"threshold={threshold:.1f}")
+              f"threshold={threshold:.1f} margin={_rej_margin:.1f}%")
+        if hasattr(self, '_rejected_margins'):
+            self._rejected_margins.append(_rej_margin)
         return False
 
     # -----------------------------------------------------------------
@@ -1233,7 +1236,11 @@ class Simulation:
                 }
                 print(f"[DECISION] vehicle={self.ego_id} action=REROUTE type={chosen_type}")
             else:
-                print(f"[DECISION] vehicle={self.ego_id} action=KEEP_CURRENT_ROUTE")
+                # Fix 5: track best rejected margin for end-of-arm summary
+                if improvement > 0 and hasattr(self, '_rejected_margins'):
+                    self._rejected_margins.append(improvement * 100)
+                print(f"[DECISION] vehicle={self.ego_id} action=KEEP_CURRENT_ROUTE "
+                      f"improvement={improvement*100:.1f}%")
 
             # Phase 1b: Record decisive data on edges that matter
             if getattr(self.calc, "debug_cfs", False):
@@ -1425,10 +1432,14 @@ class Simulation:
         )
         _sys.stderr.flush()
 
-        # --- FIX G: step-rate telemetry ---
+        # --- FIX G: step-rate telemetry + Fix 5/6 accumulators ---
         import time as _time
         _perf_step = 0
         _perf_window_start = _time.perf_counter()
+        _perf_campaign_start = _perf_window_start
+        _peak_active_veh = 0
+        _first_ego_logged = False   # Fix 4: [FUEL_WINDOW] fires once at first injection
+        self._rejected_margins = [] # Fix 5: per-eval rejected improvement margins
 
         while len(completed_egos) < len(od_list) and traci.simulation.getMinExpectedNumber() > 0:
             traci.simulationStep()
@@ -1441,10 +1452,12 @@ class Simulation:
             # Step-rate telemetry: emit steps/s over 500-step windows to stderr so
             # a live run's throughput (and slowdowns) are visible per arm.
             _perf_step += 1
+            _n_active = len(active_egos)
+            if _n_active > _peak_active_veh:
+                _peak_active_veh = _n_active
             if _perf_step % 500 == 0:
                 _now = _time.perf_counter()
                 _rate = 500 / (_now - _perf_window_start) if _now > _perf_window_start else 0.0
-                _n_active = len(active_egos)
                 _sys.stderr.write(
                     f"[PERF] seed={seed} arm={ego_policy} sim_t={sim_time:.0f} "
                     f"steps/s={_rate:.1f} active_veh={_n_active}\n")
@@ -1502,6 +1515,21 @@ class Simulation:
                         ego_states[vid]["metrics"] = self.ego_metrics
                         ego_states[vid]["snapshot"] = self.route_snapshot
                         ego_states[vid]["last_dijkstra_time"] = self.last_dijkstra_time
+
+                        # Fix 4: [FUEL_WINDOW] — log baseline/traversal fill at first departure
+                        if not _first_ego_logged:
+                            _first_ego_logged = True
+                            print(f"[FUEL_WINDOW] first_ego={vid} t={sim_time:.1f} arm={ego_policy}")
+                            for _fwde in _deg_edges:
+                                _fw_bl   = self.calc._fuel_baseline.get(_fwde)
+                                _fw_frz  = _fwde in getattr(self.calc, '_frozen_baseline_edges', set())
+                                _fw_dq   = self.calc._traversal_fuel.get(_fwde)
+                                _fw_n    = len(_fw_dq) if _fw_dq else 0
+                                print(f"[FUEL_WINDOW]   {_fwde}: "
+                                      f"n_traversals={_fw_n} "
+                                      f"baseline={'None' if _fw_bl is None else f'{_fw_bl:.1f}mg'} "
+                                      f"frozen={_fw_frz}")
+
                         rec = {
                             "trip": k,
                             "seed": None, # Will be attached by caller
@@ -1637,5 +1665,24 @@ class Simulation:
         self.reroute_interval = original_interval
         self.imp_threshold = orig_imp
         self.dev_threshold = orig_dev
+
+        # --- Fix 5: reroute-acceptance summary ---
+        _total_evals    = sum(s["metrics"].get("reroute_evals", 0) for s in ego_states.values())
+        _total_accepted = sum(s["metrics"].get("reroutes", 0)      for s in ego_states.values())
+        _best_rej = max(self._rejected_margins, default=0.0)
+        print(f"[REROUTE_SUMMARY] arm={ego_policy} seed={seed} "
+              f"reroute_evals={_total_evals} accepted={_total_accepted} "
+              f"best_rejected_margin={_best_rej:.1f}%")
+
+        # --- Fix 6: end-of-arm PERF summary ---
+        _wall_s = _time.perf_counter() - _perf_campaign_start
+        _mean_steps_s = _perf_step / _wall_s if _wall_s > 0 else 0.0
+        _sys.stderr.write(
+            f"[PERF_SUMMARY] arm={ego_policy} seed={seed} "
+            f"total_steps={_perf_step} mean_steps_s={_mean_steps_s:.1f} "
+            f"peak_active_veh={_peak_active_veh} wall_s={_wall_s:.1f}s\n"
+            f"[PERF_SUMMARY] projected k=10: "
+            f"~{10 * _wall_s / 3600:.1f}h total (10 seeds serial, 3 arms parallel/seed)\n")
+        _sys.stderr.flush()
 
         return results

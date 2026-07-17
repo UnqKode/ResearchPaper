@@ -154,16 +154,24 @@ class TestRoadConditionManager(unittest.TestCase):
         self.assertAlmostEqual(self.traci.lane.speeds["e2_0"], 13.89)
 
     # ------------------------------------------------------------------
-    # 3. Baseline-lock warning when some edges are unlocked
+    # 3. Baseline-lock gate: raises on unlocked edges (Fix 4/Round-4)
     # ------------------------------------------------------------------
     def test_baseline_lock_warning(self):
-        # Only e1 is locked in calc; e2 is unlocked → should warn
+        # Only e1 is locked; e2 is unlocked → RuntimeError (default force_baseline=False)
         mgr = RoadConditionManager(["e1", "e2"], "rough", activate_time=100.0)
         mgr.bind(self.traci, MockCalc(["e1"]))
+        with self.assertRaises(RuntimeError) as ctx:
+            mgr.step(100.0)
+        self.assertIn("BASELINE_GATE", str(ctx.exception))
 
+    def test_baseline_lock_force(self):
+        # force_baseline=True → warning printed but no RuntimeError
+        mgr = RoadConditionManager(["e1", "e2"], "rough", activate_time=100.0,
+                                   force_baseline=True)
+        mgr.bind(self.traci, MockCalc(["e1"]))
         with self.assertLogs(level="WARNING") as log:
             mgr.step(100.0)
-        self.assertTrue(any("UNLOCKED" in m for m in log.output))
+        self.assertTrue(any("BASELINE_GATE" in m for m in log.output))
 
     # ------------------------------------------------------------------
     # 4. Accident mode: block lane 0, auto-restore after event_duration

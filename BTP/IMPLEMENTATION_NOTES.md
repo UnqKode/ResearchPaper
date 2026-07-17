@@ -147,3 +147,87 @@ This bypasses `redirect_stdout` and is visible immediately in the err log.
 The acceptance criterion for the Round-3 fixes is ≥ 30 steps/s sustained
 in the post-19500 heavy phase. During fast-forward (`sim_t < 19500`), the
 step counter is not incremented so the rate reflects only the heavy phase.
+
+---
+
+# Implementation Notes — Round 4
+
+## Fix 1: Warmup buffer 600 → 1200 s (`--warmup-buffer`)
+
+**Problem fixed:** With only 300–600 s of RSU warmup before grade activation, low-traffic
+degraded edges (e.g. 0.43 veh/min at scale=2.0) had fewer than 3 baseline samples. The
+`_fuel_baseline` was `None` at `freeze_baseline()` time, so `F=0` for all edges and
+ours-fuel/ours-augtime/ablation produced identical routing → 0% delta.
+
+**Solution:** `--warmup-buffer 1200` (default). `warmup_end = depart_start - 1200 = 20400`.
+This gives the RSU 1200 s to build baselines before grade activates at 21000.
+
+**Expected samples:** At 0.43 veh/min and 1/2 sampling, 1200 s → ~4.3 expected samples on
+the least-trafficked degraded edge. Combined with the EMA seed buffer (5 observations
+required before locking), this is still tight — but grade-lead=600 gives additional time.
+
+---
+
+## Fix 2: Vehicle sampling 1/5 → 1/2 (`--vehicle-sample-mod 2`)
+
+**Why:** At `sample_mod=5`, only 20% of background vehicles contributed traversal records.
+On a low-traffic corridor edge, this extended the baseline fill time to ~25 min at the
+Monaco scale. Halving to 1/2 doubles the effective sample rate with minimal step-rate
+impact (subscribed vehicle count doubles, but only 1/4 of the original 4404 edges are
+subscribed at once, so the per-step payload is bounded).
+
+**Honesty constraint unchanged:** sampling is still `zlib.crc32(vid.encode()) % sample_mod == 0`,
+blind to edge identity, arm identity, and RoadConditionManager state.
+
+---
+
+## Fix 3: Grade lead 300 → 600 s (`--grade-lead`)
+
+**Why:** Grade activates at `depart_start - grade_lead`. With `grade_lead=300`, the
+300-second window (t=21300→21600) was used for BOTH baseline-seeding AND grade-active
+observation — a race condition. With `grade_lead=600`, grade activates at t=21000 and
+RSU has 600 s of free-flow fuel data locked before egos depart.
+
+**Invariant preserved:** grade_lead < warmup_buffer (600 < 1200), so RSU starts observing
+before grade fires.
+
+---
+
+## Fix 4: Baseline-lock gate (`[BASELINE_GATE]`) + `[FUEL_WINDOW]`
+
+**`[BASELINE_GATE]`:** `RoadConditionManager._verify_baseline_locks()` now prints
+`[BASELINE_GATE] PASS/FAILED` per degraded edge at grade activation time. On failure it
+raises `RuntimeError`, aborting the arm (caught by `_run_paired_capture`, marked as error).
+Pass `--force-baseline` to demote this to a warning and continue anyway.
+
+**`[FUEL_WINDOW]`:** Printed at the first ego departure. Shows `n_traversals`, `baseline`,
+and `frozen` status for each degraded edge. Lets you verify that baselines were locked
+before egos start routing.
+
+---
+
+## Fix 5: Reroute-acceptance telemetry (`[REROUTE_SUMMARY]`)
+
+At end of each arm campaign:
+```
+[REROUTE_SUMMARY] arm=ours-fuel seed=1 reroute_evals=47 accepted=3 best_rejected_margin=8.4%
+```
+- `reroute_evals`: how many times the reroute decision fired (Dijkstra ran)
+- `accepted`: how many were accepted (route switch happened)
+- `best_rejected_margin`: highest saving% that was still below hysteresis threshold
+
+`[FUEL_HYST]` lines (per reroute decision) are already emitted in `_reroute_fuel_mode`
+and now include `margin=X%` on KEEP actions.
+
+---
+
+## Fix 6: End-of-arm PERF summary (`[PERF_SUMMARY]`)
+
+At end of each arm campaign (to stderr):
+```
+[PERF_SUMMARY] arm=ours-fuel seed=1 total_steps=8240 mean_steps_s=18.3 peak_active_veh=5 wall_s=450.1s
+[PERF_SUMMARY] projected k=10: ~1.25h total (10 seeds serial, 3 arms parallel/seed)
+```
+The projection assumes all seeds run serially and all 3 arms run in parallel per seed
+(the default `--seed-parallelism 1` configuration). Formula:
+`projected_total = 10 × arm_wall_s / 3600` hours.
