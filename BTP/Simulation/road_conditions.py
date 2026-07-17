@@ -119,6 +119,13 @@ class RoadConditionManager:
     def _activate(self):
         """Activates the degradation."""
         self.active = True
+
+        # Grade mode: freeze_baseline first (auto-seeds cold edges from network-median),
+        # then verify. For rough/accident modes the gate runs before activation.
+        if self.mode == "grade" and self._calc is not None:
+            for edge in self.degraded_edges:
+                self._calc.freeze_baseline(edge)
+
         self._verify_baseline_locks()
 
         if self.mode == "rough":
@@ -183,13 +190,8 @@ class RoadConditionManager:
                 f"emission_class={self.grade_emission_class}\n"
             )
             _sys.stderr.flush()
-            # Freeze the fuel baseline for each degraded edge so the pre-activation
-            # free-flow floor (EU4 rate) is preserved as the F denominator. Without
-            # this the EMA absorbs the elevated EU0 departure rates and F collapses
-            # to ~0 before any ego trip runs.
-            if self._calc is not None:
-                for edge in self.degraded_edges:
-                    self._calc.freeze_baseline(edge)
+            # freeze_baseline already called at top of _activate (before gate check)
+            # so baselines are locked here. Nothing to repeat.
             # Clear the fuel/CO2 rolling windows so pre-grade EU4 trip data does
             # not dilute the EU0 signal.  On low-traffic corridors the 60-step
             # window rarely captures a departure; leftover EU4 entries would bias

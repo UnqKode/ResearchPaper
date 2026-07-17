@@ -140,13 +140,24 @@ class EdgeCostCalculator:
 
         Called by RoadConditionManager at grade-mode activation so the
         pre-degradation free-flow fuel floor is preserved as the F denominator
-        throughout the degradation window.  Without this the EMA absorbs the
-        elevated EU0 rates and F collapses to ~0.
+        throughout the degradation window.
+
+        If no traversal data has accumulated yet (baseline=None, e.g. a zero-traffic
+        corridor), pre-seed from the network-median locked baseline so F can be
+        computed even on cold edges in grade mode.
         """
+        import sys as _sys
+        if edge_id not in self._fuel_baseline:
+            nominal = self.cold_nominal_rate()  # network-median; no own baseline yet
+            if nominal > 0:
+                self._fuel_baseline[edge_id] = nominal
+                _sys.stderr.write(
+                    f"[FREEZE_BASELINE] {edge_id}: no observed data, "
+                    f"pre-seeded from network-median={nominal:.1f}mg/s\n")
+                _sys.stderr.flush()
         self._frozen_baseline_edges.add(edge_id)
         baseline_val = self._fuel_baseline.get(edge_id)
         seed_count   = len(self._fuel_seed.get(edge_id, []))
-        import sys as _sys
         _sys.stderr.write(f"[FREEZE_BASELINE] {edge_id}: baseline={baseline_val} seed_buf={seed_count} samples\n")
         _sys.stderr.flush()
 
