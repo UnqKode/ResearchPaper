@@ -1039,9 +1039,9 @@ def select_nonbottleneck_grade_edges(net_file, config_file=None, k=2,
        therefore more likely to accumulate EU0 signal after grade activation.
 
     The corridor-validity gate (run AFTER warmup, in _corridor_gate) is the
-    primary traffic filter: it requires avg_occ >= CORRIDOR_OCC_MIN and
-    speed_ratio >= CORRIDOR_SPEED_RATIO_MIN on warmup measurements.  This
-    function returns k over-selected candidates so the gate has enough to pick 2.
+    primary traffic filter: it requires warmup_traversals >= CORRIDOR_MIN_TRAVERSALS
+    and speed_ratio >= CORRIDOR_SPEED_RATIO_MIN on warmup measurements (Fix M).
+    This function returns k over-selected candidates so the gate has enough to pick 2.
 
     config_file and probe-related parameters (sumo_bin, scale, teleport,
     probe_begin, od_coverage_min, od_list) are accepted but unused — kept for
@@ -1111,35 +1111,45 @@ CORRIDOR_MEASURE_WINDOW_S = 1800.0
 # Corridor validity thresholds (Fix E / Fix K).
 CORRIDOR_SPEED_RATIO_MIN = 0.85
 CORRIDOR_OCC_MAX = 0.40
-# Fix K: minimum average occupancy — rejects zero-traffic structural edges
-# that carry no background vehicles and therefore can never build an EU0 signal.
-CORRIDOR_OCC_MIN = 0.005
+# Fix M: minimum sampled traversals during the measurement window.
+# With vehicle_sample_mod=2, 5 sampled traversals ≈ 10 real traversals.
+# CORRIDOR_OCC_MIN removed: with --device.rerouting.probability=1 Monaco traffic
+# disperses so completely (max occ=0.0001) that the occupancy floor was dead code.
+CORRIDOR_MIN_TRAVERSALS = 5
 
 
 def _run_warmup_phase(seed, candidate_edges, state_path, warmup_end_time,
                       scale, teleport, net_file=None,
                       measure_window_s=CORRIDOR_MEASURE_WINDOW_S,
-                      force_corridor=False):
-    """FIX D + E: phase-0 warmup with saved SUMO state and corridor validity gate.
+                      force_corridor=False,
+                      vehicle_sample_mod=2):
+    """FIX D + E + M: phase-0 warmup with saved SUMO state and corridor validity gate.
 
     Runs ONE headless SUMO instance (same net/routes/config as the arms, same
     seed) from WARMUP_BEGIN_TIME to ``warmup_end_time``.  During the last
-    ``measure_window_s`` sim-seconds it measures a rolling average of occupancy
-    and speed_ratio on each of the ``candidate_edges`` (the top-k structural
-    candidates from ``select_nonbottleneck_grade_edges``).  It then:
+    ``measure_window_s`` sim-seconds it measures speed_ratio and counts SAMPLED
+    traversals on each of the ``candidate_edges``.  It then:
 
       1. saveState(state_path)          -- so both arms load byte-identical traffic
       2. corridor gate                  -- selects the best 2 candidates that pass
-                                           speed_ratio >= 0.85 AND avg_occ <= 0.40
+                                           warmup_traversals >= CORRIDOR_MIN_TRAVERSALS
+                                           AND speed_ratio >= CORRIDOR_SPEED_RATIO_MIN
 
-    Returns (degraded_edges, warmup_end_time).  Raises RuntimeError if fewer than
-    2 candidates pass the gate (unless ``force_corridor`` is True, in which case
-    it falls back to the top-2 by speed_ratio and warns).
+    Fix M: traversal count replaces avg_occ as the evidence criterion.
+    warmup_traversals counts SAMPLED vehicle exits (vehicles that were on the edge
+    in the previous step but not the current step, filtered by
+    zlib.crc32(vid.encode()) % vehicle_sample_mod == 0).
+    Effective real traversals ≈ warmup_traversals × vehicle_sample_mod.
+
+    Returns (degraded_edges, warmup_end_time, gate_status) where gate_status is
+    "passed" (≥2 candidates passed the gate) or "fallback" (force-fallback used).
+    Raises RuntimeError if fewer than 2 candidates pass and force_corridor is False.
 
     The RSU Python state built here is discarded: only the SUMO state file
     survives.  Each arm re-warms its own RSU windows from warmup_end_time to the
     first ego departure.  This is arm-symmetric by construction.
     """
+    import zlib as _zlib
     from traci_compat import traci as _traci, USING_LIBSUMO as _USING_LIBSUMO
     _tc = _traci.constants   # resolves through the active backend (traci or libsumo)
 
@@ -1175,10 +1185,14 @@ def _run_warmup_phase(seed, candidate_edges, state_path, warmup_end_time,
           f"candidates={candidate_edges} state={state_path}")
     sys.stdout.flush()
 
-    # rolling sums for the measurement window
-    occ_sum = {e: 0.0 for e in candidate_edges}
-    ratio_sum = {e: 0.0 for e in candidate_edges}
-    n_samples = {e: 0 for e in candidate_edges}
+    # Rolling sums + per-edge traversal accounting for the measurement window.
+    # Traversal count = vehicles that exited the edge this step, filtered to
+    # the same 1/vehicle_sample_mod sample as the main RSU loop.
+    occ_sum    = {e: 0.0 for e in candidate_edges}
+    ratio_sum  = {e: 0.0 for e in candidate_edges}
+    n_samples  = {e: 0   for e in candidate_edges}
+    trav_count = {e: 0   for e in candidate_edges}
+    prev_veh_sets = {e: set() for e in candidate_edges}
     measure_start = warmup_end_time - measure_window_s
 
     if not _USING_LIBSUMO:
@@ -1197,12 +1211,20 @@ def _run_warmup_phase(seed, candidate_edges, state_path, warmup_end_time,
 
         for e in candidate_edges:
             _traci.edge.subscribe(
-                e, (_tc.LAST_STEP_OCCUPANCY, _tc.LAST_STEP_MEAN_SPEED))
+                e, (_tc.LAST_STEP_OCCUPANCY, _tc.LAST_STEP_MEAN_SPEED,
+                    _tc.LAST_STEP_VEHICLE_ID_LIST))
 
         while _traci.simulation.getTime() < warmup_end_time:
             _traci.simulationStep()
             t = _traci.simulation.getTime()
             if t < measure_start:
+                # Still track vehicle sets outside the window so the first window
+                # step has a valid prev_veh_sets baseline.
+                results = _traci.edge.getAllSubscriptionResults()
+                for e in candidate_edges:
+                    r = results.get(e, {})
+                    vids = set(r.get(_tc.LAST_STEP_VEHICLE_ID_LIST, []))
+                    prev_veh_sets[e] = vids
                 continue
             results = _traci.edge.getAllSubscriptionResults()
             for e in candidate_edges:
@@ -1211,9 +1233,16 @@ def _run_warmup_phase(seed, candidate_edges, state_path, warmup_end_time,
                 spd = r.get(_tc.LAST_STEP_MEAN_SPEED, 0.0)
                 v_lim = speed_limits.get(e, 13.89)
                 ratio = (spd / v_lim) if v_lim > 0 else 0.0
-                occ_sum[e] += occ
+                occ_sum[e]   += occ
                 ratio_sum[e] += ratio
                 n_samples[e] += 1
+                # Count sampled traversals: vehicles that exited since last step
+                vids = set(r.get(_tc.LAST_STEP_VEHICLE_ID_LIST, []))
+                exited = prev_veh_sets[e] - vids
+                for vid in exited:
+                    if _zlib.crc32(vid.encode()) % vehicle_sample_mod == 0:
+                        trav_count[e] += 1
+                prev_veh_sets[e] = vids
 
         # Save the warmed traffic state for both arms.
         # Pass only the basename so SUMO writes it relative to its CWD
@@ -1236,7 +1265,7 @@ def _run_warmup_phase(seed, candidate_edges, state_path, warmup_end_time,
             "was not honoured. Check the warmup SUMO log.")
     print(f"[WARMUP] state file verified: {state_path} ({os.path.getsize(state_path)} bytes)")
 
-    # --- Corridor validity gate (Fix E) ---
+    # --- Corridor validity gate (Fix E + M) ---
     lengths = {}
     for e in candidate_edges:
         try:
@@ -1251,73 +1280,84 @@ def _run_warmup_phase(seed, candidate_edges, state_path, warmup_end_time,
             "avg_occ": (occ_sum[e] / n) if n else 0.0,
             "speed_ratio": (ratio_sum[e] / n) if n else 0.0,
             "length": lengths.get(e, 0.0),
+            "warmup_traversals": trav_count[e],
         })
 
-    degraded_edges = _corridor_gate(measurements, force_corridor=force_corridor,
-                                    seed=seed)
-    return degraded_edges, warmup_end_time
+    degraded_edges, gate_status = _corridor_gate(
+        measurements, force_corridor=force_corridor, seed=seed)
+    return degraded_edges, warmup_end_time, gate_status
 
 
 def _corridor_gate(measurements, force_corridor=False, seed=None):
-    """FIX E + K: corridor validity gate over per-candidate warmup measurements.
+    """FIX E + M: corridor validity gate over per-candidate warmup measurements.
 
     ``measurements`` is a list of dicts with keys eid, avg_occ (normalised [0,1]),
-    speed_ratio (avg_speed / speed_limit), length.
+    speed_ratio (avg_speed / speed_limit), length, warmup_traversals (int).
 
-    PASS = speed_ratio >= CORRIDOR_SPEED_RATIO_MIN
-           AND CORRIDOR_OCC_MIN <= avg_occ <= CORRIDOR_OCC_MAX.
+    PASS = warmup_traversals >= CORRIDOR_MIN_TRAVERSALS (Fix M: replaces avg_occ floor)
+           AND speed_ratio >= CORRIDOR_SPEED_RATIO_MIN
+           AND avg_occ <= CORRIDOR_OCC_MAX (bottleneck upper bound retained)
 
-    Fix K: added CORRIDOR_OCC_MIN to reject zero-traffic edges.  Without
-    background traffic the EU0 grade signal cannot enter _traversal_fuel and
-    fuel-mode routing sees no cost difference on the degraded corridor.
+    Fix M: avg_occ floor (CORRIDOR_OCC_MIN) removed. With --device.rerouting.probability=1,
+    Monaco traffic disperses so completely (probe max occ=0.0001) that the occupancy floor
+    was dead code — gate ALWAYS fell through to force-fallback. Traversal count is a more
+    direct and robust evidence criterion: an edge with ≥5 sampled traversals in the 1800 s
+    window (~10 real vehicles at sample_mod=2) carries real background EU0 signal.
 
-    Passing candidates are ranked by speed_ratio DESC (freest-flowing first,
-    so grade raises fuel without raising time), then avg_occ DESC (more traffic =
-    stronger EU0 signal), then length DESC (longer traversal = more signal).
+    Passing candidates are ranked by speed_ratio DESC (freest-flowing first),
+    then warmup_traversals DESC (more evidence = stronger signal), then length DESC.
     The top 2 are returned as the degraded edges.
 
-    If fewer than 2 pass: raise RuntimeError (aborting the campaign) unless
-    ``force_corridor`` is True, in which case fall back to the top-2 candidates
-    by speed_ratio DESC then avg_occ DESC (best free-flowing first).
+    Returns (degraded_edges, gate_status) where gate_status is "passed" if ≥2
+    candidates passed the gate, or "fallback" if the force-fallback was used.
+
+    If fewer than 2 pass and force_corridor is False: raises RuntimeError.
+    If force_corridor is True: falls back to top-2 by speed_ratio (logs WARNING).
     """
     passing = []
     for m in measurements:
-        occ_ok  = CORRIDOR_OCC_MIN <= m["avg_occ"] <= CORRIDOR_OCC_MAX
+        trav_ok = m.get("warmup_traversals", 0) >= CORRIDOR_MIN_TRAVERSALS
         rate_ok = m["speed_ratio"] >= CORRIDOR_SPEED_RATIO_MIN
-        m_passed = occ_ok and rate_ok
+        occ_ok  = m["avg_occ"] <= CORRIDOR_OCC_MAX
+        m_passed = trav_ok and rate_ok and occ_ok
         if m_passed:
             passing.append(m)
             print(f"[CORRIDOR_GATE] PASS edge={m['eid']} "
-                  f"ratio={m['speed_ratio']:.3f} occ={m['avg_occ']:.4f}")
+                  f"ratio={m['speed_ratio']:.3f} traversals={m.get('warmup_traversals',0)} "
+                  f"occ={m['avg_occ']:.4f}")
         else:
             reasons = []
             if not rate_ok:
                 reasons.append(f"ratio={m['speed_ratio']:.3f}<{CORRIDOR_SPEED_RATIO_MIN}")
+            if not trav_ok:
+                reasons.append(
+                    f"traversals={m.get('warmup_traversals',0)}<{CORRIDOR_MIN_TRAVERSALS}(no evidence)")
             if not occ_ok:
-                if m["avg_occ"] < CORRIDOR_OCC_MIN:
-                    reasons.append(f"occ={m['avg_occ']:.4f}<{CORRIDOR_OCC_MIN}(no traffic)")
-                else:
-                    reasons.append(f"occ={m['avg_occ']:.4f}>{CORRIDOR_OCC_MAX}(bottleneck)")
+                reasons.append(f"occ={m['avg_occ']:.4f}>{CORRIDOR_OCC_MAX}(bottleneck)")
             print(f"[CORRIDOR_GATE] FAILED edge={m['eid']} "
-                  f"ratio={m['speed_ratio']:.3f} occ={m['avg_occ']:.4f} "
-                  f"({'; '.join(reasons)})")
+                  f"ratio={m['speed_ratio']:.3f} traversals={m.get('warmup_traversals',0)} "
+                  f"occ={m['avg_occ']:.4f} ({'; '.join(reasons)})")
 
     if len(passing) < 2:
         if not force_corridor:
             raise RuntimeError(
                 f"[CORRIDOR_GATE] only {len(passing)}/2 candidates passed "
                 f"(seed={seed}); aborting (use --force-corridor to override).")
-        print("[CORRIDOR_GATE] WARNING: fewer than 2 passed; --force-corridor "
-              "set, falling back to top-2 by speed_ratio then avg_occ.")
+        print("[CORRIDOR_GATE] WARNING: fallback used — gate did not pass on any candidate "
+              "(fewer than 2 met traversal+speed criteria); falling back to top-2 by speed_ratio.")
         ranked = sorted(measurements,
-                        key=lambda m: (-m["speed_ratio"], -m["avg_occ"], -m["length"]))
+                        key=lambda m: (-m["speed_ratio"], -m.get("warmup_traversals", 0),
+                                       -m["length"]))
+        gate_status = "fallback"
     else:
         ranked = sorted(passing,
-                        key=lambda m: (-m["speed_ratio"], -m["avg_occ"], -m["length"]))
+                        key=lambda m: (-m["speed_ratio"], -m.get("warmup_traversals", 0),
+                                       -m["length"]))
+        gate_status = "passed"
 
     degraded_edges = [m["eid"] for m in ranked[:2]]
-    print(f"[CORRIDOR_GATE] selected degraded_edges={degraded_edges}")
-    return degraded_edges
+    print(f"[CORRIDOR_GATE] selected degraded_edges={degraded_edges} gate={gate_status}")
+    return degraded_edges, gate_status
 
 
 def run_paired_scenario(arm_policy, alpha, beta, gamma, od_list, traffic_seed, tag,
@@ -2426,6 +2466,7 @@ def main():
 
                 futs = {}
                 warm_state_files = []   # Fix D: per-seed state files for cleanup
+                seed_gate_statuses = {}  # Fix M: per-seed corridor_gate status
                 for seed in seeds:
                     print(f"\n--- Queuing SEED {seed} ---")
                     seed_diag = f"{diag_stamp}_{seed}"   # unique diag file per seed
@@ -2443,12 +2484,15 @@ def main():
                             f"ws_{seed}_{int(scale*100)}_{int(depart)}.xml.gz")
                         print(f"[WARMUP] seed={seed} warmup_buffer={args.warmup_buffer} "
                               f"warmup_end={seed_warm_end} degrade_start={degrade_start}")
-                        seed_degraded, seed_warm_end = _run_warmup_phase(
+                        seed_degraded, seed_warm_end, _seed_gate_status = _run_warmup_phase(
                             seed, corridor_candidates, seed_warm_state,
                             seed_warm_end, scale, args.teleport,
                             net_file=NET_FILE,
                             force_corridor=args.force_corridor,
+                            vehicle_sample_mod=args.vehicle_sample_mod,
                         )
+                        print(f"[CORRIDOR_GATE] seed={seed} gate={_seed_gate_status}")
+                        seed_gate_statuses[seed] = _seed_gate_status
                         warm_state_files.append(seed_warm_state)
                         if args.road_condition != "none" and seed_degraded:
                             from Simulation.road_conditions import RoadConditionManager
@@ -2518,6 +2562,11 @@ def main():
                             sum_json = analyze_paired_results(all_res[arm_name], ref, "ablation", run_meta,
                                                               ours_label=arm_name)
                     
+                # Fix M: inject per-seed corridor_gate status into summary JSON
+                if sum_json is not None and seed_gate_statuses:
+                    sum_json["per_seed_corridor_gate"] = {
+                        str(s): v for s, v in seed_gate_statuses.items()}
+
                 if args.debug_cfs and cfs_all:
                     stamp = time.strftime("%Y%m%d_%H%M%S")
                     import csv

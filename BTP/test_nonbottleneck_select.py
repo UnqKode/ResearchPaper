@@ -269,46 +269,54 @@ def test_equal_time_subset_mean():
 #   length desc; top-2 returned. Fewer than 2 pass -> abort unless force.
 # ---------------------------------------------------------------------------
 
-def _cand(eid, avg_occ, speed_ratio, length=200.0):
-    return dict(eid=eid, avg_occ=avg_occ, speed_ratio=speed_ratio, length=length)
+def _cand(eid, avg_occ=0.10, speed_ratio=0.90, length=200.0, warmup_traversals=10):
+    """Fix M: measurements now carry warmup_traversals (sampled count) instead of
+    avg_occ as the evidence gate criterion. avg_occ is retained as an input but
+    only used for the upper-bound bottleneck filter (<=0.40)."""
+    return dict(eid=eid, avg_occ=avg_occ, speed_ratio=speed_ratio,
+                length=length, warmup_traversals=warmup_traversals)
 
 
 def test_corridor_gate_selects_top2_by_ratio():
     ms = [
-        _cand("a", avg_occ=0.10, speed_ratio=0.90),
-        _cand("b", avg_occ=0.20, speed_ratio=0.95),
-        _cand("c", avg_occ=0.50, speed_ratio=0.50),  # fails speed
+        _cand("a", speed_ratio=0.90, warmup_traversals=10),
+        _cand("b", speed_ratio=0.95, warmup_traversals=8),
+        _cand("c", speed_ratio=0.50, warmup_traversals=10),  # fails speed
     ]
-    result = _corridor_gate(ms)
+    result, status = _corridor_gate(ms)
     assert result == ["b", "a"], f"expected [b,a] ranked by ratio, got {result}"
+    assert status == "passed", f"expected gate_status='passed', got {status!r}"
 
 
 def test_corridor_gate_occupancy_upper_bound():
+    """Bottleneck upper-bound filter (avg_occ > 0.40) is retained in Fix M."""
     ms = [
-        _cand("a", avg_occ=0.10, speed_ratio=0.90),
-        _cand("b", avg_occ=0.90, speed_ratio=0.95),  # fails occ (>0.40)
-        _cand("c", avg_occ=0.30, speed_ratio=0.88),
+        _cand("a", avg_occ=0.10, speed_ratio=0.90, warmup_traversals=10),
+        _cand("b", avg_occ=0.90, speed_ratio=0.95, warmup_traversals=10),  # fails occ bottleneck
+        _cand("c", avg_occ=0.30, speed_ratio=0.88, warmup_traversals=10),
     ]
-    result = _corridor_gate(ms)
+    result, status = _corridor_gate(ms)
     assert result == ["a", "c"], f"congested 'b' must be excluded, got {result}"
+    assert status == "passed"
 
 
 def test_corridor_gate_length_tiebreak():
     ms = [
-        _cand("short", avg_occ=0.10, speed_ratio=0.90, length=120.0),
-        _cand("long",  avg_occ=0.10, speed_ratio=0.90, length=400.0),
-        _cand("mid",   avg_occ=0.10, speed_ratio=0.88, length=300.0),
+        _cand("short", speed_ratio=0.90, length=120.0, warmup_traversals=10),
+        _cand("long",  speed_ratio=0.90, length=400.0, warmup_traversals=10),
+        _cand("mid",   speed_ratio=0.88, length=300.0, warmup_traversals=10),
     ]
     # short/long tie on ratio 0.90; longer wins the tiebreak -> long first.
-    result = _corridor_gate(ms)
+    result, status = _corridor_gate(ms)
     assert result == ["long", "short"], f"length tiebreak failed, got {result}"
+    assert status == "passed"
 
 
 def test_corridor_gate_aborts_when_fewer_than_two_pass():
     ms = [
-        _cand("a", avg_occ=0.10, speed_ratio=0.90),   # passes
-        _cand("b", avg_occ=0.90, speed_ratio=0.40),   # fails
-        _cand("c", avg_occ=0.80, speed_ratio=0.30),   # fails
+        _cand("a", speed_ratio=0.90, warmup_traversals=10),   # passes
+        _cand("b", speed_ratio=0.40, warmup_traversals=10),   # fails speed
+        _cand("c", speed_ratio=0.30, warmup_traversals=10),   # fails speed
     ]
     try:
         _corridor_gate(ms)
@@ -319,13 +327,71 @@ def test_corridor_gate_aborts_when_fewer_than_two_pass():
 
 def test_corridor_gate_force_fallback():
     ms = [
-        _cand("a", avg_occ=0.10, speed_ratio=0.90),   # passes
-        _cand("b", avg_occ=0.90, speed_ratio=0.70),   # fails
-        _cand("c", avg_occ=0.80, speed_ratio=0.60),   # fails
+        _cand("a", speed_ratio=0.90, warmup_traversals=10),   # passes
+        _cand("b", speed_ratio=0.70, warmup_traversals=10),   # fails speed
+        _cand("c", speed_ratio=0.60, warmup_traversals=10),   # fails speed
     ]
     # force=True: fall back to top-2 by speed_ratio regardless of pass.
-    result = _corridor_gate(ms, force_corridor=True)
+    result, status = _corridor_gate(ms, force_corridor=True)
     assert result == ["a", "b"], f"force fallback should pick top-2 ratios, got {result}"
+    assert status == "fallback", f"expected gate_status='fallback', got {status!r}"
+
+
+# ---------------------------------------------------------------------------
+# Test 8b — Fix M: traversal-count gate criterion
+# ---------------------------------------------------------------------------
+
+def test_corridor_gate_traversal_passes():
+    """6 sampled traversals + ratio 0.9 must PASS."""
+    ms = [
+        _cand("a", speed_ratio=0.90, warmup_traversals=6),
+        _cand("b", speed_ratio=0.88, warmup_traversals=7),
+    ]
+    result, status = _corridor_gate(ms)
+    assert "a" in result and "b" in result, f"both candidates should pass, got {result}"
+    assert status == "passed"
+
+
+def test_corridor_gate_traversal_too_few_fails():
+    """3 sampled traversals (< CORRIDOR_MIN_TRAVERSALS=5) must FAIL."""
+    ms = [
+        _cand("a", speed_ratio=0.90, warmup_traversals=3),   # fails traversals
+        _cand("b", speed_ratio=0.88, warmup_traversals=3),   # fails traversals
+        _cand("c", speed_ratio=0.87, warmup_traversals=3),   # fails traversals
+    ]
+    try:
+        _corridor_gate(ms)
+        assert False, "expected RuntimeError: no candidate has enough traversals"
+    except RuntimeError:
+        pass
+
+
+def test_corridor_gate_low_ratio_fails():
+    """6 traversals + ratio 0.7 (< 0.85) must FAIL."""
+    ms = [
+        _cand("a", speed_ratio=0.70, warmup_traversals=6),   # fails speed
+        _cand("b", speed_ratio=0.65, warmup_traversals=8),   # fails speed
+        _cand("c", speed_ratio=0.60, warmup_traversals=10),  # fails speed
+    ]
+    try:
+        _corridor_gate(ms)
+        assert False, "expected RuntimeError: all candidates fail speed ratio"
+    except RuntimeError:
+        pass
+
+
+def test_corridor_gate_mixed_traversal_and_speed():
+    """One candidate fails traversals, one fails speed; <2 pass → RuntimeError."""
+    ms = [
+        _cand("a", speed_ratio=0.90, warmup_traversals=3),   # fails traversals
+        _cand("b", speed_ratio=0.70, warmup_traversals=10),  # fails speed
+        _cand("c", speed_ratio=0.86, warmup_traversals=6),   # passes
+    ]
+    try:
+        _corridor_gate(ms)
+        assert False, "expected RuntimeError: only 1 candidate passes"
+    except RuntimeError:
+        pass
 
 
 # ---------------------------------------------------------------------------
@@ -396,6 +462,10 @@ if __name__ == "__main__":
         test_corridor_gate_length_tiebreak,
         test_corridor_gate_aborts_when_fewer_than_two_pass,
         test_corridor_gate_force_fallback,
+        test_corridor_gate_traversal_passes,
+        test_corridor_gate_traversal_too_few_fails,
+        test_corridor_gate_low_ratio_fails,
+        test_corridor_gate_mixed_traversal_and_speed,
         test_arm_params_all_arms,
     ]
     passed = 0
