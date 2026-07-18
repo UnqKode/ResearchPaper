@@ -231,3 +231,88 @@ At end of each arm campaign (to stderr):
 The projection assumes all seeds run serially and all 3 arms run in parallel per seed
 (the default `--seed-parallelism 1` configuration). Formula:
 `projected_total = 10 × arm_wall_s / 3600` hours.
+
+---
+
+## Fix J: Freeze-baseline cold pre-seed (Round 4)
+
+`freeze_baseline()` previously pre-seeded `_fuel_baseline[edge]` from the network median
+only for degraded edges (called from `RoadConditionManager._activate()` over
+`self.degraded_edges`). This is superseded by Fix L.
+
+---
+
+# Runbook
+
+## Never edit source while a campaign is running
+
+The campaign uses a `multiprocessing.ProcessPoolExecutor` with `spawn` context. Worker
+processes **import all Python modules once at spawn time** and reuse that in-memory module
+for all subsequent seeds. Editing a source file mid-run is invisible to already-spawned
+workers and guarantees inconsistent behaviour across seeds (some seeds run old code,
+some run new).
+
+**Rule:** Any fix, however small, requires: **kill campaign → edit → commit → relaunch**.
+A mid-run edit is a silent correctness hazard, not just a cosmetic risk.
+
+---
+
+# Implementation Notes — Round 5
+
+## Fix L: Edge-blind `preseed_cold_baselines()` (honesty fix for Fix J)
+
+**Problem:** `freeze_baseline()` was called from `RoadConditionManager._activate()` over
+`self.degraded_edges` only. The pre-seed for cold edges (added in Fix J / `903dbed`)
+therefore fired only on degraded edges — a corridor-conditioned treatment that created
+an asymmetry between degraded and non-degraded cold edges in routing-input state.
+Specifically, a cold degraded edge received a synthetic baseline while an equally cold
+non-degraded edge did not, biasing fuel-mode routing against the degraded corridor before
+any real EU0 signal accumulated.
+
+**Fix:** `EdgeCostCalculator.preseed_cold_baselines(sim_time)` pre-seeds ALL edges in
+`edge_lengths` that have no locked baseline, using `cold_nominal_rate()` (network-median
+of observed locked baselines, or the hardcoded 50 mg/s fallback before any lock).  It
+does NOT read `degraded_edges` and does NOT live inside `RoadConditionManager`.
+
+**Call site:** `simulate.py::run_fixed_departure_campaign`, fires once when
+`sim_time >= rcm.activate_time` (the grade-activation timestamp), BEFORE
+`road_condition_manager.step()` triggers `freeze_baseline()` on degraded edges.
+
+**`freeze_baseline()` change:** The cold pre-seed block removed. `freeze_baseline()` now
+just adds `edge_id` to `_frozen_baseline_edges` and logs the existing baseline (which
+was either observed or set by `preseed_cold_baselines`).
+
+**Log line:** `[PRESEED] cold baselines pre-seeded for N/M edges at t=21300 (rate=...mg/s)`
+
+**Invariant verified by unit tests:** `degraded` and `clean` cold edges receive the
+identical baseline value at preseed time. `freeze_baseline` on the degraded edge does
+not change the value — it only locks further EMA updates.
+
+---
+
+## Fix M: Corridor gate — traversal-count criterion replaces occupancy floor
+
+**Problem:** With `--device.rerouting.probability=1`, Monaco MoST traffic disperses
+so completely that the probe measured max avg_occ = 0.0001 across all 2279 edges in the
+5–30 m/s, 50m+ category. `CORRIDOR_OCC_MIN=0.005` therefore ALWAYS rejected every
+candidate, and the force-fallback silently ran on every seed. A gate that can never
+pass is dead code.
+
+**Fix:** Replace `CORRIDOR_OCC_MIN` (removed) with `CORRIDOR_MIN_TRAVERSALS = 5`.
+The warmup phase now subscribes to `LAST_STEP_VEHICLE_ID_LIST` for each candidate edge
+and counts sampled vehicle exits (filtered by `zlib.crc32(vid.encode()) % vehicle_sample_mod == 0`)
+during the last `CORRIDOR_MEASURE_WINDOW_S` seconds. A candidate PASSES when:
+- `warmup_traversals >= CORRIDOR_MIN_TRAVERSALS` (evidence: ≥5 sampled ≈ ≥10 real at mod=2)
+- `speed_ratio >= CORRIDOR_SPEED_RATIO_MIN` (free-flow, not congested)
+- `avg_occ <= CORRIDOR_OCC_MAX` (upper bound against bottleneck, retained)
+
+**Return value change:** `_corridor_gate()` now returns `(degraded_edges, gate_status)`
+where `gate_status ∈ {"passed", "fallback"}`. `_run_warmup_phase()` returns
+`(degraded_edges, warmup_end_time, gate_status)`. Per-seed gate status is recorded in
+the analysis JSON as `per_seed_corridor_gate: {"1": "passed", "2": "fallback", ...}`.
+
+**Force-fallback log:** When fewer than 2 candidates pass and `--force-corridor` is set,
+the fallback prints `[CORRIDOR_GATE] WARNING: fallback used — gate did not pass on any
+candidate` so it is visibly distinguishable from a passed run.
+
+**Deviations from spec:** None.

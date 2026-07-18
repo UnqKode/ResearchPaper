@@ -206,6 +206,73 @@ def test_hysteresis_exact_boundary():
 
 
 # ---------------------------------------------------------------------------
+# Tests — Fix L: edge-blind preseed_cold_baselines
+# ---------------------------------------------------------------------------
+
+def _calc2(edges, limits):
+    """Minimal calculator for preseed tests."""
+    return EdgeCostCalculator(edge_lengths=edges, edge_speed_limits=limits)
+
+
+def test_preseed_applies_to_all_cold_edges():
+    """preseed_cold_baselines must set the same baseline on every cold edge."""
+    calc = _calc2({"deg": 200.0, "other": 300.0}, {"deg": 13.89, "other": 13.89})
+    # Lock one real baseline so cold_nominal_rate() returns a meaningful value
+    for _ in range(8):
+        calc.record_vehicle_fuel("third_edge", 500.0)
+    # Both deg and other are still cold (no observed data)
+    calc.preseed_cold_baselines(sim_time=21300.0)
+    assert "deg" in calc._fuel_baseline, "degraded edge must be pre-seeded"
+    assert "other" in calc._fuel_baseline, "non-degraded edge must be pre-seeded"
+    assert calc._fuel_baseline["deg"] == calc._fuel_baseline["other"], \
+        "both cold edges must receive the SAME pre-seed value (edge-blind)"
+
+
+def test_preseed_does_not_overwrite_observed_baseline():
+    """Edges with real observed data must keep their own baseline after preseed."""
+    calc = _calc2({"e1": 200.0, "e2": 200.0}, {"e1": 13.89, "e2": 13.89})
+    for _ in range(8):
+        calc.record_vehicle_fuel("e1", 800.0)   # e1 gets observed baseline ~800
+    observed = calc._fuel_baseline["e1"]
+    calc.preseed_cold_baselines(sim_time=21300.0)
+    assert calc._fuel_baseline["e1"] == observed, \
+        "observed baseline must NOT be overwritten by preseed"
+    assert "e2" in calc._fuel_baseline, "cold e2 must be pre-seeded"
+
+
+def test_preseed_identical_before_degradation():
+    """Both edges get the same pre-seed before any freeze_baseline call.
+
+    Simulates the Fix L invariant: preseed fires uniformly, THEN freeze_baseline
+    is called only for the degraded edge.  The non-degraded edge also has a
+    baseline — they were identical at preseed time.
+    """
+    calc = _calc2({"degraded": 200.0, "clean": 200.0}, {"degraded": 13.89, "clean": 13.89})
+    calc.preseed_cold_baselines(sim_time=21300.0)
+    # Both have identical baselines at preseed time
+    assert calc._fuel_baseline.get("degraded") == calc._fuel_baseline.get("clean"), \
+        "before freeze_baseline, degraded and clean must have identical baselines"
+    # Now simulate grade activation: freeze only the degraded edge
+    calc.freeze_baseline("degraded")
+    assert "degraded" in calc._frozen_baseline_edges, "degraded must be frozen"
+    assert "clean" not in calc._frozen_baseline_edges, "clean must NOT be frozen"
+    # The pre-seeded values remain identical (freeze doesn't change the value)
+    assert calc._fuel_baseline.get("degraded") == calc._fuel_baseline.get("clean"), \
+        "after freeze_baseline, values must still be identical (freeze locks, not changes)"
+
+
+def test_preseed_does_not_touch_rcm_state():
+    """preseed_cold_baselines must not reference or modify any RoadConditionManager."""
+    calc = _calc2({"e1": 200.0}, {"e1": 13.89})
+    # Confirm preseed works without any RCM being bound to the calc
+    calc.preseed_cold_baselines(sim_time=21300.0)
+    assert "e1" in calc._fuel_baseline, "preseed must work without RCM"
+    # No 'degraded_edges' attribute should exist on the calculator
+    assert not hasattr(calc, 'degraded_edges'), \
+        "EdgeCostCalculator must not have a degraded_edges attribute"
+
+
+# ---------------------------------------------------------------------------
 # Entry point
 # ---------------------------------------------------------------------------
 
@@ -225,6 +292,10 @@ if __name__ == "__main__":
         test_hysteresis_keep,
         test_hysteresis_switch,
         test_hysteresis_exact_boundary,
+        test_preseed_applies_to_all_cold_edges,
+        test_preseed_does_not_overwrite_observed_baseline,
+        test_preseed_identical_before_degradation,
+        test_preseed_does_not_touch_rcm_state,
     ]
     passed = 0
     for t in tests:

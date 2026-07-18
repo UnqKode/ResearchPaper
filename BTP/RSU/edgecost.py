@@ -135,6 +135,34 @@ class EdgeCostCalculator:
         self._idle_overhead_factor = float(idle_overhead_factor)
         self.junction_weight      = float(junction_weight)
 
+    def preseed_cold_baselines(self, sim_time=0.0):
+        """Fix L: edge-blind cold baseline pre-seeding.
+
+        Called ONCE at grade-activation time by the harness (simulate.py), applied
+        to EVERY edge in edge_lengths that does not yet have a locked baseline.
+        This is intentionally edge-blind: it does NOT iterate degraded_edges and
+        does NOT live inside RoadConditionManager's degradation logic, so both
+        degraded and non-degraded cold edges receive the identical synthetic baseline
+        before degradation is applied.
+
+        The pre-seed value is cold_nominal_rate() = network-median of all currently
+        locked baselines (or the hardcoded 50 mg/s fallback if none are locked yet).
+        """
+        import sys as _sys
+        nominal = self.cold_nominal_rate()
+        if nominal <= 0:
+            return
+        n_preseeded = 0
+        total = len(self.edge_lengths)
+        for eid in self.edge_lengths:
+            if eid not in self._fuel_baseline:
+                self._fuel_baseline[eid] = nominal
+                n_preseeded += 1
+        _sys.stderr.write(
+            f"[PRESEED] cold baselines pre-seeded for {n_preseeded}/{total} edges "
+            f"at t={sim_time:.0f} (rate={nominal:.1f}mg/s)\n")
+        _sys.stderr.flush()
+
     def freeze_baseline(self, edge_id):
         """Prevent further EMA updates for edge_id.
 
@@ -142,19 +170,13 @@ class EdgeCostCalculator:
         pre-degradation free-flow fuel floor is preserved as the F denominator
         throughout the degradation window.
 
-        If no traversal data has accumulated yet (baseline=None, e.g. a zero-traffic
-        corridor), pre-seed from the network-median locked baseline so F can be
-        computed even on cold edges in grade mode.
+        Fix L: pre-seeding of cold edges is no longer done here (it was
+        degradation-path-conditioned and thus edge-identity-aware).
+        preseed_cold_baselines() is called edge-blindly by the harness before
+        this method fires, so freeze_baseline now simply locks whatever baseline
+        is already present (observed or pre-seeded).
         """
         import sys as _sys
-        if edge_id not in self._fuel_baseline:
-            nominal = self.cold_nominal_rate()  # network-median; no own baseline yet
-            if nominal > 0:
-                self._fuel_baseline[edge_id] = nominal
-                _sys.stderr.write(
-                    f"[FREEZE_BASELINE] {edge_id}: no observed data, "
-                    f"pre-seeded from network-median={nominal:.1f}mg/s\n")
-                _sys.stderr.flush()
         self._frozen_baseline_edges.add(edge_id)
         baseline_val = self._fuel_baseline.get(edge_id)
         seed_count   = len(self._fuel_seed.get(edge_id, []))

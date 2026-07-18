@@ -1440,6 +1440,7 @@ class Simulation:
         _peak_active_veh = 0
         _first_ego_logged = False   # Fix 4: [FUEL_WINDOW] fires once at first injection
         self._rejected_margins = [] # Fix 5: per-eval rejected improvement margins
+        _preseed_done = False       # Fix L: fires once at RCM activation time
 
         while len(completed_egos) < len(od_list) and traci.simulation.getMinExpectedNumber() > 0:
             traci.simulationStep()
@@ -1463,6 +1464,16 @@ class Simulation:
                     f"steps/s={_rate:.1f} active_veh={_n_active}\n")
                 _sys.stderr.flush()
                 _perf_window_start = _now
+
+            # Fix L: edge-blind preseed — fires ONCE at RCM activation time,
+            # before road_condition_manager.step() triggers freeze_baseline().
+            # Does not read degraded_edges; applies to all edges uniformly.
+            _rcm = getattr(self, 'road_condition_manager', None)
+            if (not _preseed_done and _rcm is not None
+                    and _rcm.activate_time is not None
+                    and sim_time >= _rcm.activate_time):
+                self.calc.preseed_cold_baselines(sim_time)
+                _preseed_done = True
 
             self.rsu_manager.step(sim_time)
             if hasattr(self, 'road_condition_manager') and self.road_condition_manager:
