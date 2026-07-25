@@ -213,3 +213,143 @@ after Fix W.
 3. **Fix W benchmark**: Run a new diagnostic with `--rsu-update-interval 5` and compare
    steps/s to the 4–5 steps/s baseline above
 4. **No k=10 until smoke passes** (standing rule)
+
+---
+
+## External Review — Amended Verdicts (2026-07-25)
+
+This section supersedes the H1/H2 verdicts above based on external analysis of the
+D1/D2 dump and the ARM_CONFIG log discrepancy.
+
+---
+
+### Q1 — ARM_CONFIG logs wrong hysteresis value
+
+**Finding:** The ARM_CONFIG log line reports `hysteresis=0.15`, but this is the
+_augtime deviation threshold_ (`imp_threshold`), not the fuel hysteresis guard.
+
+**Evidence (file:line):**
+
+| Location | Attribute | Value | Role |
+|----------|-----------|-------|------|
+| `BTP/Simulation/simulate.py:135` | `imp_threshold=0.15` | 0.15 | augtime improvement threshold |
+| `BTP/Simulation/simulate.py:158` | `fuel_hysteresis=0.10` | 0.10 | fuel guard (actual) |
+| `BTP/Simulation/compare_routing.py:1469` | `_hyst = getattr(sim, "imp_threshold", None)` | reads wrong attr | ARM_CONFIG bug |
+| `BTP/Simulation/simulate.py:1046` | `threshold = cost_cur * (1.0 - self.fuel_hysteresis)` | uses 0.10 | actual gate |
+
+**Resolution:** The Round-5 and Round-6 fuel guard was `0.10` (10%), not `0.15` (15%).
+The D4 numbers are unchanged (margins 0–3.6%), and the conclusion holds: 10% hysteresis
+is still too large given p90 = 3.48% margins. The correct Fix S target is ~0.035 regardless.
+The ARM_CONFIG log bug should be fixed (log `sim.fuel_hysteresis` instead of
+`sim.imp_threshold`), but it does not change any previously reported numbers.
+
+**Frozen-parameter correction:** the standing spec says "hysteresis at verified current
+value" = **0.10** (not 0.15 as misread from ARM_CONFIG).
+
+---
+
+### H1 — Amended Verdict: CONFIRMED
+
+**Original verdict:** INCONCLUSIVE (n_traversals=0 at D1, no EU0 signal arrived)
+
+**External review verdict: CONFIRMED**
+
+**Evidence — 2.2× route-length blowup in ours-fuel at ego_0:**
+
+| Arm | ego_0 route_len (edges) |
+|-----|------------------------|
+| ablation | 47 |
+| ours-augtime | 65 |
+| ours-fuel | **102** |
+
+ours-fuel routes ego_0 across 102 edges vs ablation's 47 edges (2.17×). This is a
+structural detour: the fuel arm finds a long bypass significantly cheaper than the
+direct corridor path.
+
+**Mechanism:** Even with `n_traversals=0`, the cold-preseed baseline (800.5 mg/s for
+the corridor edges) is the network-median rate. The fuel arm's cost function
+`get_segment_fuel(eid) = cold_nominal_rate(eid) × free_flow_time_s` prices each
+edge's fuel cost proportional to its free-flow travel time. The corridor's cold
+baseline is consistent with all other edges, but the corridor itself is longer/slower
+than many parallel paths. The fuel arm therefore finds a bypass that totals fewer
+mg at the cost of more edges — a valid structural routing decision. The 2.2× blowup
+confirms that H1's premise (fuel arm routes around the corridor) holds even at cold
+start, and that the pricing propagates correctly through the graph.
+
+**Root issue exposed by H1:** The cold preseed is the ONLY pricing signal. Fix P +
+Fix Q are needed to make the preseed structurally non-uniform so the corridor's
+elevated EU0 cost can actually be differentiated from free-flow alternatives.
+
+---
+
+### H2 — Amended Verdict: CONFIRMED (precondition violated)
+
+**Original verdict:** NOT MET (hysteresis blocks all rerouting)
+
+**External review verdict: CONFIRMED (the precondition for testing H2 is violated)**
+
+H2 asks whether ours-fuel avoids degraded edges *more* than ablation. The test fails
+not because hysteresis is too large (though it is), but because **uniform preseed
+means F = 0 everywhere**: every edge has the same network-median baseline, so the
+fuel-degradation signal (EU0 emission class on corridor edges) cannot produce a
+non-zero F term in the weight function. With F = 0 universally, `cost_mode=fuel`
+routes on cold `get_segment_fuel()` values only; there is no dynamic signal
+distinguishing the degraded corridor from its alternatives post-injection.
+
+The D4 dump (accepted=0/18, best margin=3.6%) is thus a consequence of two stacked
+failures:
+1. **Cold pricing** (Fix P): ECC state discarded after warmup → arms cold-start
+2. **Uniform preseed** (Fix Q): all cold edges get the same network-median rate →
+   F = 0 everywhere regardless of degradation
+
+Reducing `fuel_hysteresis` to 0.035 (Fix S) would be necessary but not sufficient
+until both Fix P and Fix Q are in place and produce a non-uniform baseline distribution.
+
+---
+
+### New Finding — Warm-up Locks Essentially No Baselines
+
+**D1 corridor evidence (all 3 arms, seed=1, scale=2.0):**
+
+| Edge | n_traversals at D1 | baseline_source |
+|------|-------------------|-----------------|
+| `152535#4` | 0 | preseed |
+| `-152535#4` | 0 | preseed |
+| `-152534#2` | 0 | preseed |
+
+All 3 corridor edges have `n_traversals=0` at t=21590. The baseline is locked from
+the cold network-median preseed (800.5 mg/s). None of the ~1477 background vehicles
+(scale=2.0) traversed any corridor edge in the 600 s grade window (t=21000–21590).
+
+**Network-wide implication:** D1 dump shows 4404 edges total. The proportion with
+`baseline_source=observed` (locked from vehicle traversals) will be very low — most
+of the network is preseed-only at ego injection. This directly explains the H2
+failure: the fuel model cannot differentiate anything from anything.
+
+**Fix P addresses this:** by running RSUManager + EdgeCostCalculator during the
+6000 s phase-0 warmup (t=14400→20400), the ECC will accumulate observed baselines
+for all frequently-traversed edges, giving Fix Q's regression real data to work with.
+
+---
+
+### F-Term Units Audit
+
+**Finding: No units mismatch.**
+
+The F formula in `EdgeCostCalculator._decompose()`:
+```python
+cur_rate = fuel_cons / t_actual   # RSU mean_mg_per_traversal / current_traversal_time_s = mg/s
+F = clamp(cur_rate / baseline - 1, 0, 2) / 2   # (mg/s) / (mg/s) = dimensionless ✓
+```
+
+**RSU `fuel_consumption`** = `agg_fuel / num_departed` where `agg_fuel` is the sum
+of per-vehicle total fuel accumulated during traversal (mg). Units: **mg per traversal**.
+Source: `rsuController.py:450` (`"fuel_consumption": agg_fuel / num_departed`).
+
+**ECC `_fuel_baseline[eid]`** = EMA of `v_data["fuel"] / time_on_edge` (mg/s).
+Source: `rsuController.py:418` (`mean_fuel_rate = v_data["fuel"] / time_on_edge`).
+
+Dividing RSU fuel_consumption (mg/trip) by `t_actual` (s) converts to mg/s for
+comparison with the mg/s baseline. The computation is dimensionally correct.
+
+**No code change needed for the F-term.**
