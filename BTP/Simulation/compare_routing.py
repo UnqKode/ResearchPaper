@@ -1225,7 +1225,7 @@ def _run_warmup_phase(seed, candidate_edges, state_path, warmup_end_time,
         _warmup_rsu_mgr = None
         _warmup_ecc = None
         if python_state_path is not None:
-            from Simulation.network_builder import NetworkBuilder
+            from Routing.routingManager import NetworkBuilder
             from RSU.rsuController import RSUManager
             from RSU.edgecost import EdgeCostCalculator
             _nb = NetworkBuilder(net_file=net_file or NET_FILE)
