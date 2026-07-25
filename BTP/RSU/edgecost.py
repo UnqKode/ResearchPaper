@@ -137,7 +137,7 @@ class EdgeCostCalculator:
         self.junction_weight      = float(junction_weight)
 
     def preseed_cold_baselines(self, sim_time=0.0):
-        """Fix L: edge-blind cold baseline pre-seeding.
+        """Fix L + Fix Q: edge-blind cold baseline pre-seeding with structural regression.
 
         Called ONCE at grade-activation time by the harness (simulate.py), applied
         to EVERY edge in edge_lengths that does not yet have a locked baseline.
@@ -146,23 +146,73 @@ class EdgeCostCalculator:
         degraded and non-degraded cold edges receive the identical synthetic baseline
         before degradation is applied.
 
-        The pre-seed value is cold_nominal_rate() = network-median of all currently
-        locked baselines (or the hardcoded 50 mg/s fallback if none are locked yet).
+        Fix Q: structural preseed regression.
+        Instead of assigning the same global median to all cold edges, the method
+        fits a linear regression baseline_rate ≈ b0 + b1·speed_limit_mps on all
+        currently OBSERVED (non-preseeded) edges, then uses the per-edge prediction
+        for each cold edge.  Graph hygiene: edges with speed_limit < 5 m/s or
+        length < 10 m are excluded from the regression training set (they are
+        atypical short connectors whose rates would distort the fit).
+
+        Falls back to the network-median (Fix L behaviour) if fewer than 10 observed
+        baselines are available for regression.
         """
         import sys as _sys
+        import numpy as _np
+
+        # --- Fix Q: build regression training set from observed (non-preseeded) edges ---
+        training = []
+        for eid, rate in self._fuel_baseline.items():
+            if eid in self._preseeded_edges:
+                continue
+            v_lim  = self.edge_speed_limits.get(eid, 0.0)
+            length = self.edge_lengths.get(eid, 0.0)
+            # Graph hygiene: skip atypical slow/short edges
+            if v_lim < 5.0 or length < 10.0:
+                continue
+            if rate is not None and rate > 0:
+                training.append((v_lim, rate))
+
+        b0 = b1 = None
+        if len(training) >= 10:
+            try:
+                X = _np.array([v for v, _ in training])
+                Y = _np.array([r for _, r in training])
+                A = _np.column_stack([_np.ones(len(X)), X])
+                coeffs, _, _, _ = _np.linalg.lstsq(A, Y, rcond=None)
+                b0, b1 = float(coeffs[0]), float(coeffs[1])
+                _r2_mean = float(_np.mean(Y))
+                _ss_res = float(_np.sum((Y - (b0 + b1 * X)) ** 2))
+                _ss_tot = float(_np.sum((Y - _r2_mean) ** 2))
+                _r2 = 1.0 - _ss_res / _ss_tot if _ss_tot > 0 else 0.0
+                _sys.stderr.write(
+                    f"[PRESEED_REGR] n_obs={len(training)} b0={b0:.2f} b1={b1:.4f} "
+                    f"R²={_r2:.3f} at t={sim_time:.0f}\n")
+            except Exception as _re:
+                _sys.stderr.write(f"[PRESEED_REGR] regression failed ({_re}); using median\n")
+                b0 = b1 = None
+
         nominal = self.cold_nominal_rate()
-        if nominal <= 0:
-            return
         n_preseeded = 0
         total = len(self.edge_lengths)
         for eid in self.edge_lengths:
             if eid not in self._fuel_baseline:
-                self._fuel_baseline[eid] = nominal
+                if b0 is not None:
+                    v_lim     = self.edge_speed_limits.get(eid, 13.89)
+                    predicted = b0 + b1 * v_lim
+                    value     = max(float(predicted), 1.0)
+                else:
+                    value = nominal
+                self._fuel_baseline[eid] = value
                 self._preseeded_edges.add(eid)
                 n_preseeded += 1
+
         _sys.stderr.write(
             f"[PRESEED] cold baselines pre-seeded for {n_preseeded}/{total} edges "
-            f"at t={sim_time:.0f} (rate={nominal:.1f}mg/s)\n")
+            f"at t={sim_time:.0f}"
+            + (f" regression(b0={b0:.1f} b1={b1:.4f})" if b0 is not None
+               else f" median={nominal:.1f}mg/s")
+            + "\n")
         _sys.stderr.flush()
 
     def freeze_baseline(self, edge_id):
@@ -466,6 +516,56 @@ class EdgeCostCalculator:
             })
 
         return weight
+
+    def get_state(self):
+        """Serialize learned ECC state for cross-arm sharing (Fix P).
+
+        Returns a plain dict of picklable objects representing all learned
+        state built during the phase-0 warmup.  The returned dict is passed
+        to load_state() in each arm worker immediately after Simulation() is
+        created, so the arm inherits the warmup's EMA baselines and traversal
+        windows instead of cold-starting.
+
+        _frozen_baseline_edges and _preseeded_edges are intentionally excluded:
+        they are set by grade activation (preseed/freeze at t=21000), which
+        happens AFTER warmup_end_time=20400, so they are always empty at the
+        point where get_state() is called.
+        """
+        from collections import deque as _deque
+        return {
+            "fuel_baseline": dict(self._fuel_baseline),
+            "fuel_seed": {k: list(v) for k, v in self._fuel_seed.items()},
+            "traversal_fuel": {
+                k: list(v) for k, v in self._traversal_fuel.items()
+            },
+        }
+
+    def load_state(self, state, sim_time=0.0):
+        """Restore ECC learned state serialized by get_state() (Fix P).
+
+        Called in each arm worker after Simulation() creation but before
+        subscribe_edges() / campaign start, so the arm starts with the same
+        EMA baselines the warmup built rather than a cold slate.
+
+        Pre-existing baselines (from the arm's own initialization) are
+        overwritten.  The traversal deques are reconstructed with the same
+        maxlen as the current window size.
+        """
+        import hashlib as _hl, pickle as _pkl, sys as _sys
+        from collections import deque as _deque
+        self._fuel_baseline = dict(state.get("fuel_baseline", {}))
+        self._fuel_seed = {k: list(v) for k, v in state.get("fuel_seed", {}).items()}
+        self._traversal_fuel = {}
+        for eid, items in state.get("traversal_fuel", {}).items():
+            dq = _deque(maxlen=self._fuel_window_size)
+            dq.extend((float(t), float(mg)) for t, mg in items)
+            self._traversal_fuel[eid] = dq
+        n_base = len(self._fuel_baseline)
+        n_trav = len(self._traversal_fuel)
+        _sys.stderr.write(
+            f"[PYSTATE] ECC loaded: {n_base} baseline edges, {n_trav} traversal windows\n"
+        )
+        _sys.stderr.flush()
 
     def reset(self):
         """Forget all learned free-flow fuel baselines and seed buffers.
