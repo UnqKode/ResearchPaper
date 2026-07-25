@@ -74,9 +74,12 @@
   <vType vClass="evehicle"     id="evehicle"    personCapacity="4"     latAlignment="center" tau="0.5" speedDev="0.1"/>
 
   <!-- Ego Vehicle for Fuel Experiments -->
+  <!-- Fix V: rerouting device disabled so SUMO's router cannot override our setRoute calls. -->
+  <!-- Background traffic rerouting (device.rerouting.probability=1 in sumocfg) is unchanged. -->
   <vType id="ego_petrol" vClass="passenger" personCapacity="4" latAlignment="center"
          sigma="0.30" tau="0.5" speedDev="0.1" guiShape="passenger/sedan"
          emissionClass="HBEFA3/PC_G_EU6">
     <param key="has.emissions.device" value="true"/>
+    <param key="has.rerouting.device" value="false"/>
   </vType>
 </routes>
