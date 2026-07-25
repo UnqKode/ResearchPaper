@@ -1316,7 +1316,7 @@ class Simulation:
         seed_str = str(seed) if seed is not None else "0"
         csv_path = _os.path.join(btp_dir, f"diag_weights_{arm_slug}_seed{seed_str}.csv")
         fieldnames = [
-            "edge_id", "length_m", "speed_limit_mps", "baseline_source",
+            "edge_id", "length_m", "speed_limit_mps", "baseline_source", "locked",
             "n_traversal_samples", "baseline_mg_traversal",
             "avg_speed", "occupancy", "fuel_consumption",
             "t_actual", "C", "F", "S", "multiplier", "weight",
@@ -1332,7 +1332,8 @@ class Simulation:
                 dq = self.calc._traversal_fuel.get(eid)
                 n_trav = len(dq) if dq else 0
                 baseline = self.calc._fuel_baseline.get(eid)
-                if eid in frozen:
+                is_locked = eid in frozen
+                if is_locked:
                     src = "observed"
                 elif eid in preseeded:
                     src = "preseed"
@@ -1346,6 +1347,7 @@ class Simulation:
                     "length_m": round(self.calc.edge_lengths.get(eid, 0.0), 2),
                     "speed_limit_mps": round(self.calc.edge_speed_limits.get(eid, 0.0), 3),
                     "baseline_source": src,
+                    "locked": is_locked,
                     "n_traversal_samples": n_trav,
                     "baseline_mg_traversal": round(baseline, 3) if baseline is not None else "",
                     "avg_speed": round(m.get("avg_speed", 0.0), 3),
@@ -1665,9 +1667,13 @@ class Simulation:
                             try:
                                 _init_route = self.route_snapshot.get("route", [])
                                 _crosses = any(e in _deg_edges for e in _init_route)
+                                _route_m = sum(
+                                    self.calc.edge_lengths.get(e, 0.0)
+                                    for e in _init_route
+                                )
                                 print(f"[EGO_ROUTE] arm={ego_policy} seed={seed} vid={vid} "
                                       f"t={sim_time:.1f} crosses_corridor={_crosses} "
-                                      f"route_len={len(_init_route)}")
+                                      f"route_len={len(_init_route)} route_len_m={_route_m:.1f}")
                                 self._write_d2_route(vid, ego_policy, seed, _init_route, _deg_edges)
                                 # A0 empirical: seed expected route for reroute-change detection
                                 _diag_route_last[vid] = list(traci.vehicle.getRoute(vid))
