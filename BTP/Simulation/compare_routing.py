@@ -1368,7 +1368,9 @@ def run_paired_scenario(arm_policy, alpha, beta, gamma, od_list, traffic_seed, t
                         fuel_aggregator="median", fuel_sample_max_age_s=600.0,
                         junction_weight=1.0, fuel_hysteresis=0.10,
                         vehicle_sample_mod=2,
-                        warm_state_path=None, warmup_end_time=None):
+                        warm_state_path=None, warmup_end_time=None,
+                        diagnose=False, diagnose_exit_at=None,
+                        rsu_update_interval=5):
     out_prefix = f"{tag}."
     tripinfo_path = f"{out_prefix}tripinfo.xml"
     progress_path = f"progress_{tag}.csv"
@@ -1426,6 +1428,16 @@ def run_paired_scenario(arm_policy, alpha, beta, gamma, od_list, traffic_seed, t
         else:
             traci.start(sumo_cmd, port=port)
         started = True
+
+        # D3: transport audit — log which TraCI backend is active in this worker
+        if diagnose:
+            import sys as _d3sys
+            _tc_mod = (sys.modules.get('libsumo') or sys.modules.get('traci'))
+            _tc_path = getattr(_tc_mod, '__file__', 'unknown')
+            print(f"[TRANSPORT] USING_LIBSUMO={USING_LIBSUMO} "
+                  f"traci_module={_tc_path} arm={tag}")
+            _d3sys.stdout.flush()
+
         sim = Simulation(
             net_file=NET_FILE,
             reroute_interval=REROUTE_INTERVAL,
@@ -1443,6 +1455,7 @@ def run_paired_scenario(arm_policy, alpha, beta, gamma, od_list, traffic_seed, t
             junction_weight=junction_weight,
             fuel_hysteresis=fuel_hysteresis,
             vehicle_sample_mod=vehicle_sample_mod,
+            rsu_update_interval=rsu_update_interval,
         )
 
         # --- FIX F: arm-params integrity assertion ---------------------------
@@ -1491,7 +1504,9 @@ def run_paired_scenario(arm_policy, alpha, beta, gamma, od_list, traffic_seed, t
             use_hysteresis=use_hysteresis,
             progress_log_path=progress_path,
             seed=traffic_seed,
-            diag_stamp=diag_stamp
+            diag_stamp=diag_stamp,
+            diagnose=diagnose,
+            diagnose_exit_at=diagnose_exit_at,
         )
     except _FatalTraCIError as e:
         print(f"TraCI error in paired scenario '{tag}': {e}")
@@ -1629,7 +1644,9 @@ def _run_paired_capture(arm_policy, alpha, beta, gamma, od_list, traffic_seed, t
                         fuel_aggregator="median", fuel_sample_max_age_s=600.0,
                         junction_weight=1.0, fuel_hysteresis=0.10,
                         vehicle_sample_mod=2,
-                        warm_state_path=None, warmup_end_time=None):
+                        warm_state_path=None, warmup_end_time=None,
+                        diagnose=False, diagnose_exit_at=None,
+                        rsu_update_interval=5):
     t0 = time.time()
     buf = io.StringIO()
     error = None
@@ -1651,6 +1668,9 @@ def _run_paired_capture(arm_policy, alpha, beta, gamma, od_list, traffic_seed, t
                 vehicle_sample_mod=vehicle_sample_mod,
                 warm_state_path=warm_state_path,
                 warmup_end_time=warmup_end_time,
+                diagnose=diagnose,
+                diagnose_exit_at=diagnose_exit_at,
+                rsu_update_interval=rsu_update_interval,
             )
     except Exception as e:
         error = repr(e)
@@ -2190,8 +2210,27 @@ def main():
                          "corridor a larger fraction of the total trip, giving the F penalty "
                          "more leverage over bypass congestion costs.")
     ap.add_argument("--verify-degradation", action="store_true", help="Gate A verification: run headless and check fuel per edge")
-    
+    ap.add_argument("--diagnose", action="store_true",
+                    help="Round-6: enable D1-D4 diagnostic instrumentation "
+                         "(weight dump, ego route log, transport audit, margin distribution). "
+                         "Use with n=3, seed=1, grade mode for fast single-seed diagnostics.")
+    ap.add_argument("--diagnose-exit-at", type=float, default=None, metavar="SIM_TIME",
+                    help="Round-6 (only with --diagnose): flush all diagnostic writers and "
+                         "terminate each arm cleanly when sim_time reaches this value. "
+                         "Arm is recorded as diagnostic_partial, not crashed. "
+                         "Recommended: 21900 (captures D1 at 21590 + D2 ego insertions).")
+    ap.add_argument("--rsu-update-interval", type=int, default=5, metavar="SECONDS",
+                    help="Fix W: RSU rolling-window update interval in seconds (default 5). "
+                         "Must divide REROUTE_INTERVAL (30 s) evenly. "
+                         "Per-vehicle traversal detection and record_traversal_fuel still run "
+                         "every step; only rsu.update_edge_data() is decimated.")
+
     args = ap.parse_args()
+
+    if REROUTE_INTERVAL % args.rsu_update_interval != 0:
+        ap.error(f"--rsu-update-interval {args.rsu_update_interval} does not divide "
+                 f"REROUTE_INTERVAL={REROUTE_INTERVAL} evenly. "
+                 f"Valid values: {[d for d in range(1, REROUTE_INTERVAL+1) if REROUTE_INTERVAL % d == 0]}")
 
     
     depart_start = args.depart_start
@@ -2526,6 +2565,9 @@ def main():
                             vehicle_sample_mod=args.vehicle_sample_mod,
                             warm_state_path=seed_warm_state,
                             warmup_end_time=seed_warm_end,
+                            diagnose=args.diagnose,
+                            diagnose_exit_at=args.diagnose_exit_at if args.diagnose else None,
+                            rsu_update_interval=args.rsu_update_interval,
                         )
                         futs[fut] = (seed, arm)
 
@@ -2550,7 +2592,7 @@ def main():
                         except OSError:
                             pass
 
-                sum_json = None
+                sum_json_paths = []
                 # Change 3: multi-arm analysis — compare every non-reference arm against ablation;
                 # legacy two-arm mode (ours vs sumo/ablation) is byte-compatible.
                 if "sumo" in all_res and "ours" in all_res:
@@ -2559,13 +2601,23 @@ def main():
                     ref = all_res["ablation"]
                     for arm_name in ("ours", "ours-fuel", "ours-augtime"):
                         if arm_name in all_res:
-                            sum_json = analyze_paired_results(all_res[arm_name], ref, "ablation", run_meta,
-                                                              ours_label=arm_name)
-                    
-                # Fix M: inject per-seed corridor_gate status into summary JSON
-                if sum_json is not None and seed_gate_statuses:
-                    sum_json["per_seed_corridor_gate"] = {
-                        str(s): v for s, v in seed_gate_statuses.items()}
+                            _path = analyze_paired_results(all_res[arm_name], ref, "ablation", run_meta,
+                                                           ours_label=arm_name)
+                            if _path:
+                                sum_json_paths.append(_path)
+
+                # Fix M: inject per-seed corridor_gate status into all summary JSONs
+                if sum_json_paths and seed_gate_statuses:
+                    _gate_map = {str(s): v for s, v in seed_gate_statuses.items()}
+                    for _p in sum_json_paths:
+                        try:
+                            with open(_p) as _f:
+                                _sj = json.load(_f)
+                            _sj["per_seed_corridor_gate"] = _gate_map
+                            with open(_p, "w") as _f:
+                                json.dump(_sj, _f, indent=2)
+                        except Exception as _e:
+                            print(f"[WARN] could not patch per_seed_corridor_gate into {_p}: {_e}")
 
                 if args.debug_cfs and cfs_all:
                     stamp = time.strftime("%Y%m%d_%H%M%S")
@@ -2629,7 +2681,7 @@ def main():
                     else:
                         print(">>> VERDICT: Middle case. Penalty is present but weak (1.02-1.10).")
                         
-                if sum_json and (args.scale_sweep or args.depart_sweep):
+                if locals().get("sum_json") and (args.scale_sweep or args.depart_sweep):
                     with open(sum_json) as f:
                         j = json.load(f)
                     

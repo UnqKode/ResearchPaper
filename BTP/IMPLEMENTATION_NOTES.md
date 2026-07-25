@@ -316,3 +316,136 @@ the fallback prints `[CORRIDOR_GATE] WARNING: fallback used — gate did not pas
 candidate` so it is visibly distinguishable from a passed run.
 
 **Deviations from spec:** None.
+
+---
+
+# Implementation Notes — Round 6
+
+## Process Failure — Round 5 campaign launched without passing gates
+
+The Round-5 campaign (10 seeds, 3 arms, ~20.8 wall-hours) was launched without verifying
+the pre-campaign acceptance criteria documented in Fix G:
+
+- **`[PERF]` ≥ 30 steps/s** criterion was NOT checked. The campaign ran at 1.7–2.6 steps/s
+  — approximately 15× below the criterion. This was a known consequence of `libsumo` not
+  being installed in the `ml` conda environment (`USING_LIBSUMO = False` in all workers).
+- **Nonzero arm-divergence smoke** was not run before the 10-seed campaign. A 1-seed,
+  n=3 smoke would have revealed the null result within minutes.
+
+**Consequence:** 20+ wall-hours of compute produced a systematic negative result (dz=−33.7)
+whose root causes could have been diagnosed from a 30-minute smoke run.
+
+**Rule (permanent, mandatory):** No campaign launch (k>1, n>5) unless EVERY acceptance
+criterion of the preceding smoke passes verbatim:
+1. `[TRANSPORT] USING_LIBSUMO=True` in all workers
+2. `[PERF]` ≥ 30 steps/s sustained in the post-fast-forward heavy phase
+3. `[BASELINE_GATE]` PASS for all degraded edges
+4. Nonzero fuel delta between at least one "ours" arm and ablation
+5. At least one accepted reroute OR documented reason why δ prevents it
+
+This is not optional and cannot be overridden by time pressure.
+
+---
+
+## Bug N: `per_seed_corridor_gate` injection crash (post-campaign fix)
+
+`analyze_paired_results()` returns `f_sum` — the output file path (a string). The
+post-analysis injection at line 2566 treated it as a dict:
+```python
+sum_json["per_seed_corridor_gate"] = {...}   # TypeError: str does not support item assignment
+```
+**Fix:** Changed `sum_json = None` to `sum_json_paths = []`; each call to
+`analyze_paired_results` appends the returned path; the injection loop reads, updates,
+and rewrites each JSON file.
+
+---
+
+## Round 6 Diagnostics (D1–D4) — `--diagnose` flag
+
+Instrumentation added to `compare_routing.py` and `simulate.py` behind `--diagnose`.
+All diagnostic output is gated on this flag and removed/disabled after Round 6.
+
+### D1 — Weight-vector dump (tests H1/H2)
+At t=21590 (10 s before first ego), each arm writes
+`diag_weights_<arm>_seed<N>.csv`: `edge_id, weight, source, n_window_samples, baseline`
+where `source ∈ {observed_window, preseed_only, cold_fallback}`.
+
+### D2 — Initial-route + corridor engagement log (tests H3)
+For every ego in every arm at insertion:
+`[EGO_ROUTE] arm=... ego=... n_edges=... route_len_m=... contains_corridor=True|False`
+Full edge list written to `diag_routes_<arm>_seed<N>.csv`.
+
+### D3 — Transport audit (tests H4)
+At worker startup:
+`[TRANSPORT] USING_LIBSUMO=<bool> traci_module=<path> edge_subs=<count>`
+
+### D4 — Hysteresis margin distribution
+REROUTE_SUMMARY extended to report `p50_margin`, `p90_margin`, `max_margin` across all
+rejected evals. Calibrates Fix S δ from data.
+
+---
+
+## Fix P — Persist Python-side learning with warm state
+
+Phase-0 warmup previously discarded all RSU/EdgeCostCalculator learning. Fix P serializes
+the learned state (fuel baselines, traversal-fuel windows, stop stats) to
+`warmstate_seed{N}_python.pkl` at state-save time. Each arm loads BOTH the SUMO `.xml.gz`
+and the `.pkl` before its own RSU starts.
+
+- Serialized via `get_state()`/`load_state()` methods on RSUManager and EdgeCostCalculator.
+- Does NOT pickle objects — plain dicts/lists only.
+- Phase 0 has no degradation → pickle is arm-neutral by construction.
+- Each arm logs `[PYSTATE] loaded sha=<sha256[:12]>` to verify identical state.
+
+---
+
+## Fix Q — Structural preseed (regression-estimated per-edge baseline)
+
+Replaces the uniform `cold_nominal_rate()` preseed value with a per-edge OLS estimate:
+`baseline_rate ≈ b0 + b1·speed_limit + b2·lane_count`
+fit on edges with locked baselines after phase-0. Cold edges get their own prediction
+clamped to [0.5×, 2×] network median. Logged as `[PRESEED_FIT] R2=... n_fit=...`.
+Fallback to uniform median if < 200 fit edges.
+
+Same fix applied to `_cold_fuel_fallback`: `free_flow_time × predicted_rate`.
+
+---
+
+## Fix R — Cold-edge junction penalty uses median p_stop
+
+Previously, `get_junction_penalty` returned 0 immediately when `stop_and_go_freq <= 0`
+(cold edge). This made unobserved side-streets look junction-free, pushing egos onto them.
+Fix: when `stop_and_go_freq <= 0` and `cold_pstop_mode="median"` (default), use the
+network-median observed p_stop instead of 0. Exposed via `--cold-pstop-mode {median,zero}`.
+
+---
+
+## Fix S — Hysteresis δ calibrated from D4 data
+
+New default δ = `min(0.03, p90_keep_margin_from_D4 / 2)`, floored at 0.01.
+Hardcoded result documented here once D4 data is in hand.
+
+---
+
+## Fix T — OD pair corridor-enforcement repair
+
+`select_targeted_od_pairs` uses sumolib static Dijkstra. SUMO's device.rerouting uses
+historical travel times, so SUMO's initial route at insertion may differ from sumolib's
+optimal path. When `crossed=False` for ablation egos (pre-degradation), the OD selection
+is not delivering corridor-crossing routes in practice.
+
+Fix: verify corridor crossing at SUMO routing time, not just at OD-selection time.
+Specifically, inject each ego with an explicit SUMO `traci.vehicle.setRoute()` that
+follows the sumolib corridor-crossing path. The ego then either stays on it (ablation)
+or gets rerouted off it by our dynamic weights (ours arms).
+
+---
+
+## Fix U — Transport repair (install libsumo in ml env)
+
+`traci_compat.py` falls through to network TraCI when `import libsumo` raises ImportError.
+The `ml` conda environment does not have libsumo installed.
+
+Fix: `pip install libsumo==1.27.0` inside the `ml` env (matching SUMO 1.27.0).
+After install, all workers report `[TRANSPORT] USING_LIBSUMO=True` and `[PERF]` must
+reach ≥ 30 steps/s sustained.

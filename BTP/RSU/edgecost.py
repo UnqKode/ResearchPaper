@@ -110,6 +110,7 @@ class EdgeCostCalculator:
         # Edges whose baseline must not be updated (frozen at grade-mode activation
         # so the pre-degradation free-flow floor is preserved as the F denominator).
         self._frozen_baseline_edges: set = set()
+        self._preseeded_edges: set = set()   # D1: edges filled by preseed (not observed)
 
         self.debug_cfs = debug_cfs
         self.cfs_records = []
@@ -157,6 +158,7 @@ class EdgeCostCalculator:
         for eid in self.edge_lengths:
             if eid not in self._fuel_baseline:
                 self._fuel_baseline[eid] = nominal
+                self._preseeded_edges.add(eid)
                 n_preseeded += 1
         _sys.stderr.write(
             f"[PRESEED] cold baselines pre-seeded for {n_preseeded}/{total} edges "

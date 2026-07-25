@@ -95,7 +95,7 @@ class RSUManager:
     """
 
     def __init__(self, intersections, edges, window_size=60,
-                 sample_mod=_DEFAULT_SAMPLE_MOD):
+                 sample_mod=_DEFAULT_SAMPLE_MOD, rsu_update_interval=5):
         # Window size for RSU rolling statistics: number of vehicle-departure
         # EVENTS kept per edge (not simulation steps). At typical Monaco traffic
         # rates (~2-3 veh/min on busy edges), 60 events ≈ 20-30 min of history --
@@ -126,6 +126,11 @@ class RSUManager:
         # Fix C: cache the fixed simulation step-length once (in subscribe_edges)
         # instead of a getDeltaT() socket round-trip every step().
         self._dt: float = 0.0
+        # Fix W: RSU update decimation — rsu.update_edge_data() is called only
+        # every rsu_update_interval seconds; per-vehicle traversal detection,
+        # record_traversal_fuel, and stop-count accumulation run every step.
+        self._metric_interval: float = float(rsu_update_interval)
+        self._last_metric_update: float = None  # None → first step triggers update
 
     def set_edge_cost_calc(self, edge_cost_calc):
         """Wire in the EdgeCostCalculator so RSU can push fuel observations."""
@@ -213,6 +218,9 @@ class RSUManager:
               f"(VEHICLE_ID_LIST + OCCUPANCY + HALTING_NUMBER + FUEL + MEAN_SPEED).")
         print(f"[RSU] vehicle sampling 1/{self.sample_mod}: "
               f"expect ~{self.sample_mod}x slower fuel-window fill")
+        print(f"[RSU] Fix W: update_edge_data decimated to every "
+              f"{self._metric_interval:.0f}s ({self._metric_interval/self._dt:.0f} steps); "
+              f"traversal/fuel/stop detection every step.")
 
     def clear_fuel_deques(self, edges):
         """Clear fuel/CO2 rolling windows for the given edges.
@@ -294,6 +302,14 @@ class RSUManager:
         per-step getTime()/getDeltaT() socket round-trips.
         """
         dt = self._dt   # Fix C: cached in subscribe_edges(); no per-step socket call
+
+        # Fix W: gate RSU window updates to every _metric_interval seconds.
+        # Traversal detection, record_traversal_fuel, and stop-count accumulation
+        # run unconditionally; only rsu.update_edge_data() is decimated.
+        do_metric_update = (
+            self._last_metric_update is None
+            or (sim_time - self._last_metric_update) >= self._metric_interval
+        )
 
         # --- ONE bulk call for all subscribed edge data ---
         edge_results = traci.edge.getAllSubscriptionResults()
@@ -418,42 +434,46 @@ class RSUManager:
                 occupancy    = edge_data.get(tc.LAST_STEP_OCCUPANCY,              0.0)
 
                 num_departed = len(sampled_departed)
-                if num_departed > 0:
-                    # Full trip-aggregate data point over sampled departed vehicles.
-                    data_point = {
-                        # --- trip aggregates over the sampled departed vehicles ---
-                        "vehicle_count":    num_departed,
-                        "avg_speed":        agg_speed / num_departed,
-                        "waiting_time":     agg_wait  / num_departed,
-                        # Q3: halts is now a mean stop-COUNT per vehicle (not a 0/1 flag).
-                        # EdgeCostCalculator.compute_weight normalises by stop_ref before squaring.
-                        "stop_and_go_freq": agg_halts / num_departed,
-                        "fuel_consumption": agg_fuel  / num_departed,  # mean mass per trip (mg)
-                        "co2_emissions":    agg_co2   / num_departed,  # mean mass per trip (mg)
-                        # --- instantaneous edge snapshot from subscription ---
-                        "queue_length": queue_length,
-                        "occupancy":    occupancy,
-                    }
-                    rsu.update_edge_data(edge_id, data_point)
-                else:
-                    # Only unsampled vehicles departed: push the edge snapshot alone
-                    # (occupancy/queue), preserving the road-state signal without
-                    # fabricating per-vehicle aggregates. avg_speed=0 keeps GlobalMap
-                    # from treating this as a fresh trip observation.
-                    snapshot_point = {
-                        "vehicle_count":    0,
-                        "avg_speed":        0.0,
-                        "waiting_time":     0,
-                        "stop_and_go_freq": 0,
-                        "fuel_consumption": 0,
-                        "co2_emissions":    0,
-                        "queue_length":     queue_length,
-                        "occupancy":        occupancy,
-                    }
-                    rsu.update_edge_data(edge_id, snapshot_point)
+                # Fix W: push RSU rolling-window update only on metric-update steps.
+                # record_traversal_fuel (event-driven) fires unconditionally above.
+                if do_metric_update:
+                    if num_departed > 0:
+                        # Full trip-aggregate data point over sampled departed vehicles.
+                        data_point = {
+                            # --- trip aggregates over the sampled departed vehicles ---
+                            "vehicle_count":    num_departed,
+                            "avg_speed":        agg_speed / num_departed,
+                            "waiting_time":     agg_wait  / num_departed,
+                            # Q3: halts is now a mean stop-COUNT per vehicle (not a 0/1 flag).
+                            # EdgeCostCalculator.compute_weight normalises by stop_ref before squaring.
+                            "stop_and_go_freq": agg_halts / num_departed,
+                            "fuel_consumption": agg_fuel  / num_departed,  # mean mass per trip (mg)
+                            "co2_emissions":    agg_co2   / num_departed,  # mean mass per trip (mg)
+                            # --- instantaneous edge snapshot from subscription ---
+                            "queue_length": queue_length,
+                            "occupancy":    occupancy,
+                        }
+                        rsu.update_edge_data(edge_id, data_point)
+                    else:
+                        # Only unsampled vehicles departed: push the edge snapshot alone
+                        # (occupancy/queue), preserving the road-state signal without
+                        # fabricating per-vehicle aggregates. avg_speed=0 keeps GlobalMap
+                        # from treating this as a fresh trip observation.
+                        snapshot_point = {
+                            "vehicle_count":    0,
+                            "avg_speed":        0.0,
+                            "waiting_time":     0,
+                            "stop_and_go_freq": 0,
+                            "fuel_consumption": 0,
+                            "co2_emissions":    0,
+                            "queue_length":     queue_length,
+                            "occupancy":        occupancy,
+                        }
+                        rsu.update_edge_data(edge_id, snapshot_point)
 
-            # --- 4. HANDLE EDGE CASES (Jams & Empty Roads) ---
-            elif len(current_veh_ids) > 0:
+            # --- 4. HANDLE EDGE CASES (Jams & Empty Roads) — decimated ---
+            # Fix W: jam snapshots and empty-road clearing only on metric-update steps.
+            elif do_metric_update and len(current_veh_ids) > 0:
                 # JAM PREVENTION: vehicles present but none departing. If anyone is
                 # stuck past the threshold, push a warning snapshot so the RSU's
                 # rolling window reflects the congestion. Fix B: only sampled
@@ -478,7 +498,7 @@ class RSUManager:
                     }
                     rsu.update_edge_data(edge_id, jam_data_point)
 
-            else:
+            elif do_metric_update:
                 # EMPTY ROAD: push a clean data point so the RSU's rolling window
                 # gradually clears out old traffic jams.
                 empty_data_point = {
@@ -492,6 +512,10 @@ class RSUManager:
                     "occupancy":        0,
                 }
                 rsu.update_edge_data(edge_id, empty_data_point)
+
+        # Fix W: advance the metric-update timestamp once per qualifying step.
+        if do_metric_update:
+            self._last_metric_update = sim_time
 
         # --- 5. CLEAN UP STALE VEHICLE SUBSCRIPTIONS ---
         # Build the set of vehicles still active on any tracked edge this step.

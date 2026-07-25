@@ -157,7 +157,9 @@ class Simulation:
                  # --- Change 2B: fuel-mode route-switch hysteresis ---
                  fuel_hysteresis=0.10,          # min fractional saving to accept reroute in fuel mode
                  # --- Fix B: RSU vehicle sampling rate (1/sample_mod) ---
-                 vehicle_sample_mod=5):
+                 vehicle_sample_mod=5,
+                 # --- Fix W: RSU metric update decimation interval (seconds) ---
+                 rsu_update_interval=5):
         # --- 1. Build the road graph (offline; uses sumolib, not TraCI) ---
         self.net_builder   = NetworkBuilder(net_file=net_file)
         self.graph         = self.net_builder.get_graph()
@@ -186,7 +188,8 @@ class Simulation:
 
         # --- 3. RSUs (one per intersection) ---
         self.rsu_manager = RSUManager(self.intersections, self.edges,
-                                      sample_mod=vehicle_sample_mod)
+                                      sample_mod=vehicle_sample_mod,
+                                      rsu_update_interval=rsu_update_interval)
         self.rsu_manager.initialize_from_network(self.net_builder)
 
         # --- 4. Cost calculator, wired to the RSUs for fuel observations ---
@@ -1300,6 +1303,94 @@ class Simulation:
         print(f"  reroutes:  {m['reroutes']}")
 
     # -----------------------------------------------------------------
+    def _dump_d1_weights(self, arm, seed, sim_time):
+        """D1: dump per-edge weight decomposition to CSV at t≈depart_start-10.
+
+        Columns: edge_id, length_m, speed_limit_mps, baseline_source,
+        n_traversal_samples, baseline_mg_traversal, avg_speed, occupancy,
+        fuel_consumption, t_actual, C, F, S, multiplier, weight
+        """
+        import csv as _csv, os as _os
+        btp_dir = _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__)))
+        arm_slug = arm.replace("-", "_")
+        seed_str = str(seed) if seed is not None else "0"
+        csv_path = _os.path.join(btp_dir, f"diag_weights_{arm_slug}_seed{seed_str}.csv")
+        fieldnames = [
+            "edge_id", "length_m", "speed_limit_mps", "baseline_source",
+            "n_traversal_samples", "baseline_mg_traversal",
+            "avg_speed", "occupancy", "fuel_consumption",
+            "t_actual", "C", "F", "S", "multiplier", "weight",
+        ]
+        frozen = getattr(self.calc, '_frozen_baseline_edges', set())
+        preseeded = getattr(self.calc, '_preseeded_edges', set())
+        n_written = 0
+        with open(csv_path, 'w', newline='') as fh:
+            writer = _csv.DictWriter(fh, fieldnames=fieldnames)
+            writer.writeheader()
+            for eid in self.calc.edge_lengths:
+                m = self.rsu_manager.get_edge_stats(eid) or {}
+                dq = self.calc._traversal_fuel.get(eid)
+                n_trav = len(dq) if dq else 0
+                baseline = self.calc._fuel_baseline.get(eid)
+                if eid in frozen:
+                    src = "observed"
+                elif eid in preseeded:
+                    src = "preseed"
+                elif baseline is not None:
+                    src = "ema_unlocked"
+                else:
+                    src = "none"
+                d = self.calc._decompose(eid, m)
+                writer.writerow({
+                    "edge_id": eid,
+                    "length_m": round(self.calc.edge_lengths.get(eid, 0.0), 2),
+                    "speed_limit_mps": round(self.calc.edge_speed_limits.get(eid, 0.0), 3),
+                    "baseline_source": src,
+                    "n_traversal_samples": n_trav,
+                    "baseline_mg_traversal": round(baseline, 3) if baseline is not None else "",
+                    "avg_speed": round(m.get("avg_speed", 0.0), 3),
+                    "occupancy": round(m.get("occupancy", 0.0), 4),
+                    "fuel_consumption": round(m.get("fuel_consumption", 0.0), 3),
+                    "t_actual": round(d["t_actual"], 4),
+                    "C": round(d["C"], 4),
+                    "F": round(d["F"], 4),
+                    "S": round(d["S"], 4),
+                    "multiplier": round(d["multiplier"], 4),
+                    "weight": round(d["weight"], 4),
+                })
+                n_written += 1
+        print(f"[D1_DUMP] arm={arm} seed={seed} t={sim_time:.0f} "
+              f"edges={n_written} -> {csv_path}")
+
+    # -----------------------------------------------------------------
+    def _write_d2_route(self, vid, arm, seed, route_edges, deg_edges):
+        """D2: append initial ego route to CSV for offline corridor-crossing analysis."""
+        import csv as _csv, os as _os
+        btp_dir = _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__)))
+        arm_slug = arm.replace("-", "_")
+        seed_str = str(seed) if seed is not None else "0"
+        csv_path = _os.path.join(btp_dir, f"diag_routes_{arm_slug}_seed{seed_str}.csv")
+        write_hdr = not _os.path.exists(csv_path)
+        deg_set = set(deg_edges)
+        corridor_edges_in_route = [e for e in route_edges if e in deg_set]
+        with open(csv_path, 'a', newline='') as fh:
+            writer = _csv.DictWriter(fh, fieldnames=[
+                "vid", "arm", "seed", "route_len",
+                "crosses_corridor", "corridor_edges_in_route", "route_edges",
+            ])
+            if write_hdr:
+                writer.writeheader()
+            writer.writerow({
+                "vid": vid,
+                "arm": arm,
+                "seed": seed,
+                "route_len": len(route_edges),
+                "crosses_corridor": bool(corridor_edges_in_route),
+                "corridor_edges_in_route": "|".join(corridor_edges_in_route),
+                "route_edges": "|".join(route_edges),
+            })
+
+    # -----------------------------------------------------------------
     def _write_crossing_diag(self, ego_id, arm, ego_k, od_list, driven_edges, seed, stamp):
         """
         For every ego that arrives, compute whether it crossed a degraded edge and
@@ -1371,7 +1462,8 @@ class Simulation:
     def run_fixed_departure_campaign(self, od_list, depart_start, depart_spacing,
                                      per_trip_timeout, ego_policy, reroute_interval,
                                      use_hysteresis, progress_log_path=None,
-                                     seed=None, diag_stamp=None):
+                                     seed=None, diag_stamp=None, diagnose=False,
+                                     diagnose_exit_at=None):
         """
         Injects a list of OD pairs into a single continuous simulation run at fixed
         scheduled times. Egos route according to `ego_policy`. Metrics are parsed
@@ -1380,6 +1472,15 @@ class Simulation:
         dt = traci.simulation.getDeltaT()
         results = []
         self.rsu_manager.subscribe_edges()
+
+        # D3: subscription audit line — complements [TRANSPORT] in run_paired_scenario
+        if diagnose:
+            import sys as _d3sys
+            _n_edge_subs = len(self.edges)
+            _n_veh_subs  = len(traci.vehicle.getIDList())
+            print(f"[TRANSPORT] USING_LIBSUMO={USING_LIBSUMO} arm={ego_policy} seed={seed} "
+                  f"edge_subs={_n_edge_subs} veh_subs_current={_n_veh_subs}")
+            _d3sys.stdout.flush()
 
         # Temporarily override instance config for this mode
         original_routing = self.ego_routing
@@ -1441,6 +1542,8 @@ class Simulation:
         _first_ego_logged = False   # Fix 4: [FUEL_WINDOW] fires once at first injection
         self._rejected_margins = [] # Fix 5: per-eval rejected improvement margins
         _preseed_done = False       # Fix L: fires once at RCM activation time
+        _diag_d1_done = False       # D1: weight dump at t≈21590 (one-shot)
+        _diag_route_last = {}       # A0 empirical: vid -> last route set by our code
 
         while len(completed_egos) < len(od_list) and traci.simulation.getMinExpectedNumber() > 0:
             traci.simulationStep()
@@ -1474,6 +1577,36 @@ class Simulation:
                     and sim_time >= _rcm.activate_time):
                 self.calc.preseed_cold_baselines(sim_time)
                 _preseed_done = True
+
+            # D1: weight dump — fires once at t≈depart_start-10 (after preseed, before egos)
+            if diagnose and not _diag_d1_done and sim_time >= (depart_start - 10.0):
+                try:
+                    self._dump_d1_weights(ego_policy, seed, sim_time)
+                except Exception as _d1e:
+                    print(f"[D1_DUMP] failed: {_d1e}")
+                _diag_d1_done = True
+
+            # C2: --diagnose-exit-at early termination (after D1 fires)
+            if (diagnose and diagnose_exit_at is not None
+                    and _diag_d1_done and sim_time >= diagnose_exit_at):
+                print(f"[DIAG_EXIT] arm={ego_policy} seed={seed} "
+                      f"t={sim_time:.1f} exit_at={diagnose_exit_at} "
+                      f"status=diagnostic_partial egos_injected={len(active_egos)}")
+                print(f"[EGO_ROUTE_CONTROL] verified: {len(active_egos)} egos tracked "
+                      f"external_reroutes_logged=see_above")
+                # D4: emit margin distribution at early exit (normally fires at arm end)
+                if self._rejected_margins:
+                    _ms = sorted(self._rejected_margins)
+                    _n  = len(_ms)
+                    _p50 = _ms[_n // 2]
+                    _p90 = _ms[min(int(0.9 * _n), _n - 1)]
+                    _p99 = _ms[min(int(0.99 * _n), _n - 1)]
+                    print(f"[D4_MARGINS] arm={ego_policy} seed={seed} n={_n} "
+                          f"p50={_p50:.3f}% p90={_p90:.3f}% p99={_p99:.3f}% "
+                          f"max={_ms[-1]:.3f}%")
+                import sys as _exit_sys
+                _exit_sys.stdout.flush()
+                break
 
             self.rsu_manager.step(sim_time)
             if hasattr(self, 'road_condition_manager') and self.road_condition_manager:
@@ -1526,6 +1659,20 @@ class Simulation:
                         ego_states[vid]["metrics"] = self.ego_metrics
                         ego_states[vid]["snapshot"] = self.route_snapshot
                         ego_states[vid]["last_dijkstra_time"] = self.last_dijkstra_time
+
+                        # D2: initial route log — what route did SUMO actually assign?
+                        if diagnose:
+                            try:
+                                _init_route = self.route_snapshot.get("route", [])
+                                _crosses = any(e in _deg_edges for e in _init_route)
+                                print(f"[EGO_ROUTE] arm={ego_policy} seed={seed} vid={vid} "
+                                      f"t={sim_time:.1f} crosses_corridor={_crosses} "
+                                      f"route_len={len(_init_route)}")
+                                self._write_d2_route(vid, ego_policy, seed, _init_route, _deg_edges)
+                                # A0 empirical: seed expected route for reroute-change detection
+                                _diag_route_last[vid] = list(traci.vehicle.getRoute(vid))
+                            except Exception as _d2e:
+                                print(f"[D2_ROUTE] failed for {vid}: {_d2e}")
 
                         # Fix 4: [FUEL_WINDOW] — log baseline/traversal fill at first departure
                         if not _first_ego_logged:
@@ -1589,8 +1736,19 @@ class Simulation:
                 self._track_ego(dt)
 
                 if _do_reroute:
+                    # A0 empirical: detect SUMO-autonomous reroutes (should be 0 after Fix V)
+                    if diagnose and vid in _diag_route_last:
+                        _sumo_route = list(traci.vehicle.getRoute(vid))
+                        _our_route  = _diag_route_last[vid]
+                        if _sumo_route != _our_route:
+                            print(f"[EGO_ROUTE_CONTROL] external_reroute arm={ego_policy} "
+                                  f"seed={seed} vid={vid} t={sim_time:.1f} "
+                                  f"before={_our_route[:3]}... after={_sumo_route[:3]}...")
                     self._evaluate_and_reroute()
                     ego_states[vid]["metrics"]["reroute_evals"] += 1
+                    # A0 empirical: record post-reroute route (our call or unchanged)
+                    if diagnose:
+                        _diag_route_last[vid] = list(traci.vehicle.getRoute(vid))
 
                 # Update saved state
                 ego_states[vid]["metrics"] = self.ego_metrics
@@ -1684,6 +1842,14 @@ class Simulation:
         print(f"[REROUTE_SUMMARY] arm={ego_policy} seed={seed} "
               f"reroute_evals={_total_evals} accepted={_total_accepted} "
               f"best_rejected_margin={_best_rej:.1f}%")
+        # D4: full margin distribution (gated on --diagnose)
+        if diagnose and self._rejected_margins:
+            _ms = sorted(self._rejected_margins)
+            _n  = len(_ms)
+            _p50 = _ms[_n // 2]
+            _p90 = _ms[min(int(0.9 * _n), _n - 1)]
+            print(f"[D4_MARGINS] arm={ego_policy} seed={seed} n={_n} "
+                  f"p50={_p50:.3f}% p90={_p90:.3f}% max={_ms[-1]:.3f}%")
 
         # --- Fix 6: end-of-arm PERF summary ---
         _wall_s = _time.perf_counter() - _perf_campaign_start
