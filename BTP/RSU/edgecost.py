@@ -200,7 +200,7 @@ class EdgeCostCalculator:
                 if b0 is not None:
                     v_lim     = self.edge_speed_limits.get(eid, 13.89)
                     predicted = b0 + b1 * v_lim
-                    value     = max(float(predicted), 1.0)
+                    value     = max(float(predicted), nominal)
                 else:
                     value = nominal
                 self._fuel_baseline[eid] = value
