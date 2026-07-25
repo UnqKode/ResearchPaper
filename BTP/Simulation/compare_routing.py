@@ -1122,7 +1122,9 @@ def _run_warmup_phase(seed, candidate_edges, state_path, warmup_end_time,
                       scale, teleport, net_file=None,
                       measure_window_s=CORRIDOR_MEASURE_WINDOW_S,
                       force_corridor=False,
-                      vehicle_sample_mod=2):
+                      vehicle_sample_mod=2,
+                      bg_reroute_prob=0.25,
+                      python_state_path=None):
     """FIX D + E + M: phase-0 warmup with saved SUMO state and corridor validity gate.
 
     Runs ONE headless SUMO instance (same net/routes/config as the arms, same
@@ -1145,9 +1147,12 @@ def _run_warmup_phase(seed, candidate_edges, state_path, warmup_end_time,
     "passed" (≥2 candidates passed the gate) or "fallback" (force-fallback used).
     Raises RuntimeError if fewer than 2 candidates pass and force_corridor is False.
 
-    The RSU Python state built here is discarded: only the SUMO state file
-    survives.  Each arm re-warms its own RSU windows from warmup_end_time to the
-    first ego departure.  This is arm-symmetric by construction.
+    Fix P (python_state_path): if python_state_path is given, runs RSUManager +
+    EdgeCostCalculator in the warmup loop and serializes the learned ECC state
+    (fuel baselines, seed buffers, traversal windows) to a pickle file at
+    warmup_end_time.  Each arm loads this state after Simulation() creation so
+    arms do NOT cold-start the cost model.  SHA-256 of the pickle is logged as
+    [PYSTATE] sha256=... for cross-arm consistency verification.
     """
     import zlib as _zlib
     from traci_compat import traci as _traci, USING_LIBSUMO as _USING_LIBSUMO
@@ -1171,7 +1176,7 @@ def _run_warmup_phase(seed, candidate_edges, state_path, warmup_end_time,
         "--time-to-teleport", str(teleport),
         "--begin", str(int(WARMUP_BEGIN_TIME)),
         "--end", str(int(warmup_end_time) + 10),
-        "--device.rerouting.probability", "1",
+        "--device.rerouting.probability", str(bg_reroute_prob),
         "--device.emissions.probability", "1",
         "--device.rerouting.period", str(REROUTE_INTERVAL),
         "--route-steps", "0",
@@ -1214,9 +1219,46 @@ def _run_warmup_phase(seed, candidate_edges, state_path, warmup_end_time,
                 e, (_tc.LAST_STEP_OCCUPANCY, _tc.LAST_STEP_MEAN_SPEED,
                     _tc.LAST_STEP_VEHICLE_ID_LIST))
 
+        # Fix P: build RSUManager + EdgeCostCalculator for the full warmup run
+        # so the learned ECC state (EMA baselines, traversal windows) can be
+        # serialized and shared with every arm worker, eliminating cold starts.
+        _warmup_rsu_mgr = None
+        _warmup_ecc = None
+        if python_state_path is not None:
+            from Simulation.network_builder import NetworkBuilder
+            from RSU.rsuController import RSUManager
+            from RSU.edgecost import EdgeCostCalculator
+            _nb = NetworkBuilder(net_file=net_file or NET_FILE)
+            _edge_lengths = {}
+            _edge_speed_limits = {}
+            for _u, _v, _edata in _nb.get_graph().edges(data=True):
+                _eid = _edata["edge_id"]
+                _edge_lengths[_eid] = _edata["length"]
+                _edge_speed_limits[_eid] = _edata["speed_limit"]
+            _warmup_ecc = EdgeCostCalculator(
+                _edge_lengths, _edge_speed_limits,
+                fuel_aggregator="median", fuel_sample_max_age_s=600.0,
+            )
+            _warmup_rsu_mgr = RSUManager(
+                _nb.get_intersections(), _nb.get_all_edges(),
+                sample_mod=vehicle_sample_mod,
+                rsu_update_interval=5,
+            )
+            _warmup_rsu_mgr.initialize_from_network(_nb)
+            _warmup_rsu_mgr.set_edge_cost_calc(_warmup_ecc)
+            _warmup_rsu_mgr.subscribe_edges()
+            print(f"[WARMUP] Fix P: RSUManager+ECC initialized for state persistence "
+                  f"(seed={seed}, python_state={python_state_path})")
+            sys.stdout.flush()
+
         while _traci.simulation.getTime() < warmup_end_time:
             _traci.simulationStep()
             t = _traci.simulation.getTime()
+
+            # Fix P: step RSUManager every iteration (it accumulates ECC state)
+            if _warmup_rsu_mgr is not None:
+                _warmup_rsu_mgr.step(t)
+
             if t < measure_start:
                 # Still track vehicle sets outside the window so the first window
                 # step has a valid prev_veh_sets baseline.
@@ -1248,6 +1290,21 @@ def _run_warmup_phase(seed, candidate_edges, state_path, warmup_end_time,
         # Pass only the basename so SUMO writes it relative to its CWD
         # (the BTP working directory) with no output-prefix mangling.
         _traci.simulation.saveState(os.path.basename(state_path))
+
+        # Fix P: serialize ECC learned state to pickle AFTER saving SUMO state
+        if _warmup_ecc is not None and python_state_path is not None:
+            import pickle as _pkl, hashlib as _hl
+            _ecc_state = _warmup_ecc.get_state()
+            _pkl_bytes = _pkl.dumps(_ecc_state, protocol=4)
+            with open(python_state_path, "wb") as _pkl_fh:
+                _pkl_fh.write(_pkl_bytes)
+            _sha = _hl.sha256(_pkl_bytes).hexdigest()[:16]
+            n_base = len(_ecc_state.get("fuel_baseline", {}))
+            n_trav = len(_ecc_state.get("traversal_fuel", {}))
+            print(f"[PYSTATE] seed={seed} wrote {python_state_path} "
+                  f"({len(_pkl_bytes)} bytes) sha256={_sha} "
+                  f"baselines={n_base} traversal_edges={n_trav}")
+            sys.stdout.flush()
 
     finally:
         if started:
@@ -1370,7 +1427,9 @@ def run_paired_scenario(arm_policy, alpha, beta, gamma, od_list, traffic_seed, t
                         vehicle_sample_mod=2,
                         warm_state_path=None, warmup_end_time=None,
                         diagnose=False, diagnose_exit_at=None,
-                        rsu_update_interval=5):
+                        rsu_update_interval=5,
+                        bg_reroute_prob=0.25,
+                        python_state_path=None):
     out_prefix = f"{tag}."
     tripinfo_path = f"{out_prefix}tripinfo.xml"
     progress_path = f"progress_{tag}.csv"
@@ -1396,8 +1455,8 @@ def run_paired_scenario(arm_policy, alpha, beta, gamma, od_list, traffic_seed, t
         "--tripinfo-output", "tripinfo.xml",
         "--log", "sim.log",
         "--error-log", "errors.log",
-        # Background routing ON for paired mode
-        "--device.rerouting.probability", "1",
+        # Background routing ON for paired mode (Fix X: prob from --bg-reroute-prob)
+        "--device.rerouting.probability", str(bg_reroute_prob),
         "--device.emissions.probability", "1",
         "--device.rerouting.period", str(REROUTE_INTERVAL),
         "--route-steps", "0"
@@ -1458,6 +1517,21 @@ def run_paired_scenario(arm_policy, alpha, beta, gamma, od_list, traffic_seed, t
             rsu_update_interval=rsu_update_interval,
         )
 
+        # Fix P: load ECC learned state from warmup pickle before campaign starts.
+        # The state was built by _run_warmup_phase() and contains EMA baselines +
+        # per-traversal fuel windows.  Loading it here replaces the cold-start
+        # blank slate with knowledge accumulated over the full 6000 s warmup.
+        if python_state_path is not None and os.path.exists(python_state_path):
+            import pickle as _pkl, hashlib as _hl
+            with open(python_state_path, "rb") as _pkl_fh:
+                _pkl_bytes = _pkl_fh.read()
+            _ecc_state = _pkl.loads(_pkl_bytes)
+            _sha = _hl.sha256(_pkl_bytes).hexdigest()[:16]
+            sim.calc.load_state(_ecc_state)
+            print(f"[PYSTATE] arm={arm_policy} seed={traffic_seed} "
+                  f"loaded sha256={_sha}")
+            sys.stdout.flush()
+
         # --- FIX F: arm-params integrity assertion ---------------------------
         # The alpha/beta/gamma/cost_mode passed to each arm must match the arm
         # policy; a silent mismatch (e.g. an ablation arm accidentally routing on
@@ -1466,11 +1540,11 @@ def run_paired_scenario(arm_policy, alpha, beta, gamma, od_list, traffic_seed, t
         _cost_mode = sim.cost_mode
         _alpha, _beta, _gamma = sim.calc.alpha, sim.calc.beta, sim.calc.gamma
         _jw = sim.calc.junction_weight
-        _hyst = getattr(sim, "imp_threshold", None)
+        _hyst = getattr(sim, "fuel_hysteresis", getattr(sim, "imp_threshold", None))
         _agg = getattr(sim.calc, "_fuel_aggregator", None)
         print(f"[ARM_CONFIG] arm={arm_policy} cost_mode={_cost_mode} "
               f"alpha={_alpha} beta={_beta} gamma={_gamma} "
-              f"junction_weight={_jw} hysteresis={_hyst} aggregator={_agg}")
+              f"junction_weight={_jw} fuel_hysteresis={_hyst} aggregator={_agg}")
 
         if arm_policy == "ours-fuel":
             assert _cost_mode == "fuel", \
@@ -1646,7 +1720,9 @@ def _run_paired_capture(arm_policy, alpha, beta, gamma, od_list, traffic_seed, t
                         vehicle_sample_mod=2,
                         warm_state_path=None, warmup_end_time=None,
                         diagnose=False, diagnose_exit_at=None,
-                        rsu_update_interval=5):
+                        rsu_update_interval=5,
+                        bg_reroute_prob=0.25,
+                        python_state_path=None):
     t0 = time.time()
     buf = io.StringIO()
     error = None
@@ -1671,6 +1747,8 @@ def _run_paired_capture(arm_policy, alpha, beta, gamma, od_list, traffic_seed, t
                 diagnose=diagnose,
                 diagnose_exit_at=diagnose_exit_at,
                 rsu_update_interval=rsu_update_interval,
+                bg_reroute_prob=bg_reroute_prob,
+                python_state_path=python_state_path,
             )
     except Exception as e:
         error = repr(e)
@@ -2224,6 +2302,13 @@ def main():
                          "Must divide REROUTE_INTERVAL (30 s) evenly. "
                          "Per-vehicle traversal detection and record_traversal_fuel still run "
                          "every step; only rsu.update_edge_data() is decimated.")
+    ap.add_argument("--bg-reroute-prob", type=float, default=0.25, metavar="PROB",
+                    help="Fix X: background traffic rerouting probability passed to SUMO "
+                         "(--device.rerouting.probability). Default 0.25. "
+                         "Prior rounds used 1.0 (sumocfg default), which dispersed Monaco "
+                         "traffic so completely that corridor edges had zero observable "
+                         "traversals (probe max occ=0.0001). Reducing to 0.25 concentrates "
+                         "natural flow so corridors carry real background signal.")
 
     args = ap.parse_args()
 
@@ -2504,8 +2589,9 @@ def main():
                     max_workers=_max_workers, mp_context=ctx)
 
                 futs = {}
-                warm_state_files = []   # Fix D: per-seed state files for cleanup
-                seed_gate_statuses = {}  # Fix M: per-seed corridor_gate status
+                warm_state_files = []        # Fix D: per-seed state files for cleanup
+                warm_python_state_files = [] # Fix P: per-seed python pickle files for cleanup
+                seed_gate_statuses = {}      # Fix M: per-seed corridor_gate status
                 for seed in seeds:
                     print(f"\n--- Queuing SEED {seed} ---")
                     seed_diag = f"{diag_stamp}_{seed}"   # unique diag file per seed
@@ -2517,10 +2603,13 @@ def main():
                     seed_warm_state = None
                     seed_warm_end = None
                     seed_manager = manager
+                    seed_python_state = None
                     if args.warmup_savestate:
                         seed_warm_end = depart - args.warmup_buffer
                         seed_warm_state = os.path.abspath(
                             f"ws_{seed}_{int(scale*100)}_{int(depart)}.xml.gz")
+                        seed_python_state = os.path.abspath(
+                            f"warmstate_seed{seed}_python.pkl")
                         print(f"[WARMUP] seed={seed} warmup_buffer={args.warmup_buffer} "
                               f"warmup_end={seed_warm_end} degrade_start={degrade_start}")
                         seed_degraded, seed_warm_end, _seed_gate_status = _run_warmup_phase(
@@ -2529,10 +2618,14 @@ def main():
                             net_file=NET_FILE,
                             force_corridor=args.force_corridor,
                             vehicle_sample_mod=args.vehicle_sample_mod,
+                            bg_reroute_prob=args.bg_reroute_prob,
+                            python_state_path=seed_python_state,
                         )
                         print(f"[CORRIDOR_GATE] seed={seed} gate={_seed_gate_status}")
                         seed_gate_statuses[seed] = _seed_gate_status
                         warm_state_files.append(seed_warm_state)
+                        if seed_python_state and os.path.exists(seed_python_state):
+                            warm_python_state_files.append(seed_python_state)
                         if args.road_condition != "none" and seed_degraded:
                             from Simulation.road_conditions import RoadConditionManager
                             seed_manager = RoadConditionManager(
@@ -2568,6 +2661,8 @@ def main():
                             diagnose=args.diagnose,
                             diagnose_exit_at=args.diagnose_exit_at if args.diagnose else None,
                             rsu_update_interval=args.rsu_update_interval,
+                            bg_reroute_prob=args.bg_reroute_prob,
+                            python_state_path=seed_python_state,
                         )
                         futs[fut] = (seed, arm)
 
@@ -2584,9 +2679,9 @@ def main():
 
                 ex.shutdown(wait=False, cancel_futures=True)
 
-                # Fix D: delete per-seed warmup state files unless --keep-warmstate.
+                # Fix D/P: delete per-seed warmup state files unless --keep-warmstate.
                 if args.warmup_savestate and not args.keep_warmstate:
-                    for _sf in warm_state_files:
+                    for _sf in warm_state_files + warm_python_state_files:
                         try:
                             os.remove(_sf)
                         except OSError:
