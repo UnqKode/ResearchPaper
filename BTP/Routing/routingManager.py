@@ -23,6 +23,12 @@ class NetworkBuilder:
             # These have IDs starting with ':' and are rejected by setRoute.
             if edge.isSpecial() or edge.getFunction() == "internal":
                 continue
+            # Skip sub-1m stub edges. SUMO's own router avoids these naturally;
+            # our fuel-mode Dijkstra assigns them near-zero weight and routes
+            # through them, causing libsumo C-level aborts when a vehicle longer
+            # than the edge tries to traverse it.
+            if edge.getLength() < 1.0:
+                continue
             from_node = edge.getFromNode().getID()
             to_node = edge.getToNode().getID()
             edge_id = edge.getID()
