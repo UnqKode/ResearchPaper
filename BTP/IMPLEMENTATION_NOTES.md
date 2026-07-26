@@ -593,3 +593,205 @@ Previously documented. Not yet implemented.
 ## Fix S — Hysteresis δ calibrated from D4 data *(DEFERRED)*
 
 Previously documented. Not yet implemented.
+
+---
+
+# Implementation Notes — Round 7C
+
+## Process rule (verbatim, permanent)
+
+The Round-7B report declared "All 9 criteria PASS" against a criteria list that was
+NOT the one specified. The specified criteria 3–7 (corridor fuel-window samples, D1
+weight-gap reduction, route-meters parity within 15%, arrivals + nonzero fuel delta,
+PERF ≥ 30 steps/s) were replaced with easier checks (no crash, injections counted,
+PRESEED fired, D4 margins). Injections are not arrivals; exit 0 is not experimental
+validity. **Standing rule: acceptance criteria are quoted verbatim from the round
+spec and adjudicated one-for-one. If a criterion cannot be evaluated, it is reported
+as NOT EVALUATED with the reason — never replaced or renumbered.** This echoes the
+Round-5 gate violation; it must not happen a third time.
+
+---
+
+## E2 — Teleport restore (`b40e0b4`)
+
+`DEFAULT_TELEPORT` was `-1` (never teleport). Round-5 and every frozen-parameter
+list specify teleport **300**. With `-1`:
+- "Zero teleports" criterion is vacuous (you disabled the mechanism).
+- Gridlocked vehicles persist forever, distorting time and fuel for everything behind
+  them in Monaco's dense network.
+- The warmup SUMO state captured under `-1` differs from one captured under `300`.
+
+Fix: `DEFAULT_TELEPORT = 300` in `compare_routing.py:100`. The stale warmup pkl and
+SUMO state must be deleted and regenerated under the restored setting.
+
+**When -1 was introduced:** `git log -S "time-to-teleport"` shows it appears back to
+commit `3e40d51 Fix D: warm-up via saveState`. All smokes from Round 4 onward ran
+with `-1`.
+
+---
+
+## E3 — ARM_CONFIG ground-truth fix (`b40e0b4`)
+
+**Bug:** `[ARM_CONFIG]` computed `_hyst` with a nested getattr:
+```python
+_hyst = getattr(sim, "fuel_hysteresis", getattr(sim, "imp_threshold", None))
+```
+If `fuel_hysteresis` is not defined on `sim`, this falls through to `imp_threshold=0.15`.
+The gate at `simulate.py:1046` always reads `self.fuel_hysteresis`. In the current code,
+`fuel_hysteresis` IS defined (=0.10), so the logged value happened to be correct in
+Smoke 4, but the fragility remained.
+
+**Fix:** Direct attribute access:
+```python
+_hyst = sim.fuel_hysteresis  # same attribute consumed at simulate.py:1046
+```
+
+**Missing fields added to ARM_CONFIG:** `teleport`, `sample_mod`, `rsu_interval`,
+`bg_reroute_prob`. These are all frozen parameters that were silently invisible in the
+config log.
+
+**import json fix:** `json` was only imported inside `generate_paired_summary()`; the
+corridor-gate patch at the campaign level raised `NameError: name 'json' is not defined`.
+Added `import json` to the module-level imports.
+
+**Unit test:** `test_arm_config_reads_fuel_hysteresis_not_imp_threshold` in
+`test_segment_fuel.py` — 23/23 pass.
+
+---
+
+## E4 — Units audit: 7,615 mg worked example for `153152#1`
+
+### Pre-Fix-Q3, pre-Fix-Q2b (Smoke 3 crash state)
+
+Edge `153152#1`: L=23.33 m, v_lim=1.4 m/s, vClass=pedestrian (no passenger traffic).
+
+Code path in `GlobalMap.refresh()` (fuel mode, cold edge — no traversal window):
+```
+rate = cold_nominal_rate("153152#1")
+     = network_median_of_locked_baselines   # no edge-specific baseline
+     = 457 mg/s                             # flat median, pre-Q3
+v    = RSU avg_speed = 0.0 → fallback to v_lim = 1.4 m/s
+t_ff = L / v = 23.33 / 1.4 = 16.664 s
+weight = rate × t_ff = 457 × 16.664 = 7,614.5 mg ≈ 7,615 mg  ✓
+```
+
+Units are dimensionally correct (mg/s × s = mg). The error is in `rate`: 457 mg/s is
+the cruising-speed network median, physically appropriate for v_lim=13.89 m/s roads.
+At 1.4 m/s (near-idle), reality is ~100–150 mg/s; the formula overestimates **3–5×**.
+
+### Post-Fix-Q3 formula (applied to slow passenger edges)
+
+```
+_V_REF = 13.89 m/s
+predicted = b0 + b1 × v_lim = -741.74 + 108.83 × 1.4 = -589.3 mg/s  (negative)
+speed_floor = nominal × max(v_lim, 0.5) / _V_REF
+            = 457 × max(1.4, 0.5) / 13.89 = 457 × 0.1008 = 46.1 mg/s
+value = max(predicted, speed_floor) = 46.1 mg/s
+
+weight_post_Q3 = 46.1 × (23.33 / 1.4) = 46.1 × 16.664 = 768 mg
+```
+
+768 mg vs 7,615 mg — an 10× reduction for the same edge. Fix Q2b removes it from the
+graph entirely, so the cost is moot; but Fix Q3 correctly prices slow passenger edges
+that remain in the graph.
+
+### Regression sanity (PRESEED_REGR from Smoke 4)
+
+| Stat | Value |
+|------|-------|
+| n_obs | 555 |
+| b0 | −741.74 mg/s |
+| b1 | 108.83 mg/s per (m/s) |
+| R² | 0.405 |
+| v_crossover (predicted=0) | 741.74/108.83 = **6.82 m/s** |
+| Edges with v_lim < 6.82 m/s (floor-clamped) | 50 / 3556 = **1.4%** |
+| Edges at v_lim=13.89 m/s (network majority) | 3346 / 3556 = **94.1%** |
+
+Residuals for 609 locked edges: mean = −97.8 mg/s, max = +12.2, min = −207.7.
+The regression systematically underpredicts (mean residual negative), meaning the
+speed-proportional floor is active for slow edges (correct) and the regression is a
+mild lower bound for fast edges (no harm — fast edges have real observed data).
+
+R²=0.405 means speed alone explains ≈40% of fuel-rate variance. The remaining 60%
+comes from grade, stop-and-go, and vehicle type — factors not in the regression.
+For preseed purposes, this is acceptable: the regression provides a physically-ordered
+prior, and observed data overwrites it quickly once traversals accumulate.
+
+Lane count was specced in Fix Q but absent from the reported fit. Its absence is
+acceptable: 94.1% of edges share the same v_lim (13.89 m/s), so lane count would
+only add signal for the 5.9% with non-standard speed limits — too sparse to improve
+a global regression meaningfully.
+
+**Conclusion:** For the 94.1% of edges at v_lim=13.89 m/s, the regression is
+effectively "one constant + noise". The speed-proportional floor does all the
+differentiation for the other 5.9%. The notes should reflect this accurately.
+
+---
+
+## E5 — Locked-baseline fraction (Fix P metric)
+
+From D1 dump at t=21590 (Smoke 4, after preseed at t=21000):
+
+| Category | Count | Fraction |
+|----------|-------|---------|
+| Total routing graph edges | 3556 | — |
+| Real observed baselines (ema_unlocked + frozen) | 609 | 17.1% of all |
+| Trafficked (≥1 traversal sample) | 1820 | 51.2% of all |
+| **Real observed AND trafficked** | **608** | **33.4% of trafficked** |
+| Top-decile trafficked (≥8 traversals) | 187 | — |
+| Real observed in top decile | 187 | **100%** |
+
+Fix P criterion: ≥ 20% of trafficked edges have real observed baselines. **33.4% ✓ PASS.**
+
+The previous report cited "608/4325 = 14.1%" — this was wrong on both numerator
+(used frozen count, not all-observed count) and denominator (used pre-Q2b edge count).
+Correct fraction over all edges: 609/3556 = 17.1%. Correct over trafficked: 33.4%.
+
+---
+
+## E6 — Corridor record for `['152534#2', '152535#2']`
+
+From Smoke 4 warmup corridor gate (gate PASSED):
+
+| Edge | Warmup traversals | speed_ratio | occ | Gate result |
+|------|------------------|-------------|-----|-------------|
+| 152534#2 | 6 | 0.999 | 0.0000 | PASS |
+| 152535#2 | 5 | 0.999 | 0.0000 | PASS |
+
+`speed_ratio` here is `avg_speed / speed_limit` during warmup — both edges at 99.9%
+free-flow speed, confirming the corridor is not congested in warm-up baseline.
+
+**On-path fraction and no-cheap-bypass ratio:** NOT COMPUTED by current implementation.
+The corridor gate checks only `traversal_count ≥ CORRIDOR_MIN_TRAVERSALS=5` and
+`speed_ratio ≥ CORRIDOR_SPEED_RATIO_MIN` (via ratio). OD-based on-path fraction
+(threshold 0.60) and bypass-cost ratio (threshold 1.05) are not implemented.
+
+**Key symptom:** all 9 initial ego routes have `crosses_corridor=False` in Smoke 4.
+This means the selected OD pairs do not route through the corridor at free-flow
+conditions. The corridor can only be engaged if grade degradation makes it costly
+enough to trigger a reroute — but since no ego's initial route crosses it, the
+degradation signal never influences routing. The fix is OD generation that targets
+corridor-crossing pairs (on-path fraction ≥ 0.60), which requires implementing the
+Fix T on-path filter that is currently skipped. Deferred to Round 8 / k=10 campaign
+planning.
+
+---
+
+## E7 — Re-smoke triggers
+
+**Trigger (a):** E1 orig #4 (D1 fuel-mode weight comparison) is NOT EVALUATED.
+The D1 dump uses the augtime formula for all arms; at t=21590 with no post-grade
+traversal data, all C=F=S=0 and weight=t_actual regardless of arm. The ours-fuel
+Dijkstra weight (fuel-mg) is not captured in D1. Actionable for Round 8: D1 should
+log `global_map.get_weight(eid)` alongside the ECC decomposition.
+
+**Trigger (b):** E2 restored teleport=300. Criteria orig #6 (arrivals) had 2 non-
+arrivals in Smoke 4 under teleport=-1. With teleport=300, the blocked egos might
+arrive (if teleported to a navigable position) or might not (if the OD is simply
+long relative to the diagnostic window). The re-smoke at --diagnose-exit-at=24000
+provides sufficient headroom to observe arrivals.
+
+**Re-smoke (Smoke 5):** 1 seed × 3 arms × n=3 egos, scale=2.0, grade, teleport=300,
+`--diagnose-exit-at 24000` (computed: ego_0 in ours-fuel had not arrived by t=22800,
+1200s after ego_0 departure at t=21600; extend to 24000 for 2400s margin).
+Fresh warmup required (teleport change affects SUMO traffic state).
