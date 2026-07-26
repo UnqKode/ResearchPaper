@@ -195,12 +195,20 @@ class EdgeCostCalculator:
         nominal = self.cold_nominal_rate()
         n_preseeded = 0
         total = len(self.edge_lengths)
+        _V_REF = 13.89  # m/s — reference speed at which `nominal` was calibrated
         for eid in self.edge_lengths:
             if eid not in self._fuel_baseline:
+                v_lim = self.edge_speed_limits.get(eid, _V_REF)
                 if b0 is not None:
-                    v_lim     = self.edge_speed_limits.get(eid, 13.89)
                     predicted = b0 + b1 * v_lim
-                    value     = max(float(predicted), nominal)
+                    # Fix Q3: speed-proportional floor replaces flat network median.
+                    # The median (≈457 mg/s) is calibrated for cruising speed; applying
+                    # it to slow edges (v<7 m/s) overestimates their cold fuel by 3–5×.
+                    # Scale the floor by v_lim so slow passenger roads get a physically
+                    # plausible baseline.  Fast edges (v≥_V_REF): floor ≥ nominal, so
+                    # regression still dominates as before.
+                    _speed_floor = nominal * max(v_lim, 0.5) / _V_REF
+                    value = max(float(predicted), _speed_floor)
                 else:
                     value = nominal
                 self._fuel_baseline[eid] = value

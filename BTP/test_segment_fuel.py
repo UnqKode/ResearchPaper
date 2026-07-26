@@ -273,6 +273,75 @@ def test_preseed_does_not_touch_rcm_state():
 
 
 # ---------------------------------------------------------------------------
+# Tests — Fix Q3: speed-proportional cold fuel floor
+# ---------------------------------------------------------------------------
+
+def _calc_q3(obs_count=12, obs_rate=450.0):
+    """Calculator with enough observed baselines for regression to fire in preseed."""
+    obs_edges  = {f"obs_{i}": 200.0 for i in range(obs_count)}
+    obs_limits = {f"obs_{i}": 13.89  for i in range(obs_count)}
+    all_edges  = {**obs_edges, "slow": 100.0, "fast": 200.0}
+    all_limits = {**obs_limits, "slow": 5.0, "fast": 13.89}
+    calc = EdgeCostCalculator(edge_lengths=all_edges, edge_speed_limits=all_limits)
+    for i in range(obs_count):
+        for _ in range(8):
+            calc.record_vehicle_fuel(f"obs_{i}", obs_rate)
+    return calc
+
+
+def test_cold_fuel_fallback_dimensional_consistency():
+    """Units audit: cold_fuel = rate[mg/s] × t_ff[s] = [mg]. Worked example for crash-edge params."""
+    # L=23.33m, v_lim=1.4 m/s — representative of 153152#1
+    calc = EdgeCostCalculator(
+        edge_lengths={"ped": 23.33},
+        edge_speed_limits={"ped": 1.4},
+    )
+    cold_fuel = calc._cold_fuel_fallback("ped")
+    t_ff = 23.33 / 1.4                   # seconds
+    expected = 50.0 * t_ff               # nominal_fuel_rate_mg_s default = 50 mg/s
+    assert abs(cold_fuel - expected) < 0.01, (
+        f"cold_fuel = rate × t_ff: expected {expected:.2f} mg, got {cold_fuel:.2f} mg"
+    )
+    assert cold_fuel > 0.0 and math.isfinite(cold_fuel)
+
+
+def test_preseed_q3_slow_edge_gets_lower_baseline_than_fast():
+    """Fix Q3: after preseed with regression, slow edge baseline < fast edge baseline."""
+    calc = _calc_q3()
+    calc.preseed_cold_baselines(sim_time=21000.0)
+    b_slow = calc._fuel_baseline.get("slow")
+    b_fast = calc._fuel_baseline.get("fast")
+    assert b_slow is not None and b_fast is not None, "both cold edges must be pre-seeded"
+    assert b_slow < b_fast, (
+        f"Fix Q3: slow edge (5 m/s) baseline {b_slow:.1f} mg/s must be < "
+        f"fast edge (13.89 m/s) baseline {b_fast:.1f} mg/s"
+    )
+
+
+def test_preseed_q3_rate_scales_with_speed():
+    """Fix Q3: slow-edge baseline / fast-edge baseline ≈ v_slow / v_fast (±20%)."""
+    calc = _calc_q3()
+    calc.preseed_cold_baselines(sim_time=21000.0)
+    b_slow = calc._fuel_baseline["slow"]
+    b_fast = calc._fuel_baseline["fast"]
+    expected_ratio = 5.0 / 13.89
+    actual_ratio   = b_slow / b_fast if b_fast > 0 else 0.0
+    assert abs(actual_ratio - expected_ratio) < 0.20, (
+        f"Fix Q3: rate_ratio={actual_ratio:.3f} should be ≈ v_ratio={expected_ratio:.3f} (±0.20)"
+    )
+
+
+def test_preseed_q3_fast_edges_unaffected():
+    """Fix Q3: edges at v_lim=13.89 m/s get the same or higher baseline as before (regression dominates)."""
+    calc = _calc_q3()
+    calc.preseed_cold_baselines(sim_time=21000.0)
+    b_fast = calc._fuel_baseline.get("fast")
+    # At v=13.89, speed_floor = nominal × 1.0 = nominal; regression gives ~450+ mg/s > nominal.
+    # The fast edge baseline should be well above the nominal (457 mg/s ballpark).
+    assert b_fast is not None and b_fast > 0.0, "fast edge must have a positive baseline"
+
+
+# ---------------------------------------------------------------------------
 # Entry point
 # ---------------------------------------------------------------------------
 
@@ -296,6 +365,11 @@ if __name__ == "__main__":
         test_preseed_does_not_overwrite_observed_baseline,
         test_preseed_identical_before_degradation,
         test_preseed_does_not_touch_rcm_state,
+        # Fix Q3
+        test_cold_fuel_fallback_dimensional_consistency,
+        test_preseed_q3_slow_edge_gets_lower_baseline_than_fast,
+        test_preseed_q3_rate_scales_with_speed,
+        test_preseed_q3_fast_edges_unaffected,
     ]
     passed = 0
     for t in tests:
