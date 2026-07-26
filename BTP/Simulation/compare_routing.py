@@ -1295,6 +1295,15 @@ def _run_warmup_phase(seed, candidate_edges, state_path, warmup_end_time,
         if _warmup_ecc is not None and python_state_path is not None:
             import pickle as _pkl, hashlib as _hl
             _ecc_state = _warmup_ecc.get_state()
+            # Fix Q5: embed sorted routable edge ID fingerprint for mismatch guard.
+            # If _build_graph() changes (e.g. Fix Q2b), a stale pkl is detected
+            # immediately at arm-load time rather than producing silent wrong results.
+            _sorted_eids = sorted(
+                _edata["edge_id"]
+                for _, _, _edata in _nb.get_graph().edges(data=True)
+            )
+            _graph_fp = _hl.sha256(",".join(_sorted_eids).encode()).hexdigest()[:16]
+            _ecc_state["graph_fingerprint"] = _graph_fp
             _pkl_bytes = _pkl.dumps(_ecc_state, protocol=4)
             with open(python_state_path, "wb") as _pkl_fh:
                 _pkl_fh.write(_pkl_bytes)
@@ -1303,7 +1312,8 @@ def _run_warmup_phase(seed, candidate_edges, state_path, warmup_end_time,
             n_trav = len(_ecc_state.get("traversal_fuel", {}))
             print(f"[PYSTATE] seed={seed} wrote {python_state_path} "
                   f"({len(_pkl_bytes)} bytes) sha256={_sha} "
-                  f"baselines={n_base} traversal_edges={n_trav}")
+                  f"baselines={n_base} traversal_edges={n_trav} "
+                  f"graph_fp={_graph_fp}")
             sys.stdout.flush()
 
     finally:
@@ -1527,9 +1537,31 @@ def run_paired_scenario(arm_policy, alpha, beta, gamma, od_list, traffic_seed, t
                 _pkl_bytes = _pkl_fh.read()
             _ecc_state = _pkl.loads(_pkl_bytes)
             _sha = _hl.sha256(_pkl_bytes).hexdigest()[:16]
+            # Fix Q5: graph-fingerprint guard — abort if pkl was built from a
+            # different routing graph (e.g. stale pkl before Fix Q2b was applied).
+            _stored_fp = _ecc_state.get("graph_fingerprint")
+            if _stored_fp is not None:
+                _cur_eids = sorted(
+                    _edata["edge_id"]
+                    for _, _, _edata in sim.net_builder.get_graph().edges(data=True)
+                )
+                _cur_fp = _hl.sha256(",".join(_cur_eids).encode()).hexdigest()[:16]
+                if _cur_fp != _stored_fp:
+                    import sys as _sysfp
+                    _sysfp.stderr.write(
+                        f"[PYSTATE_MISMATCH] pkl graph_fingerprint={_stored_fp} "
+                        f"!= current={_cur_fp}; "
+                        f"delete {python_state_path} and re-run warmup\n"
+                    )
+                    _sysfp.stderr.flush()
+                    raise RuntimeError(
+                        f"Warmup pkl has stale routing graph "
+                        f"(fingerprint {_stored_fp} != {_cur_fp}). "
+                        f"Delete {python_state_path} and re-run warmup."
+                    )
             sim.calc.load_state(_ecc_state)
             print(f"[PYSTATE] arm={arm_policy} seed={traffic_seed} "
-                  f"loaded sha256={_sha}")
+                  f"loaded sha256={_sha} graph_fp={_stored_fp or 'legacy-no-fp'}")
             sys.stdout.flush()
 
         # --- FIX F: arm-params integrity assertion ---------------------------
@@ -2668,7 +2700,21 @@ def main():
 
                 for fut in concurrent.futures.as_completed(futs, timeout=WORKER_TIMEOUT_S):
                     seed_done, arm_done = futs[fut]
-                    out = fut.result()
+                    # Fix Q4: contain BrokenProcessPool / CancelledError from libsumo
+                    # C-level crashes (SIGABRT bypasses Python exception handling).
+                    # Log [ARM_CRASH] and continue — sibling arm results already
+                    # collected are preserved; the crashed arm gets no entry in all_res.
+                    try:
+                        out = fut.result()
+                    except (concurrent.futures.process.BrokenProcessPool,
+                            concurrent.futures.CancelledError) as _crash_exc:
+                        import sys as _csys
+                        _csys.stderr.write(
+                            f"[ARM_CRASH] arm={arm_done} seed={seed_done} "
+                            f"reason={type(_crash_exc).__name__}: {_crash_exc}\n"
+                        )
+                        _csys.stderr.flush()
+                        continue
                     print(f"\n# scenario '{out['tag']}' (seed={seed_done}) finished in {out['wall_s']:.1f}s")
                     if out["error"]: print(f"[ERROR] {out['error']}")
                     if out.get("log"): print(out["log"], end="" if out["log"].endswith("\n") else "\n")
