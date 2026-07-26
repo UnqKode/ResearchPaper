@@ -46,6 +46,7 @@ class NetworkBuilder:
                                 speed_limit=speed_limit,
                                 weight=length, # This will be overwritten dynamically
                                 fuel_tier=1)
+        self._assert_passenger_only()
 
     def update_graph_weights(self, global_map):
         """
@@ -67,6 +68,30 @@ class NetworkBuilder:
 
             # Update this specific parallel edge's weight
             self.graph[u][v][k]['weight'] = dynamic_weight
+
+    def _assert_passenger_only(self):
+        """Criterion 9: assert zero non-passenger edges leaked into the routing graph.
+
+        Called once at the end of _build_graph() in every worker.  Raises
+        AssertionError with the offending edge IDs if any non-passenger edge is
+        found; logs [VCLASS_ASSERT] PASS/FAIL to stderr.
+        """
+        import sys as _sys
+        non_pass = [
+            data["edge_id"]
+            for _, _, data in self.graph.edges(data=True)
+            if not self.net.getEdge(data["edge_id"]).allows("passenger")
+        ]
+        n = self.graph.number_of_edges()
+        if non_pass:
+            msg = (f"[VCLASS_ASSERT] FAIL: {len(non_pass)} non-passenger edges "
+                   f"in routing graph: {non_pass[:5]}"
+                   f"{'...' if len(non_pass) > 5 else ''}")
+            _sys.stderr.write(msg + "\n")
+            _sys.stderr.flush()
+            raise AssertionError(msg)
+        _sys.stderr.write(f"[VCLASS_ASSERT] PASS graph_edges={n} non_passenger=0\n")
+        _sys.stderr.flush()
 
     def get_dijkstra_route(self, source_node, target_node):
         """
