@@ -449,3 +449,147 @@ The `ml` conda environment does not have libsumo installed.
 Fix: `pip install libsumo==1.27.0` inside the `ml` env (matching SUMO 1.27.0).
 After install, all workers report `[TRANSPORT] USING_LIBSUMO=True` and `[PERF]` must
 reach ≥ 30 steps/s sustained.
+
+---
+
+# Implementation Notes — Round 7B
+
+## ERRATA: Fix R label collision (commit `a89db7f`)
+
+Commit `a89db7f` was tagged **"Fix R"** in its git message. That label is already
+claimed: `Fix R` in this file is "Cold-edge junction penalty uses median p_stop"
+(deferred, unimplemented). Commit `a89db7f` must be relabelled **Fix Q2a**.
+The original Fix R (cold junction penalty) and Fix S (δ hysteresis from D4 data)
+remain **deferred and unimplemented** as of Round 7B.
+
+---
+
+## Fix Q2a — Sub-1m stub edge filter *(relabelled from "Fix R" / a89db7f)*
+
+Excludes edges with `length < 1.0 m` from `_build_graph()` (routing graph). SUMO's
+built-in router naturally avoids these; our fuel-mode Dijkstra assigned them near-zero
+weight (short edge → cheap cold fuel estimate) and routed through them, causing a
+libsumo C-level abort when the 5 m ego vehicle tried to occupy a shorter edge.
+
+Edges removed: 79 sub-1m edges; graph 4404 → 4325 edges.
+
+**Post-commit finding:** Fix Q2a did NOT prevent the Round-7 crash (t≈22275, run 3).
+The crash edge `153152#1` is 23.33 m and passes the 1.0 m filter. Root cause:
+`153152#1` is a pedestrian-only path (`allows_passenger=False`); fuel-mode Dijkstra
+assigned it a positive cost and routed ego\_petrol through it → SUMO C-abort.
+
+---
+
+## Fix Q2b — vClass passenger filter *(this round)*
+
+Adds `if not edge.allows('passenger'): continue` to `_build_graph()`, after the
+Fix Q2a length check. Removes 769 non-passenger edges (≥ 1 m) that sumolib confirms
+allow no passenger vehicles (pedestrian paths, bike-only lanes, bus-only roads).
+
+**Empirical sumolib verification (`check_allows.py`):**
+| Edge | Length | Speed | `allows('passenger')` | Role |
+|---|---|---|---|---|
+| `153152#1` | 23.33 m | 1.4 m/s | **False** | crash edge — removed |
+| `-152827#0` | 155.83 m | 13.9 m/s | **False** | non-passenger — removed |
+| `152814#9` | 23.85 m | 13.9 m/s | True | arterial — kept |
+| `152836#2` | 3.77 m | 13.9 m/s | True | arterial — kept |
+| `-152191` | 13 236 m | 25.0 m/s | **False** | long pedestrian path — removed |
+
+sumolib's `edge.allows()` is correct: `allow=""` in the XML is an empty permission
+set (no classes), not "all classes". The concern noted in Round-7 context is unfounded.
+
+**Edge counts after Q2a + Q2b:**
+```
+Total non-internal non-special:         4404
+After Fix Q2a (sub-1m removed):         4325
+Non-passenger edges ≥ 1m (Q2b removes): 769
+Final routable passenger graph:          3556
+```
+
+**RSU side effect:** RSU builds its coverage map from `graph.edges(data=True)`.
+After Q2a + Q2b the RSU will track ≈ 3481 edges (passenger + ≥1 m, minus
+≈75 dead-end fallback edges). Non-passenger edges are irrelevant for ego\_petrol
+(vClass=passenger), so this reduction is correct and expected.
+
+---
+
+## Fix Q3 — Speed-proportional cold fuel floor in preseed
+
+**Units audit for `153152#1` (L=23.33 m, v_lim=1.4 m/s, at t=21000 after preseed):**
+
+Cold fuel formula: `cold_fuel = cold_nominal_rate(edge) × t_ff`
+where `t_ff = L / v_lim`.
+
+Step-by-step for `153152#1`:
+1. Warmup pkl loaded: no baseline for `153152#1` (pedestrians emit ≈ 0 fuel → filtered)
+2. Preseed at t=21000: regression prediction = b0 + b1×1.4 = −741.7 + 108.8×1.4 = **−589 mg/s** → negative
+3. Old floor: `max(−589, network_median=457) = **457 mg/s**`
+4. t_ff = 23.33 / 1.4 = **16.66 s**
+5. Cold fuel (pre-Q3): 457 × 16.66 = **7 615 mg**
+6. *Physical check*: a passenger car at near-idle (1.4 m/s ≈ 5 km/h) for 16.66 s
+   burns ≈ 100–150 mg/s × 16.66 s ≈ **1 600–2 500 mg** in reality.
+   The formula overestimates by **3–5×** because `457 mg/s` is the cruising-speed
+   network median, not the near-idle rate. Units are dimensionally correct
+   (mg/s × s = mg); the error is in the rate value, not the formula structure.
+
+**Why Dijkstra still chose `153152#1`:** At 7 615 mg it is only 15% more expensive
+than a cold 200 m arterial (457 × 14.4 s = 6 576 mg). Since `153152#1` provides a
+topological shortcut whose total path cost beats the bypass, the Dijkstra accepted it.
+Fix Q2b removes it from the graph entirely; the cost calculation for it no longer matters.
+
+**Fix Q3 (applies to slow passenger edges):** Replace the flat `network_median` floor
+in `preseed_cold_baselines()` with a speed-proportional floor:
+
+```
+speed_floor = nominal × max(v_lim, 0.5) / 13.89
+value = max(regression_prediction, speed_floor)
+```
+
+For a slow valid passenger edge (v_lim = 5 m/s):
+- Old: `max(regression, 457)` → 457 mg/s (overestimate by 2.8×)
+- New: `max(regression, 457 × 5/13.89)` → `max(regression, 165)` → 165 mg/s (physically correct)
+- Cold fuel for 100 m at 5 m/s: 165 × 20 s = **3 300 mg** vs old 4 570 mg
+
+For fast edges (v_lim ≥ 13.89 m/s): speed_floor ≥ nominal; regression dominates at these speeds; no change.
+
+**Honesty:** the floor depends only on the edge's speed limit, not on corridor/degradation identity.
+
+---
+
+## Fix Q4 — BrokenProcessPool containment
+
+Wraps `fut.result()` in a try/except inside the `as_completed()` loop in
+`compare_routing.py`. On `BrokenProcessPool` or `CancelledError` (which propagate
+when a libsumo SIGABRT kills one worker and breaks the whole pool):
+
+- Logs `[ARM_CRASH] arm=... seed=... reason=<exception type and message>` to stderr
+- Does NOT append to `all_res[arm_done]` for the crashed arm (sibling arm results
+  already collected by earlier iterations are preserved)
+- Continues the loop so remaining futures are collected
+
+---
+
+## Fix Q5 — Pickle graph-fingerprint guard
+
+Embeds a SHA-256 fingerprint of the sorted routable edge IDs into the warmup pickle.
+
+**At save time** (`_run_warmup_phase`): after building `_nb = NetworkBuilder(...)`,
+compute `sha256(",".join(sorted(edge_id for each graph edge)))[:16]` and store it as
+`_ecc_state["graph_fingerprint"]` before `pickle.dumps()`.
+
+**At load time** (`_run_paired_capture`): after `pickle.loads()`, recompute the
+fingerprint from `sim.net_builder.get_graph()`. If it mismatches the stored value,
+write `[PYSTATE_MISMATCH]` to stderr and raise `RuntimeError`, aborting the arm with
+a clear message to delete the stale pkl and re-run warmup.
+
+---
+
+## Fix R — Cold-edge junction penalty uses median p_stop *(DEFERRED)*
+
+Previously documented. Not yet implemented.
+
+---
+
+## Fix S — Hysteresis δ calibrated from D4 data *(DEFERRED)*
+
+Previously documented. Not yet implemented.
