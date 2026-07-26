@@ -23,11 +23,15 @@ class NetworkBuilder:
             # These have IDs starting with ':' and are rejected by setRoute.
             if edge.isSpecial() or edge.getFunction() == "internal":
                 continue
-            # Skip sub-1m stub edges. SUMO's own router avoids these naturally;
-            # our fuel-mode Dijkstra assigns them near-zero weight and routes
-            # through them, causing libsumo C-level aborts when a vehicle longer
-            # than the edge tries to traverse it.
+            # Fix Q2a: Skip sub-1m stub edges (libsumo C-abort risk).
             if edge.getLength() < 1.0:
+                continue
+            # Fix Q2b: Skip edges that don't allow passenger vehicles.
+            # Pedestrian paths, bike lanes, bus-only roads — ego_petrol
+            # (vClass=passenger) cannot enter them; routing through them causes
+            # a libsumo C-level abort.  Empirically verified: allows('passenger')
+            # is False for 153152#1 (crash edge, 1.4 m/s), True for all arterials.
+            if not edge.allows('passenger'):
                 continue
             from_node = edge.getFromNode().getID()
             to_node = edge.getToNode().getID()
