@@ -353,3 +353,90 @@ Dividing RSU fuel_consumption (mg/trip) by `t_actual` (s) converts to mg/s for
 comparison with the mg/s baseline. The computation is dimensionally correct.
 
 **No code change needed for the F-term.**
+
+---
+
+## Round-7B Amendment (2026-07-26)
+
+### Crash Root Cause — ours-fuel BrokenProcessPool at t≈22275
+
+Run 3 (post-Fix Q2a, post-Fix W/V/P/Q) crashed in the ours-fuel worker at t≈22275
+(PERF logs show `sim_t=22275 active_veh=2` as last entry before `BrokenProcessPool`).
+
+**Root cause:** Fix Q2a (sub-1m edge filter) was insufficient.  `_build_graph()` still
+included non-passenger edges — specifically `153152#1` (23.33 m, v_lim=1.4 m/s,
+`allows('passenger')=False`).  ego_0's initial route (diag_routes row 10, 58 edges)
+included `153152#1` and `-152827#0` (both non-passenger).  ego_0 departed t≈21650 and
+reached edge 43 of 58 at t≈22275, at which point SUMO attempted to place the
+ego_petrol vehicle on a pedestrian-only edge → C-level abort (SIGABRT) → BrokenProcessPool.
+
+**Why only ours-fuel crashed:** ours-augtime uses time-based weights.  At v_lim=1.4 m/s,
+`153152#1`'s traversal time (16.7 s) makes it expensive; Dijkstra avoided it.  ablation
+uses SUMO's own router which respects vClass.  ours-fuel uses fuel-mg weights; at cold
+start the 23 m edge costs 7 615 mg (only 15% more than a 200 m arterial), and the
+topological shortcut made the whole path cheaper despite the cost premium.
+
+**Fix Q2b applied:** `edge.allows('passenger')` filter added to `_build_graph()`.
+Graph: 4325 → 3556 routable edges.  Non-passenger edges are now invisible to Dijkstra.
+
+### Q1 δ Reconciliation (verbatim, fourth report)
+
+| Location | Attribute | Value | Role |
+|----------|-----------|-------|------|
+| `simulate.py:135` | `imp_threshold` | **0.15** | augtime improvement threshold |
+| `simulate.py:158` | `fuel_hysteresis` | **0.10** | fuel hysteresis guard (actual δ) |
+| `compare_routing.py:1469` | `getattr(sim, "imp_threshold", None)` | reads 0.15 | ARM_CONFIG log BUG |
+| `simulate.py:1046` | `cost_cur * (1.0 - self.fuel_hysteresis)` | uses **0.10** | actual gate |
+
+**Standing constraint:** "hysteresis at Q1-verified value" = **δ = 0.10** (10%).
+
+### Locked-baseline fraction after Fix P (run 3, pre-Fix Q2b)
+
+From `[PRESEED] cold baselines pre-seeded for 3717/4325 edges at t=21000`:
+- Total edges in ECC edge_lengths: **4325**
+- Pre-grade baselines locked (warmup pkl + arm t=20400–21000): **608** (14.1%)
+- Pre-seeded at grade activation (t=21000): **3717** (85.9%)
+- After preseed: **100%** have baselines
+
+### Corridor-gate stats under Fix X (seed=1, scale=2.0, run 3)
+
+20 structural candidates evaluated; 6 passed, 14 failed:
+
+| Edge | Result | traversals | speed_ratio | Reason |
+|------|--------|-----------|-------------|--------|
+| `152535#4` | PASS | 10 | 0.996 | — |
+| `152534#2` | PASS | 6 | 0.999 | — |
+| `152535#2` | PASS | 5 | 0.999 | — |
+| `152714` | PASS | 5 | 0.990 | — |
+| `-152330#0` | PASS | 29 | 0.936 | — |
+| `152330#0` | PASS | 25 | 0.977 | — |
+| 14 others | FAIL | 0–4 | — | traversals < 5 (no evidence) |
+
+Selected: `['152534#2', '152535#2']` — gate=**passed**.
+
+### `degraded_edges` grep — router-side zero hits
+
+```
+grep degraded_edges BTP/Routing/routingManager.py → 0 matches
+```
+
+`NetworkBuilder._build_graph()` and `get_dijkstra_route()` contain no reference to
+`degraded_edges`, confirming the Dijkstra is fully blind to corridor identity.
+Route decisions depend only on graph edge weights set by `update_graph_weights(global_map)`.
+
+### `[PRESEED_REGR]` stats (run 3, all arms, t=21000)
+
+Spec uses tag `[PRESEED_FIT]`; actual tag in code is `[PRESEED_REGR]`.
+
+| Arm | n_obs | b0 (mg/s) | b1 (mg/s per m/s) | R² |
+|-----|-------|-----------|-------------------|-----|
+| ours-fuel | 555 | −741.72 | 108.8299 | 0.405 |
+| ours-augtime | 555 | −741.78 | 108.8339 | 0.405 |
+| ablation | 555 | −741.78 | 108.8340 | 0.405 |
+
+Regression cross-zero at v_lim ≈ 6.82 m/s; below that Fix Q3 speed-proportional floor applies.
+
+### Teleport count vs Round-5
+
+**Not available.** Run 3 crashed at t=22275 before SUMO printed final statistics.
+Round-5 logs are not in scope. This item remains open for post-Smoke-4 reporting.
