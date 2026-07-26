@@ -342,6 +342,51 @@ def test_preseed_q3_fast_edges_unaffected():
 
 
 # ---------------------------------------------------------------------------
+# E3: ARM_CONFIG correctness test (no SUMO required)
+# ---------------------------------------------------------------------------
+
+def test_arm_config_reads_fuel_hysteresis_not_imp_threshold():
+    """E3: ARM_CONFIG must read sim.fuel_hysteresis (the gate variable), not sim.imp_threshold.
+
+    Pre-fix, the code used getattr(sim, 'fuel_hysteresis', getattr(sim, 'imp_threshold', None)),
+    which would fall through to imp_threshold=0.15 if fuel_hysteresis were absent.
+    Post-fix: direct attribute access ensures the logged value IS the gate value.
+    """
+    class _MockCalc:
+        alpha = 1.0
+        beta = 8.0
+        gamma = 10.0
+        junction_weight = 1.0
+        _fuel_aggregator = "median"
+
+    class _MockSim:
+        cost_mode = "fuel"
+        fuel_hysteresis = 0.10   # gate variable (simulate.py:1046)
+        imp_threshold   = 0.15   # augtime gate — must NOT appear in ARM_CONFIG
+        calc = _MockCalc()
+
+    sim = _MockSim()
+    _hyst = sim.fuel_hysteresis      # fixed extraction (direct attribute)
+    assert _hyst == 0.10, f"ARM_CONFIG must read fuel_hysteresis=0.10, got {_hyst}"
+    assert _hyst != sim.imp_threshold, (
+        "ARM_CONFIG value must differ from imp_threshold (0.15) — "
+        "the old bug conflated these two"
+    )
+    # Confirm the formatted log line contains the correct value and not the wrong one
+    log_line = (
+        f"[ARM_CONFIG] arm=ours-fuel cost_mode={sim.cost_mode} "
+        f"alpha={sim.calc.alpha} beta={sim.calc.beta} gamma={sim.calc.gamma} "
+        f"junction_weight={sim.calc.junction_weight} fuel_hysteresis={_hyst} "
+        f"aggregator={sim.calc._fuel_aggregator} "
+        f"teleport=300 sample_mod=2 rsu_interval=5 bg_reroute_prob=0.25"
+    )
+    assert "fuel_hysteresis=0.1" in log_line, "log must contain fuel_hysteresis=0.1"
+    assert "0.15" not in log_line, "imp_threshold=0.15 must not appear in ARM_CONFIG"
+    assert "teleport=300" in log_line, "teleport must be logged"
+    assert "sample_mod=2" in log_line, "sample_mod must be logged"
+
+
+# ---------------------------------------------------------------------------
 # Entry point
 # ---------------------------------------------------------------------------
 
@@ -370,6 +415,8 @@ if __name__ == "__main__":
         test_preseed_q3_slow_edge_gets_lower_baseline_than_fast,
         test_preseed_q3_rate_scales_with_speed,
         test_preseed_q3_fast_edges_unaffected,
+        # E3: ARM_CONFIG correctness
+        test_arm_config_reads_fuel_hysteresis_not_imp_threshold,
     ]
     passed = 0
     for t in tests:

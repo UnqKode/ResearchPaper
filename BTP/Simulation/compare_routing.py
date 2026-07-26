@@ -41,6 +41,7 @@ For the single-trip path use:
 import os
 import sys
 import csv
+import json
 import argparse
 import random
 import io
@@ -97,7 +98,7 @@ PROGRESS_LOG_EVERY = 1               # flush the live per-trip log every N trips
 # persist so every remaining ego trip times out (hours of wasted compute). If you
 # see repeated TIMEOUTs, drop the scale or set a finite teleport threshold.
 DEFAULT_SCALE    = 3.0               # background demand multiplier
-DEFAULT_TELEPORT = -1                # seconds stuck before teleport (-1 = never)
+DEFAULT_TELEPORT = 300               # seconds stuck before teleport (300 = safe finite default)
 WORKER_TIMEOUT_S = 86400             # HP-1: hard wall-clock cap per parallel scenario
 TRIPINFO_FLUSH_WAIT_S = 10.0         # HP-5: max seconds to wait for SUMO to flush tripinfo
 
@@ -1572,11 +1573,14 @@ def run_paired_scenario(arm_policy, alpha, beta, gamma, od_list, traffic_seed, t
         _cost_mode = sim.cost_mode
         _alpha, _beta, _gamma = sim.calc.alpha, sim.calc.beta, sim.calc.gamma
         _jw = sim.calc.junction_weight
-        _hyst = getattr(sim, "fuel_hysteresis", getattr(sim, "imp_threshold", None))
+        # E3: direct access — same attribute consumed by the gate at simulate.py:1046
+        _hyst = sim.fuel_hysteresis
         _agg = getattr(sim.calc, "_fuel_aggregator", None)
         print(f"[ARM_CONFIG] arm={arm_policy} cost_mode={_cost_mode} "
               f"alpha={_alpha} beta={_beta} gamma={_gamma} "
-              f"junction_weight={_jw} fuel_hysteresis={_hyst} aggregator={_agg}")
+              f"junction_weight={_jw} fuel_hysteresis={_hyst} aggregator={_agg} "
+              f"teleport={teleport} sample_mod={vehicle_sample_mod} "
+              f"rsu_interval={rsu_update_interval} bg_reroute_prob={bg_reroute_prob}")
 
         if arm_policy == "ours-fuel":
             assert _cost_mode == "fuel", \
