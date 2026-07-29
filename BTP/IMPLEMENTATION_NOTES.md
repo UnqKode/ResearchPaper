@@ -1159,3 +1159,79 @@ grade-active observation time.
 | `87ead20` | `compare_routing.py` | Fix O6: Poisson gate + grade-lead 1200s + CORRIDOR_MIN_TRAVERSALS=24 |
 
 **Smoke 7 PENDING:** awaiting user authorization per standing rule ("STOP for review after each smoke"). See DIAG_ROUND10.md for criteria and run command.
+
+---
+
+## Round-10B — Verdict Amendment + Timeline Fix + Gate-Log Precision
+
+### Step 0: DIAG_ROUND10 Step-1 verdict amended as UNRELIABLE
+
+The Round-10 Step-1 verdict ("F=0 at D1 time → mechanism is live t_actual") was read from the Smoke-6 D1 dump. Commit `a7ab047` proves the D1 instrument was invalid at measurement time (GlobalMap empty → cold fallbacks → "F=0" indistinguishable from "F was never computed"). Verdict marked UNRELIABLE in DIAG_ROUND10.md.
+
+Split into two claims:
+- **Physics claim (STANDS):** Avoidance happened; ~17% saving is valid.
+- **Detection claim (UNPROVEN):** Mechanism (F/S/C/t_actual) requires re-adjudication from fixed D1 instrument at ≥3 timestamps.
+
+Re-adjudication deferred to Smoke 7 criterion 7.
+
+### Step 1: Junction-penalty quantification + flip verdict
+
+**Absolute contribution to augtime routing weight:** 0 (junction penalty is not in augtime formula — fuel-mode-only by dc9ffb6 design).
+
+**Absolute contribution to fuel-arm routing weight from Smoke 6 corridor edges:** 0 mg. S=0 on 152535#4 and 152330#0 at D1 time → `get_junction_penalty()` returns 0.0 immediately (line 434: `if stop_freq <= 0.0: return 0.0`). Grade degradation causes speed reduction, not stop-and-go → S≈0 at routing time as well.
+
+**Hypothetical max junction_pen (S=1.0, v_cruise=13.89 m/s):**
+```
+p_stop = 1.0
+KE     = 0.5 × 1500 kg × 13.89² = 144,700 J
+fuel_mg = (144,700 / (0.30 × 43.5×10⁶)) × 10⁶ × 1.15 = 12,753 mg
+```
+If this were accidentally added to augtime seconds, corridor would appear ~676× more expensive — trivially decisive. But S=0 → this did not occur.
+
+**Flip verdict:** NO — junction penalty had zero contribution to Smoke 6 routing in either arm. Symmetric by code design; confirmed zero by S=0 observation.
+
+**Symmetric decision record (confirmed from Round-10 notes):** junction penalty is fuel-mode-only. ours-augtime junction_weight=1.0 and ablation junction_weight=0.0 are both irrelevant to routing weights. No asymmetry. No code change.
+
+### Step 2a: Timeline arithmetic fix (commit `1b5d229`, `compare_routing.py`)
+
+**Bug:** `seed_warm_end = depart - args.warmup_buffer` with depart=21600 and warmup_buffer=1200 yielded 20400 = `degrade_start`. Load and activation collided; zero seconds for ECC pre-grade baseline learning.
+
+**Fix:**
+```python
+_seed_activation = depart - args.grade_lead          # 21600 - 1200 = 20400
+seed_warm_end = _seed_activation - args.warmup_buffer # 20400 - 1200 = 19200
+```
+
+Intended timeline (depart=21600, grade_lead=1200, warmup_buffer=1200):
+```
+load=19200  →  baseline_window(1200s)  →  activation=20400  →  detection_window(1200s)  →  first_ego=21600
+```
+
+**`[TIMELINE]` log added:**
+```
+[TIMELINE] seed=1 load=19200 activation=20400 first_ego=21600 baseline_window=1200s detection_window=1200s
+```
+
+**Hard assertions added:** `seed_warm_end < _seed_activation` and `_seed_activation < depart`.
+
+`RoadConditionManager` creation in `warmup_savestate` mode corrected to use `_seed_activation` (per-depart, sweep-correct) instead of global `degrade_start`.
+
+### Step 2b: Gate-log precision fix (commit `1b5d229`, `compare_routing.py`)
+
+**Bug:** P(X≥3|λ) formatted with `:.3f`. For λ=16, P=0.999983 rounded to "1.000" → misleading "P≥100%" appearance.
+
+**Fix:** Changed all P(≥3) format strings from `:.3f` to `:.6f`. Code comment updated from "≈ 100%" to "= 0.999983".
+
+Sample log after fix:
+```
+[CORRIDOR_GATE] PASS edge=152330#0 ratio=0.921 traversals=31 λ=20.7 P(≥3)=0.999999 occ=0.0001
+```
+
+### Round-10B Commits
+
+| Hash | Files | Description |
+|------|-------|-------------|
+| `1b5d229` | `compare_routing.py` | Step 2a/b: timeline arithmetic + gate-log precision |
+| (docs) | `DIAG_ROUND10B.md`, `IMPLEMENTATION_NOTES.md` | Round-10B documentation |
+
+**Smoke 7 authorized** (Round-10B spec). See DIAG_ROUND10B.md for 8 verbatim criteria and run command.

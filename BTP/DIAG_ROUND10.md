@@ -2,8 +2,22 @@
 
 **Branch:** `fuel-model-v2`  
 **Date:** 2026-07-29  
-**Commits this round:** `a7ab047` (Fix O5), `87ead20` (Fix O6)  
-**Status:** STOP — awaiting user authorization before Smoke 7
+**Commits this round:** `a7ab047` (Fix O5), `87ead20` (Fix O6), `1b5d229` (Step 2a/b), `b5143e7` (docs)
+
+---
+
+## ⚠ STEP-1 VERDICT AMENDMENT (Round-10B, 2026-07-29)
+
+> **The Step-1 verdict below ("F did not move; +17.33% came from live t_actual/stochastic divergence") is UNRELIABLE. The evidence was read from the Smoke-6 D1 dump, which commit `a7ab047` proves was firing before `refresh()`/`update_graph_weights()` — GlobalMap empty/stale at measurement time. "F=0 at D1 time" is indistinguishable from "F was never computed." The verdict may be right, but it is currently UNPROVEN.**
+
+Split into two claims:
+
+- **Physics claim (STANDS):** Ablation egos drove the EU0 corridor; ours-augtime egos did not. The ~17% fuel saving is a valid measurement of what corridor avoidance is worth — independent of how augtime decided to avoid it.
+- **Detection claim (UNPROVEN):** Whether augtime sensed corridor degradation via F, S, C, or t_actual. Requires the fixed D1 instrument (a7ab047) + multi-timestamp RSU decomposition (≥3 timestamps spanning activation → first ego) to adjudicate. Deferred to Smoke 7, criterion 7.
+
+The original Step-1 spec (decomposition at ≥3 timestamps plus non-corridor controls) was NOT met by a single pre-injection snapshot. That requirement carries forward into Smoke 7 criterion 7.
+
+See DIAG_ROUND10B.md for junction-penalty quantification, timeline verification, and Smoke 7 results.
 
 ---
 
