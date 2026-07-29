@@ -1334,6 +1334,13 @@ class Simulation:
         routing graph (catches any second formula copy that drifted).
         """
         import csv as _csv, os as _os, random as _rnd
+        # Fix O5/D1-ASSERT: D1 fires before ego injection → active_egos=0 → no
+        # prior refresh()/update_graph_weights() has run → GlobalMap holds initial
+        # fallback values and routing graph holds _build_graph() L/v_lim seconds.
+        # Syncing here ensures (a) the weight column captures live RSU state and
+        # (b) routing graph == GlobalMap so the post-write assert compares same units.
+        self.global_map.refresh(self.edges)
+        self.net_builder.update_graph_weights(self.global_map)
         btp_dir = _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__)))
         arm_slug = arm.replace("-", "_")
         seed_str = str(seed) if seed is not None else "0"
