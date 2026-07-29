@@ -1137,8 +1137,8 @@ CORRIDOR_SPEED_RATIO_MIN = 0.85
 CORRIDOR_OCC_MAX = 0.40
 # Fix O6 / Round-10: Poisson-honest corridor gate.
 # CORRIDOR_MIN_TRAVERSALS=24 sampled in 1800 s warmup window → with grade_lead=1200 s,
-# λ_post = 24 × 1200/1800 = 16, P(X≥3|λ=16) ≈ 100%.
-# Even at the boundary (24 warmup, 1200 s grade), P(X≥3) >> 95%.
+# λ_post = 24 × 1200/1800 = 16, P(X≥3|λ=16) = 0.999983 (see _poisson_p_ge3).
+# Even at the boundary (24 warmup, 1200 s grade), P(X≥3) >> 0.95 threshold.
 # The gate enforces the 95% Poisson criterion explicitly (see _corridor_gate).
 # With vehicle_sample_mod=2, 24 sampled ≈ 48 real traversals in warmup.
 # CORRIDOR_OCC_MIN removed: with --device.rerouting.probability=1 Monaco traffic
@@ -1437,7 +1437,7 @@ def _corridor_gate(measurements, force_corridor=False, seed=None,
             passing.append(m)
             print(f"[CORRIDOR_GATE] PASS edge={m['eid']} "
                   f"ratio={m['speed_ratio']:.3f} traversals={wt} "
-                  f"λ={lam:.1f} P(≥3)={p_ge3:.3f} occ={m['avg_occ']:.4f}")
+                  f"λ={lam:.1f} P(≥3)={p_ge3:.6f} occ={m['avg_occ']:.4f}")
         else:
             reasons = []
             if not rate_ok:
@@ -1446,12 +1446,12 @@ def _corridor_gate(measurements, force_corridor=False, seed=None,
                 reasons.append(
                     f"traversals={wt}<{CORRIDOR_MIN_TRAVERSALS}(no evidence)")
             if not poisson_ok:
-                reasons.append(f"P(≥3|λ={lam:.1f})={p_ge3:.3f}<0.95")
+                reasons.append(f"P(≥3|λ={lam:.1f})={p_ge3:.6f}<0.95")
             if not occ_ok:
                 reasons.append(f"occ={m['avg_occ']:.4f}>{CORRIDOR_OCC_MAX}(bottleneck)")
             print(f"[CORRIDOR_GATE] FAILED edge={m['eid']} "
                   f"ratio={m['speed_ratio']:.3f} traversals={wt} "
-                  f"λ={lam:.1f} P(≥3)={p_ge3:.3f} occ={m['avg_occ']:.4f} "
+                  f"λ={lam:.1f} P(≥3)={p_ge3:.6f} occ={m['avg_occ']:.4f} "
                   f"({'; '.join(reasons)})")
 
     if len(passing) < 2:
@@ -2719,13 +2719,33 @@ def main():
                     seed_python_state = None
                     seed_od_list = od_list  # per-seed OD list; replaced below when targeted
                     if args.warmup_savestate:
-                        seed_warm_end = depart - args.warmup_buffer
+                        # Timeline: warmup_end (state-save/load) counts back from
+                        # ACTIVATION, not from depart_start.  This gives warmup_buffer
+                        # seconds of normal-traffic ECC baseline learning BEFORE grade
+                        # starts, then grade_lead seconds of degraded observation window
+                        # before first ego. Old formula `depart - warmup_buffer` collapsed
+                        # state-load and activation to the same timestamp.
+                        _seed_activation = depart - args.grade_lead
+                        seed_warm_end = _seed_activation - args.warmup_buffer
+                        print(f"[TIMELINE] seed={seed} "
+                              f"load={seed_warm_end:.0f} "
+                              f"activation={_seed_activation:.0f} "
+                              f"first_ego={depart:.0f} "
+                              f"baseline_window={args.warmup_buffer:.0f}s "
+                              f"detection_window={args.grade_lead:.0f}s")
+                        assert seed_warm_end < _seed_activation, (
+                            f"[TIMELINE] ASSERT: load({seed_warm_end}) >= "
+                            f"activation({_seed_activation}); "
+                            f"increase warmup_buffer or grade_lead")
+                        assert _seed_activation < depart, (
+                            f"[TIMELINE] ASSERT: activation({_seed_activation}) >= "
+                            f"first_ego({depart})")
                         seed_warm_state = os.path.abspath(
                             f"ws_{seed}_{int(scale*100)}_{int(depart)}.xml.gz")
                         seed_python_state = os.path.abspath(
                             f"warmstate_seed{seed}_python.pkl")
                         print(f"[WARMUP] seed={seed} warmup_buffer={args.warmup_buffer} "
-                              f"warmup_end={seed_warm_end} degrade_start={degrade_start}")
+                              f"warmup_end={seed_warm_end} degrade_start={_seed_activation}")
                         seed_degraded, seed_warm_end, _seed_gate_status = _run_warmup_phase(
                             seed, corridor_candidates, seed_warm_state,
                             seed_warm_end, scale, args.teleport,
@@ -2774,7 +2794,7 @@ def main():
                         if args.road_condition != "none" and seed_degraded:
                             from Simulation.road_conditions import RoadConditionManager
                             seed_manager = RoadConditionManager(
-                                seed_degraded, args.road_condition, degrade_start,
+                                seed_degraded, args.road_condition, _seed_activation,
                                 v_low=args.degrade_vlow, v_high=args.degrade_vhigh,
                                 period_s=args.degrade_period,
                                 event_duration=args.event_duration,
