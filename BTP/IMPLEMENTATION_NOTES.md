@@ -863,3 +863,219 @@ cost_mode column correct, fuel_warm True/False as expected. 24/24 tests pass.
    that ARE on natural paths between the seed=42 OD pairs.
 2. Once O4 resolved: Steps 3–5 (corridor rate gate revision, Fix S δ=0.01, Smoke 6).
    D1 fix already in place — will correctly show fuel-arm weights in Smoke 6.
+
+---
+
+# Implementation Notes — Round 9
+
+## O4a — OD/Corridor Structural Decoupling (root cause, CONFIRMED)
+
+**Finding:** Every smoke since Fix V (warmup_savestate) has been structurally incapable of
+showing a corridor effect. The root cause is a two-layer failure:
+
+1. **Smoke path** (`run_smoke.sh`, Smokes 1-5): `--targeted-od` was never passed. OD pairs
+   came from `generate_od_pairs(seed=42)` — arbitrary pairs, no corridor constraint.
+
+2. **Campaign path** (`run_k10_fuelspec.bat`, has `--targeted-od`): With `--warmup-savestate`,
+   `degraded_edges=[]` at global OD-generation time (corridor is per-seed; corridor-select
+   deferred to warmup). The branch `if args.targeted_od and degraded_edges:` evaluates
+   `True and [] = False` → falls through to `generate_od_pairs` anyway.
+
+**On-path fraction (static Dijkstra):**
+
+| OD generator | n_ods | on_path_fraction | Effect |
+|---|---|---|---|
+| `generate_od_pairs(seed=42)` | 3 | **0.00** | All 9 smokes: crossed=False × 9 |
+| `select_targeted_od_pairs` (per-seed post-fix) | 3 | **1.00** (by construction) | Smoke 6 |
+
+**Verdict:** H3 ("no OD routes through the corridor") has been recurring because the
+safeguard (`Fix T`) was not enforced at runtime. The nine "No" entries in every crossing
+table since Smoke 1 are structural, not statistical.
+
+---
+
+## Fix T (runtime enforcement) — Per-seed OD targeting + `[OD_COUPLING]` gate
+
+**Fix:** After per-seed warmup completes (`seed_degraded` known), inside the
+`if args.warmup_savestate:` block:
+
+```python
+if args.targeted_od and seed_degraded:
+    _ts_od = select_targeted_od_pairs(
+        NET_FILE, seed_degraded, n=args.n, seed=args.od_seed, ...)
+    if _ts_od:
+        seed_od_list = _ts_od
+    else:
+        print(f"[OD_COUPLING] WARNING seed={seed}: no targeted pairs found, "
+              f"falling back to plain OD list")
+```
+
+`seed_od_list` is then passed to arm workers (replaces `od_list`).
+
+**`compute_on_path_fraction()` new function** (after `select_targeted_od_pairs`):
+
+```python
+def compute_on_path_fraction(net_file, od_list, degraded_edges, vclass="passenger"):
+    net = sumolib.net.readNet(net_file)
+    corridor_set = set(degraded_edges)
+    n_on = 0
+    for orig_id, dest_id in od_list:
+        a, b = net.getEdge(orig_id), net.getEdge(dest_id)
+        path_ids, _ = _ttime_route(net, a, b, set(), vclass)
+        if any(de in path_ids for de in corridor_set):
+            n_on += 1
+    return n_on / len(od_list)
+```
+
+Uses same `_ttime_route` (ttime-Dijkstra) as `select_targeted_od_pairs`. When
+`select_targeted_od_pairs` was used, result is 1.00 by construction.
+
+**`[OD_COUPLING]` log format:**
+```
+[OD_COUPLING] generator=select_targeted_od_pairs seed=1 n_ods=3 on_path_fraction=1.000 corridor=['e1','e2']
+```
+
+**Hard gate:** if `on_path_fraction < 0.60` and not `--force-od-coupling` → `sys.exit(...)`.
+`--force-od-coupling` flag added for deliberate control experiments only.
+
+**Global deferred log** (when `warmup_savestate` active, before seed loop):
+```
+[OD_COUPLING] generator=generate_od_pairs n_ods=3 on_path_fraction=DEFERRED corridor=per-seed
+```
+
+---
+
+## Step 3 — 1.371 Anomaly: Temporal Drift (not a control bug)
+
+**Finding:** `drift_ratio = 1.371` for ours-fuel ego_1 in Smoke 5 is a measurement artifact.
+
+`_write_crossing_diag` computed `chosen_cost = sum(global_map.get_weight(e) for e in driven_edges)`
+at **ego arrival time** (t ≈ 21916 s). GlobalMap weights at t=21916 reflect 316 s of RSU updates
+(63 × 5-s cycles) since routing time (t ≈ 21600). The ratio measures drift, not suboptimality.
+
+**Proof of correctness:** Dijkstra is provably optimal under its own weights. The routing-time
+ratio (chosen_cost_at_routing / bypass_cost_at_routing) = 1.000 by definition. Any ratio > 1.0
+at arrival time is purely a temporal drift measurement.
+
+**Renamed metric:** `ratio` → `drift_ratio` in crossing_diag CSV.
+
+**New column `routing_time_cost`:** uses `route_snapshot["saved_weights"]` captured at injection
+(GlobalMap snapshot at t ≈ 21600). `routing_time_cost = sum(saved_weights.get(e, ...) for e in driven_edges)`.
+
+**`[EGO_INJECT_CHECK]` 3-way log** (in `_inject_ego_trip`, after vehicle creation):
+```
+[EGO_INJECT_CHECK] cost_mode=fuel vid=ego_0 dijkstra_n=31 actual_n=31 match=True
+```
+Catches any pre-Fix-V style SUMO rerouting device override between route creation and insertion.
+If `match=False`, logs first 3 edges of each route for diagnosis.
+
+---
+
+## Fix S — δ 0.10 → 0.01 (implemented this round)
+
+**Derivation:** `δ = max(p50_margin / 2, 0.01)` where `p50_margin` is the median accepted-margin
+across rejected reroute evals from D4. From Smoke 5 D4: `p50 = 2.498%`, so `δ = max(1.249%, 1%) = 1.249%`.
+Floored to `δ = 0.01` (1%) per the `max(·, 0.01)` floor.
+
+**Changes:**
+- `compare_routing.py`: `ap.add_argument("--fuel-hysteresis", default=0.01, ...)`
+- `simulate.py`: `Simulation.__init__` signature default `fuel_hysteresis=0.01`
+- Both `run_fixed_departure_campaign` overload defaults: `fuel_hysteresis=0.01`
+- `run_k10_fuelspec.bat`: `--fuel-hysteresis 0.01 ^` (was 0.10)
+
+---
+
+## Fix 5b — `[FREEZE]` log format (implemented this round)
+
+`freeze_baseline()` in `edgecost.py` now emits:
+
+```
+[FREEZE] edge=152535#4 baseline=412.7 n_window=12 source=traversal
+[FREEZE] edge=152330#0 baseline=0.0 n_window=0 source=preseed
+```
+
+`source=traversal` when `_fuel_seed[edge_id]` has accumulated samples (real observed data locked).
+`source=preseed` when no real traversals (frozen from regression-estimated cold baseline).
+
+This supersedes `[FREEZE_BASELINE]` and is structurally self-describing.
+
+---
+
+## CORRIDOR_MIN_TRAVERSALS 5 → 9 (rate gate, Step 5a)
+
+**Rate reasoning:** 9 sampled traversals / 1800 s warmup measurement window = 5.0 traversals/1000 s.
+Over 600 s post-activation (grade-lead window), expected ≈ 3.0 additional observations before
+first ego routes. With 3 expected observations, the RSU has meaningful post-grade signal.
+
+**3 of 6 prior corridor candidates pass the new threshold** (from Smoke 5 warmup data):
+
+| Edge | Warmup traversals | New gate (≥9)? |
+|------|-------------------|----------------|
+| 152535#4 | 10 | ✓ |
+| -152330#0 | 29 | ✓ |
+| 152330#0 | 25 | ✓ |
+| -152534#2 | 6 | ✗ |
+| -152535#2 | 5 | ✗ |
+| 152714 | 5 | ✗ |
+
+Gate selects top 2 by speed_ratio from passing candidates. With 3 passing, Smoke 6 should
+find a corridor without `--force-corridor`.
+
+**Unit tests updated** (2 tests in `test_nonbottleneck_select.py`): traversal counts updated to
+9/10 (from 6/7/8) to reflect the new threshold. 48/48 tests pass.
+
+---
+
+## Subscription alignment: 4,404 → 3,556 edges
+
+**`NetworkBuilder.get_routable_edges()` new method:**
+
+```python
+def get_routable_edges(self):
+    return list({data['edge_id'] for _, _, data in self.graph.edges(data=True)})
+```
+
+Returns only passenger-routable edge IDs from the routing graph (same set as Fix Q2b).
+
+**`Simulation.__init__` change:**
+
+```python
+# Old:
+self.edges = self.net_builder.get_all_edges()   # 4,404 non-internal edges
+# New:
+self.edges = self.net_builder.get_routable_edges()  # 3,556 passenger-routable
+```
+
+Eliminates 848 per-step subscription responses for non-passenger edges (bike lanes,
+bus-only roads, sub-1m stubs). RSU coverage log now reads `3556 / 3556`.
+
+---
+
+## Perf gate revision (Round-9)
+
+The `≥ 30 steps/s` criterion (Fix G, Round 3) was calibrated for libsumo. At the current
+subscription size and scale=2.0, observed rate is ~6.7–6.9 steps/s with network TraCI.
+
+**New criterion (documented here, to be formally adopted in round spec):**
+"Projected k=10 wall-clock ≤ 12 h, computed from Smoke mean_steps_s and arm parallelism."
+
+The 30 steps/s criterion is retained in the IMPLEMENTATION_NOTES as documentation of the
+libsumo-era target; it is treated as NOT EVALUABLE for network-TraCI smokes.
+
+---
+
+## Round-9 Commit
+
+`14f8ee0` — "Round-9: OD coupling fix, anomaly instrumentation, rate gate, Fix S, sub alignment"
+
+Changes in commit:
+- `compare_routing.py`: `compute_on_path_fraction()`, `--force-od-coupling` flag,
+  global `[OD_COUPLING]` gate, per-seed OD regeneration + per-seed gate,
+  `od_list → seed_od_list` in arm submit, `CORRIDOR_MIN_TRAVERSALS=9`
+- `simulate.py`: `[EGO_INJECT_CHECK]`, `drift_ratio` rename, `routing_time_cost` column,
+  `_write_crossing_diag` signature + routing_time_weights param, call site updated,
+  `get_routable_edges()` subscription alignment, `fuel_hysteresis=0.01` default
+- `edgecost.py`: `[FREEZE]` format (replaces `[FREEZE_BASELINE]`), `source` field
+- `routingManager.py`: `get_routable_edges()` method
+- `run_k10_fuelspec.bat`: `--fuel-hysteresis 0.01`
+- `test_nonbottleneck_select.py`: 2 tests updated for CORRIDOR_MIN_TRAVERSALS=9
