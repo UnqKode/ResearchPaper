@@ -1135,13 +1135,15 @@ CORRIDOR_MEASURE_WINDOW_S = 1800.0
 # Corridor validity thresholds (Fix E / Fix K).
 CORRIDOR_SPEED_RATIO_MIN = 0.85
 CORRIDOR_OCC_MAX = 0.40
-# Fix M / Round-9 Step 3a: minimum sampled traversals in the 1800 s measurement window.
-# Rate criterion: 9 sampled traversals / 1800 s = 3/600 s → expected ≥3 post-activation
-# observations in the 600 s detection window before the first ego routes.
-# With vehicle_sample_mod=2, 9 sampled ≈ 18 real traversals in warmup.
+# Fix O6 / Round-10: Poisson-honest corridor gate.
+# CORRIDOR_MIN_TRAVERSALS=24 sampled in 1800 s warmup window → with grade_lead=1200 s,
+# λ_post = 24 × 1200/1800 = 16, P(X≥3|λ=16) ≈ 100%.
+# Even at the boundary (24 warmup, 1200 s grade), P(X≥3) >> 95%.
+# The gate enforces the 95% Poisson criterion explicitly (see _corridor_gate).
+# With vehicle_sample_mod=2, 24 sampled ≈ 48 real traversals in warmup.
 # CORRIDOR_OCC_MIN removed: with --device.rerouting.probability=1 Monaco traffic
 # disperses so completely (max occ=0.0001) that the occupancy floor was dead code.
-CORRIDOR_MIN_TRAVERSALS = 9
+CORRIDOR_MIN_TRAVERSALS = 24
 
 
 def _run_warmup_phase(seed, candidate_edges, state_path, warmup_end_time,
@@ -1150,7 +1152,8 @@ def _run_warmup_phase(seed, candidate_edges, state_path, warmup_end_time,
                       force_corridor=False,
                       vehicle_sample_mod=2,
                       bg_reroute_prob=0.25,
-                      python_state_path=None):
+                      python_state_path=None,
+                      grade_lead_s=1200.0):
     """FIX D + E + M: phase-0 warmup with saved SUMO state and corridor validity gate.
 
     Runs ONE headless SUMO instance (same net/routes/config as the arms, same
@@ -1377,25 +1380,38 @@ def _run_warmup_phase(seed, candidate_edges, state_path, warmup_end_time,
         })
 
     degraded_edges, gate_status = _corridor_gate(
-        measurements, force_corridor=force_corridor, seed=seed)
+        measurements, force_corridor=force_corridor, seed=seed,
+        grade_lead_s=grade_lead_s, measure_window_s=measure_window_s)
     return degraded_edges, warmup_end_time, gate_status
 
 
-def _corridor_gate(measurements, force_corridor=False, seed=None):
-    """FIX E + M: corridor validity gate over per-candidate warmup measurements.
+def _poisson_p_ge3(lam):
+    """P(X >= 3) for X ~ Poisson(lambda)."""
+    import math
+    if lam <= 0.0:
+        return 0.0
+    return 1.0 - math.exp(-lam) * (1.0 + lam + lam * lam / 2.0)
+
+
+def _corridor_gate(measurements, force_corridor=False, seed=None,
+                   grade_lead_s=1200.0,
+                   measure_window_s=CORRIDOR_MEASURE_WINDOW_S):
+    """FIX E + M + O6: corridor validity gate over per-candidate warmup measurements.
 
     ``measurements`` is a list of dicts with keys eid, avg_occ (normalised [0,1]),
     speed_ratio (avg_speed / speed_limit), length, warmup_traversals (int).
 
     PASS = warmup_traversals >= CORRIDOR_MIN_TRAVERSALS (Fix M: replaces avg_occ floor)
+           AND P(X>=3 post-activation | Poisson rate) >= 0.95 (Fix O6)
            AND speed_ratio >= CORRIDOR_SPEED_RATIO_MIN
            AND avg_occ <= CORRIDOR_OCC_MAX (bottleneck upper bound retained)
 
-    Fix M: avg_occ floor (CORRIDOR_OCC_MIN) removed. With --device.rerouting.probability=1,
-    Monaco traffic disperses so completely (probe max occ=0.0001) that the occupancy floor
-    was dead code — gate ALWAYS fell through to force-fallback. Traversal count is a more
-    direct and robust evidence criterion: an edge with ≥5 sampled traversals in the 1800 s
-    window (~10 real vehicles at sample_mod=2) carries real background EU0 signal.
+    Fix O6 Poisson gate: with grade_lead_s seconds of post-activation window, the
+    expected post-activation traversals λ = warmup_traversals × grade_lead_s /
+    measure_window_s. The gate rejects corridors where P(X≥3|λ) < 0.95 — i.e.,
+    there is less than 95% probability the fuel arm will observe ≥3 degraded-traffic
+    samples before the first ego routes. This prevents the Smoke 6 failure where
+    152535#4 had λ=3.3 → P(X≥3)=64.5% → 0 actual traversals → blind routing.
 
     Passing candidates are ranked by speed_ratio DESC (freest-flowing first),
     then warmup_traversals DESC (more evidence = stronger signal), then length DESC.
@@ -1409,27 +1425,34 @@ def _corridor_gate(measurements, force_corridor=False, seed=None):
     """
     passing = []
     for m in measurements:
-        trav_ok = m.get("warmup_traversals", 0) >= CORRIDOR_MIN_TRAVERSALS
-        rate_ok = m["speed_ratio"] >= CORRIDOR_SPEED_RATIO_MIN
-        occ_ok  = m["avg_occ"] <= CORRIDOR_OCC_MAX
-        m_passed = trav_ok and rate_ok and occ_ok
+        wt = m.get("warmup_traversals", 0)
+        lam = wt * grade_lead_s / measure_window_s
+        p_ge3 = _poisson_p_ge3(lam)
+        trav_ok    = wt >= CORRIDOR_MIN_TRAVERSALS
+        poisson_ok = p_ge3 >= 0.95
+        rate_ok    = m["speed_ratio"] >= CORRIDOR_SPEED_RATIO_MIN
+        occ_ok     = m["avg_occ"] <= CORRIDOR_OCC_MAX
+        m_passed = trav_ok and poisson_ok and rate_ok and occ_ok
         if m_passed:
             passing.append(m)
             print(f"[CORRIDOR_GATE] PASS edge={m['eid']} "
-                  f"ratio={m['speed_ratio']:.3f} traversals={m.get('warmup_traversals',0)} "
-                  f"occ={m['avg_occ']:.4f}")
+                  f"ratio={m['speed_ratio']:.3f} traversals={wt} "
+                  f"λ={lam:.1f} P(≥3)={p_ge3:.3f} occ={m['avg_occ']:.4f}")
         else:
             reasons = []
             if not rate_ok:
                 reasons.append(f"ratio={m['speed_ratio']:.3f}<{CORRIDOR_SPEED_RATIO_MIN}")
             if not trav_ok:
                 reasons.append(
-                    f"traversals={m.get('warmup_traversals',0)}<{CORRIDOR_MIN_TRAVERSALS}(no evidence)")
+                    f"traversals={wt}<{CORRIDOR_MIN_TRAVERSALS}(no evidence)")
+            if not poisson_ok:
+                reasons.append(f"P(≥3|λ={lam:.1f})={p_ge3:.3f}<0.95")
             if not occ_ok:
                 reasons.append(f"occ={m['avg_occ']:.4f}>{CORRIDOR_OCC_MAX}(bottleneck)")
             print(f"[CORRIDOR_GATE] FAILED edge={m['eid']} "
-                  f"ratio={m['speed_ratio']:.3f} traversals={m.get('warmup_traversals',0)} "
-                  f"occ={m['avg_occ']:.4f} ({'; '.join(reasons)})")
+                  f"ratio={m['speed_ratio']:.3f} traversals={wt} "
+                  f"λ={lam:.1f} P(≥3)={p_ge3:.3f} occ={m['avg_occ']:.4f} "
+                  f"({'; '.join(reasons)})")
 
     if len(passing) < 2:
         if not force_corridor:
@@ -2327,9 +2350,9 @@ def main():
     ap.add_argument("--n-degraded", type=int, default=3, help="k for auto-selection")
     ap.add_argument("--degrade-start", type=float, default=-1,
                     help="absolute sim time to start degradation. Negative = use --grade-lead.")
-    ap.add_argument("--grade-lead", type=float, default=600.0,
-                    help="Fix 3/Round-4: seconds before depart_start that grade activates. "
-                         "degrade_start = depart_start - grade_lead. Default 600.")
+    ap.add_argument("--grade-lead", type=float, default=1200.0,
+                    help="Fix O6/Round-10: seconds before depart_start that grade activates. "
+                         "degrade_start = depart_start - grade_lead. Default 1200 (was 600).")
     ap.add_argument("--force-baseline", action="store_true",
                     help="Fix 4/Round-4: continue even if baselines are not locked at grade "
                          "activation (suppress RuntimeError from [BASELINE_GATE]).")
@@ -2711,6 +2734,7 @@ def main():
                             vehicle_sample_mod=args.vehicle_sample_mod,
                             bg_reroute_prob=args.bg_reroute_prob,
                             python_state_path=seed_python_state,
+                            grade_lead_s=args.grade_lead,
                         )
                         print(f"[CORRIDOR_GATE] seed={seed} gate={_seed_gate_status}")
                         seed_gate_statuses[seed] = _seed_gate_status
