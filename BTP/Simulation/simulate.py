@@ -1306,24 +1306,35 @@ class Simulation:
     def _dump_d1_weights(self, arm, seed, sim_time):
         """D1: dump per-edge weight decomposition to CSV at t≈depart_start-10.
 
-        Columns: edge_id, length_m, speed_limit_mps, baseline_source,
-        n_traversal_samples, baseline_mg_traversal, avg_speed, occupancy,
-        fuel_consumption, t_actual, C, F, S, multiplier, weight
+        Fix Step2/D1: 'weight' now reflects each arm's OWN cost function:
+          fuel mode  → GlobalMap.get_weight() = get_segment_fuel()+junction_pen (mg)
+          augtime    → GlobalMap.get_weight() = t_actual × (1+α·C+β·F+γ·S) (s)
+        'augtime_weight' always records the augtime formula for reference.
+        'fuel_warm' = True when the traversal-fuel deque is non-empty (fuel mode
+        warm branch active).  'cost_mode' makes the CSV self-describing.
+
+        A post-write spot-check asserts 5 random GlobalMap weights match the
+        routing graph (catches any second formula copy that drifted).
         """
-        import csv as _csv, os as _os
+        import csv as _csv, os as _os, random as _rnd
         btp_dir = _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__)))
         arm_slug = arm.replace("-", "_")
         seed_str = str(seed) if seed is not None else "0"
         csv_path = _os.path.join(btp_dir, f"diag_weights_{arm_slug}_seed{seed_str}.csv")
         fieldnames = [
-            "edge_id", "length_m", "speed_limit_mps", "baseline_source", "locked",
+            "edge_id", "length_m", "speed_limit_mps", "cost_mode",
+            "baseline_source", "locked",
             "n_traversal_samples", "baseline_mg_traversal",
             "avg_speed", "occupancy", "fuel_consumption",
-            "t_actual", "C", "F", "S", "multiplier", "weight",
+            "t_actual", "C", "F", "S", "multiplier",
+            "augtime_weight",  # always augtime formula (reference)
+            "fuel_warm",       # True if traversal deque non-empty
+            "weight",          # THE routing weight this arm's Dijkstra consumes
         ]
         frozen = getattr(self.calc, '_frozen_baseline_edges', set())
         preseeded = getattr(self.calc, '_preseeded_edges', set())
         n_written = 0
+        written_weights = []   # (edge_id, weight) for post-write assertion
         with open(csv_path, 'w', newline='') as fh:
             writer = _csv.DictWriter(fh, fieldnames=fieldnames)
             writer.writeheader()
@@ -1342,10 +1353,13 @@ class Simulation:
                 else:
                     src = "none"
                 d = self.calc._decompose(eid, m)
+                live_w = self.global_map.get_weight(eid)
+                fuel_warm = bool(n_trav > 0)
                 writer.writerow({
                     "edge_id": eid,
                     "length_m": round(self.calc.edge_lengths.get(eid, 0.0), 2),
                     "speed_limit_mps": round(self.calc.edge_speed_limits.get(eid, 0.0), 3),
+                    "cost_mode": self.cost_mode,
                     "baseline_source": src,
                     "locked": is_locked,
                     "n_traversal_samples": n_trav,
@@ -1358,11 +1372,35 @@ class Simulation:
                     "F": round(d["F"], 4),
                     "S": round(d["S"], 4),
                     "multiplier": round(d["multiplier"], 4),
-                    "weight": round(d["weight"], 4),
+                    "augtime_weight": round(d["weight"], 4),
+                    "fuel_warm": fuel_warm,
+                    "weight": round(live_w, 4),
                 })
+                written_weights.append((eid, live_w))
                 n_written += 1
-        print(f"[D1_DUMP] arm={arm} seed={seed} t={sim_time:.0f} "
-              f"edges={n_written} -> {csv_path}")
+        # D1_ASSERT: spot-check 5 random edges — GlobalMap weight must match
+        # the weight stored in the routing graph (catches a second formula copy
+        # that drifted from the last update_graph_weights() call).
+        graph_w = {
+            data['edge_id']: data['weight']
+            for _, _, data in self.net_builder.graph.edges(data=True)
+        }
+        _rnd.seed(42)
+        sample = _rnd.sample(written_weights, min(5, len(written_weights)))
+        n_fail = 0
+        for eid, dumped_w in sample:
+            g_w = graph_w.get(eid)
+            if g_w is None:
+                continue
+            rel_err = abs(dumped_w - g_w) / max(abs(g_w), 1e-9)
+            status = "PASS" if rel_err < 1e-4 else "FAIL"
+            if status == "FAIL":
+                n_fail += 1
+            print(f"[D1_ASSERT] {status} eid={eid} dumped={dumped_w:.4f} graph={g_w:.4f} "
+                  f"rel_err={rel_err:.2e}")
+        print(f"[D1_DUMP] arm={arm} seed={seed} t={sim_time:.0f} cost_mode={self.cost_mode} "
+              f"edges={n_written} assert={'PASS' if n_fail==0 else f'FAIL({n_fail})'} "
+              f"-> {csv_path}")
 
     # -----------------------------------------------------------------
     def _write_d2_route(self, vid, arm, seed, route_edges, deg_edges):

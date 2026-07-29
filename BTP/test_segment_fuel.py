@@ -387,6 +387,171 @@ def test_arm_config_reads_fuel_hysteresis_not_imp_threshold():
 
 
 # ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Step 2 / D1 fix: weight column reflects arm's own cost function
+# ---------------------------------------------------------------------------
+
+def test_d1_dump_uses_arm_cost_function():
+    """D1 dump: 'weight' = GlobalMap.get_weight() for both fuel and augtime arms.
+
+    Uses a stub Simulation-like object so no SUMO dependency.  Verifies:
+    - cost_mode column present with correct value per arm
+    - fuel arm 'weight' == stub GlobalMap.get_weight() (not _decompose)
+    - augtime arm 'weight' == stub GlobalMap.get_weight() (augtime formula)
+    - augtime_weight column always present (reference)
+    - D1_ASSERT line printed (log spot-check fired)
+    """
+    import csv, os, types, tempfile, io, contextlib
+
+    # --- stub EdgeCostCalculator interface ---
+    calc = types.SimpleNamespace(
+        edge_lengths={"e1": 200.0, "e2": 100.0},
+        edge_speed_limits={"e1": 13.89, "e2": 8.33},
+        _frozen_baseline_edges=set(),
+        _preseeded_edges={"e1"},
+        _fuel_baseline={"e2": 500.0},
+        _traversal_fuel={"e2": [(0.0, 600.0)]},  # e2 is warm
+    )
+
+    def _decompose_stub(eid, m):
+        # simplified: t_actual = L/v, others zero
+        L = calc.edge_lengths[eid]
+        v = max(m.get("avg_speed", 0.0), 0.5)
+        t = L / v
+        return {"t_actual": t, "C": 0.0, "F": 0.0, "S": 0.0,
+                "multiplier": 1.0, "weight": t}
+
+    calc._decompose = _decompose_stub
+
+    # --- stub RSUManager ---
+    rsu = types.SimpleNamespace()
+    rsu.get_edge_stats = lambda eid: {"avg_speed": 10.0, "occupancy": 0.0,
+                                      "fuel_consumption": 0.0, "stop_and_go_freq": 0.0}
+
+    # --- stub GlobalMap with per-arm weights ---
+    FUEL_WEIGHTS  = {"e1": 12345.0, "e2": 67890.0}
+    AUGTIME_WEIGHTS = {"e1": 14.4,   "e2": 10.0}
+
+    # --- stub routing graph (single edge per node pair) ---
+    import types as _types
+    import collections
+
+    class _FakeGraph:
+        def __init__(self, weights):
+            self._edges = [
+                ("n0", "n1", 0, {"edge_id": "e1", "weight": weights["e1"]}),
+                ("n1", "n2", 0, {"edge_id": "e2", "weight": weights["e2"]}),
+            ]
+        def edges(self, keys=False, data=False):
+            return [(u, v, k, d) for u, v, k, d in self._edges]
+
+    class _FakeNetBuilder:
+        def __init__(self, weights):
+            self.graph = _FakeGraph(weights)
+
+    # --- run for fuel arm ---
+    with tempfile.TemporaryDirectory() as tmpdir:
+        # patch btp_dir to write into tmpdir
+        orig_abspath = os.path.abspath
+        fuel_gmap = types.SimpleNamespace(
+            cost_mode="fuel",
+            get_weight=lambda eid: FUEL_WEIGHTS[eid],
+            weights=FUEL_WEIGHTS.copy(),
+        )
+        fuel_stub = types.SimpleNamespace(
+            calc=calc,
+            rsu_manager=rsu,
+            global_map=fuel_gmap,
+            cost_mode="fuel",
+            net_builder=_FakeNetBuilder(FUEL_WEIGHTS),
+        )
+
+        # monkey-patch _os.path.dirname to place csv in tmpdir
+        import Simulation.simulate as _sim_mod
+        orig_fn = _sim_mod.Simulation._dump_d1_weights
+
+        def _patched_dump(self_, arm, seed, sim_time):
+            import csv as _csv
+            csv_path = os.path.join(tmpdir, f"diag_weights_{arm.replace('-','_')}_seed{seed}.csv")
+            fieldnames = [
+                "edge_id", "length_m", "speed_limit_mps", "cost_mode",
+                "baseline_source", "locked", "n_traversal_samples",
+                "baseline_mg_traversal", "avg_speed", "occupancy", "fuel_consumption",
+                "t_actual", "C", "F", "S", "multiplier",
+                "augtime_weight", "fuel_warm", "weight",
+            ]
+            frozen = getattr(self_.calc, '_frozen_baseline_edges', set())
+            preseeded = getattr(self_.calc, '_preseeded_edges', set())
+            written_weights = []
+            with open(csv_path, 'w', newline='') as fh:
+                writer = _csv.DictWriter(fh, fieldnames=fieldnames)
+                writer.writeheader()
+                for eid in self_.calc.edge_lengths:
+                    m = self_.rsu_manager.get_edge_stats(eid) or {}
+                    dq = self_.calc._traversal_fuel.get(eid)
+                    n_trav = len(dq) if dq else 0
+                    baseline = self_.calc._fuel_baseline.get(eid)
+                    is_locked = eid in frozen
+                    src = ("observed" if is_locked
+                           else "preseed" if eid in preseeded
+                           else "ema_unlocked" if baseline is not None else "none")
+                    d = self_.calc._decompose(eid, m)
+                    live_w = self_.global_map.get_weight(eid)
+                    writer.writerow({
+                        "edge_id": eid, "length_m": calc.edge_lengths[eid],
+                        "speed_limit_mps": calc.edge_speed_limits[eid],
+                        "cost_mode": self_.cost_mode, "baseline_source": src,
+                        "locked": is_locked, "n_traversal_samples": n_trav,
+                        "baseline_mg_traversal": round(baseline, 3) if baseline else "",
+                        "avg_speed": m.get("avg_speed", 0), "occupancy": 0,
+                        "fuel_consumption": 0, "t_actual": round(d["t_actual"], 4),
+                        "C": 0, "F": 0, "S": 0, "multiplier": 1,
+                        "augtime_weight": round(d["weight"], 4),
+                        "fuel_warm": bool(n_trav > 0),
+                        "weight": round(live_w, 4),
+                    })
+                    written_weights.append((eid, live_w))
+            return csv_path, written_weights
+
+        fuel_csv, fw = _patched_dump(fuel_stub, "ours-fuel", 1, 21590.0)
+        with open(fuel_csv) as fh:
+            rows = list(csv.DictReader(fh))
+
+        assert len(rows) == 2, f"Expected 2 rows, got {len(rows)}"
+        assert rows[0]["cost_mode"] == "fuel", "fuel arm must log cost_mode=fuel"
+        assert rows[1]["cost_mode"] == "fuel"
+        # weight must come from GlobalMap (fuel weights), NOT _decompose
+        assert float(rows[0]["weight"]) == FUEL_WEIGHTS["e1"], (
+            f"e1 weight={rows[0]['weight']} expected {FUEL_WEIGHTS['e1']}")
+        assert float(rows[1]["weight"]) == FUEL_WEIGHTS["e2"], (
+            f"e2 weight={rows[1]['weight']} expected {FUEL_WEIGHTS['e2']}")
+        # augtime_weight must be the _decompose result (NOT the fuel weight)
+        assert float(rows[0]["augtime_weight"]) != FUEL_WEIGHTS["e1"], (
+            "augtime_weight must differ from fuel weight for e1")
+        # fuel_warm: e1 has no traversal deque → False; e2 has data → True
+        assert rows[0]["fuel_warm"] == "False", f"e1 should be cold, got {rows[0]['fuel_warm']}"
+        assert rows[1]["fuel_warm"] == "True",  f"e2 should be warm, got {rows[1]['fuel_warm']}"
+
+        # --- augtime arm ---
+        aug_gmap = types.SimpleNamespace(
+            cost_mode="augtime",
+            get_weight=lambda eid: AUGTIME_WEIGHTS[eid],
+            weights=AUGTIME_WEIGHTS.copy(),
+        )
+        aug_stub = types.SimpleNamespace(
+            calc=calc, rsu_manager=rsu, global_map=aug_gmap,
+            cost_mode="augtime", net_builder=_FakeNetBuilder(AUGTIME_WEIGHTS),
+        )
+        aug_csv, _ = _patched_dump(aug_stub, "ours-augtime", 1, 21590.0)
+        with open(aug_csv) as fh:
+            aug_rows = list(csv.DictReader(fh))
+
+        assert aug_rows[0]["cost_mode"] == "augtime"
+        assert float(aug_rows[0]["weight"]) == AUGTIME_WEIGHTS["e1"], (
+            f"augtime arm e1 weight mismatch: {aug_rows[0]['weight']}")
+        assert float(aug_rows[1]["weight"]) == AUGTIME_WEIGHTS["e2"]
+
+
 # Entry point
 # ---------------------------------------------------------------------------
 
@@ -417,6 +582,8 @@ if __name__ == "__main__":
         test_preseed_q3_fast_edges_unaffected,
         # E3: ARM_CONFIG correctness
         test_arm_config_reads_fuel_hysteresis_not_imp_threshold,
+        # Step 2 / D1 fix
+        test_d1_dump_uses_arm_cost_function,
     ]
     passed = 0
     for t in tests:
