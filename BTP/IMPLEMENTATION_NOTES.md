@@ -1079,3 +1079,83 @@ Changes in commit:
 - `routingManager.py`: `get_routable_edges()` method
 - `run_k10_fuelspec.bat`: `--fuel-hysteresis 0.01`
 - `test_nonbottleneck_select.py`: 2 tests updated for CORRIDOR_MIN_TRAVERSALS=9
+
+---
+
+## Round-10 — Fix O5 + Fix O6
+
+### Step 1 Finding: Junction-penalty is fuel-mode-only by original spec
+
+`git log -S "junction_weight"` traces entry to commit `dc9ffb6` ("Change 2A+1+2B", 2026-07-06).
+Commit message: "GlobalMap.refresh() and get_weight() both add junction_weight * penalty to
+**fuel-mode** weights. --junction-weight 0 restores pre-change behaviour exactly."
+
+Code evidence: `GlobalMap.refresh()` augtime branch (lines 98-105) has NO junction_pen term.
+`get_weight()` augtime cold fallback (lines 124-126) returns `L/v_lim` with no penalty.
+Junction penalty is physically meaningful only for fuel routing (stop-start mg cost);
+applying it to augtime (seconds) would mix units.
+
+**Decision: fuel-mode-only by design. Ablation's `junction_weight=0.0` is irrelevant to
+routing (ablation uses augtime mode). No asymmetry at routing level. No code change.**
+
+### Fix O5: D1_ASSERT sync (commit `a7ab047`, `simulate.py`)
+
+**Bug:** `_dump_d1_weights()` fires at t≥21590 before ego injection. At this point
+`active_egos={}` → `_do_reroute=False` → `refresh()` and `update_graph_weights()` had
+never been called → GlobalMap empty → `get_weight()` returns cold fallback (mg for fuel,
+L/v_lim for augtime) → routing graph has `_build_graph()` L/v_lim seconds → D1_ASSERT
+compared mg vs seconds → FAIL(5) for fuel arm.
+
+**Fix:** Added `self.global_map.refresh(self.edges)` and
+`self.net_builder.update_graph_weights(self.global_map)` at top of `_dump_d1_weights()`.
+Effect: (a) `weight` column now shows live RSU state at t=21590, not cold fallback;
+(b) routing graph == GlobalMap → D1_ASSERT compares same units → PASS expected.
+`_inject_ego_trip()` calls another refresh+update at ego injection time, so no
+persistent side-effect on routing.
+
+### Fix O6: Poisson-honest corridor gate (commit `87ead20`, `compare_routing.py`)
+
+**Bug (Smoke 6):** 152535#4 had 10 sampled warmup traversals; with grade_lead=600s:
+λ = 10×600/1800 = 3.33 → P(X≥3|λ=3.33) = 64.5% → actual post-activation = 0 → blind.
+
+**Changes:**
+
+| Parameter | Before | After |
+|-----------|--------|-------|
+| `CORRIDOR_MIN_TRAVERSALS` | 9 | 24 |
+| `--grade-lead` default | 600s | 1200s |
+| Poisson gate | absent | P(X≥3\|λ) ≥ 0.95 required |
+
+**New `_poisson_p_ge3(lam)` helper** added above `_corridor_gate()`:
+```python
+def _poisson_p_ge3(lam):
+    if lam <= 0.0: return 0.0
+    return 1.0 - math.exp(-lam) * (1.0 + lam + lam * lam / 2.0)
+```
+
+**`_corridor_gate()` updated:** signature adds `grade_lead_s=1200.0` and
+`measure_window_s=CORRIDOR_MEASURE_WINDOW_S`. For each candidate:
+```
+λ = warmup_traversals × grade_lead_s / measure_window_s
+poisson_ok = _poisson_p_ge3(λ) ≥ 0.95
+m_passed = trav_ok AND poisson_ok AND rate_ok AND occ_ok
+```
+`[CORRIDOR_GATE]` log now prints λ and P(≥3) for every candidate.
+
+**Parameter threading:** `grade_lead_s` added to `_run_warmup_phase()` signature (default
+1200.0) and passed from main call site (`args.grade_lead`). `_corridor_gate()` receives it
+via `_run_warmup_phase`.
+
+**Buffer arithmetic:** With grade_lead=1200 and warmup_buffer=1200, `degrade_start =
+depart_start − grade_lead = 21600 − 1200 = 20400 = warmup_end`. Grade activates
+immediately at warmup completion; full 1200s between warmup end and ego departure is
+grade-active observation time.
+
+### Round-10 Commits
+
+| Hash | Files | Description |
+|------|-------|-------------|
+| `a7ab047` | `simulate.py` | Fix O5: sync GlobalMap+graph before D1 dump/assert |
+| `87ead20` | `compare_routing.py` | Fix O6: Poisson gate + grade-lead 1200s + CORRIDOR_MIN_TRAVERSALS=24 |
+
+**Smoke 7 PENDING:** awaiting user authorization per standing rule ("STOP for review after each smoke"). See DIAG_ROUND10.md for criteria and run command.
