@@ -155,7 +155,7 @@ class Simulation:
                  # --- Change 1: junction penalty (threaded to EdgeCostCalculator) ---
                  junction_weight=1.0,           # multiplier on junction penalty; 0.0 disables
                  # --- Change 2B: fuel-mode route-switch hysteresis ---
-                 fuel_hysteresis=0.10,          # min fractional saving to accept reroute in fuel mode
+                 fuel_hysteresis=0.01,          # Fix S: δ=0.01=max(p50_margin/2,0.01); was 0.10
                  # --- Fix B: RSU vehicle sampling rate (1/sample_mod) ---
                  vehicle_sample_mod=5,
                  # --- Fix W: RSU metric update decimation interval (seconds) ---
@@ -164,7 +164,10 @@ class Simulation:
         self.net_builder   = NetworkBuilder(net_file=net_file)
         self.graph         = self.net_builder.get_graph()
         self.intersections = self.net_builder.get_intersections()
-        self.edges         = self.net_builder.get_all_edges()
+        # Round-9: subscribe only to the 3,556 passenger-routable edges (was 4,404
+        # non-internal edges). Non-passenger edges (bike lanes, bus-only, sub-1m stubs)
+        # added per-step subscription overhead without contributing to ego routing.
+        self.edges         = self.net_builder.get_routable_edges()
 
         # --- 2. Static per-edge maps the calculator needs ---
         # self.graph is a MultiDiGraph, so edges(data=True) yields one (u,v,data)
@@ -803,6 +806,20 @@ class Simulation:
                 "saved_weights": {e: self.global_map.get_weight(e) for e in actual_route},
                 "timestamp": traci.simulation.getTime()
             }
+            # Step 3 3-way injection check: Dijkstra route == route added == getRoute result.
+            # Mismatch here is the control bug signature (pre-Fix-V SUMO override).
+            if self.ego_routing == "ours":
+                import sys as _isys
+                _route_match = (list(route_edges) == list(actual_route))
+                _isys.stderr.write(
+                    f"[EGO_INJECT_CHECK] cost_mode={self.cost_mode} vid=ego_{k} "
+                    f"dijkstra_n={len(route_edges)} actual_n={len(actual_route)} "
+                    f"match={_route_match}"
+                    + ("" if _route_match else
+                       f" dijkstra_head={list(route_edges)[:3]} actual_head={list(actual_route)[:3]}")
+                    + "\n"
+                )
+                _isys.stderr.flush()
             # Log CFS decomposition for initial route edges so max_route_mult
             # reflects the F signal at injection time (not just reroute decisions).
             if getattr(self.calc, "debug_cfs", False) and self.ego_routing == "ours":
@@ -1431,14 +1448,20 @@ class Simulation:
             })
 
     # -----------------------------------------------------------------
-    def _write_crossing_diag(self, ego_id, arm, ego_k, od_list, driven_edges, seed, stamp):
+    def _write_crossing_diag(self, ego_id, arm, ego_k, od_list, driven_edges, seed, stamp,
+                              routing_time_weights=None):
         """
         For every ego that arrives, compute whether it crossed a degraded edge and
         whether doing so was cost-rational (chosen_cost <= bypass_cost).
 
-        chosen_cost  = sum of current CFS weights over the ego's actual driven route
-        bypass_cost  = sum of CFS weights over the cheapest route that avoids all
-                       degraded edges (Dijkstra on a graph copy with those edges removed)
+        chosen_cost      = sum of ARRIVAL-TIME CFS weights over the ego's driven route
+        bypass_cost      = sum of ARRIVAL-TIME CFS weights over cheapest bypass route
+        drift_ratio      = chosen_cost / bypass_cost  (arrival-time; NOT routing-time)
+        routing_time_cost = sum of ROUTING-TIME weights (saved_weights at injection);
+                           routing_time_cost / bypass_cost ≈ 1.0 by Dijkstra optimality.
+
+        'drift_ratio' > 1.0 indicates weight drift between routing and arrival, NOT
+        suboptimality of the routing decision. See Step-3 analysis in DIAG_ROUND9.md.
 
         Writes one row to crossing_diag_<stamp>.csv in the BTP output directory.
         If bypass Dijkstra fails (disconnected graph), bypass_cost is left blank.
@@ -1451,6 +1474,10 @@ class Simulation:
 
         crossed = any(e in degraded for e in driven_edges)
         chosen_cost = sum(self.global_map.get_weight(e) for e in driven_edges)
+        routing_time_cost = (
+            sum(routing_time_weights.get(e, self.global_map.get_weight(e)) for e in driven_edges)
+            if routing_time_weights else None
+        )
 
         bypass_cost = None
         if ego_k < len(od_list):
@@ -1475,7 +1502,7 @@ class Simulation:
                 except Exception:
                     bypass_cost = None
 
-        ratio = (chosen_cost / bypass_cost) if (bypass_cost and bypass_cost > 0) else None
+        drift_ratio = (chosen_cost / bypass_cost) if (bypass_cost and bypass_cost > 0) else None
 
         btp_dir = _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__)))
         csv_path = _os.path.join(btp_dir, f"crossing_diag_{stamp}.csv")
@@ -1483,17 +1510,22 @@ class Simulation:
         with open(csv_path, 'a', newline='') as fh:
             writer = _csv.DictWriter(fh, fieldnames=[
                 'ego_id', 'seed', 'arm', 'crossed',
-                'chosen_cost', 'bypass_cost', 'ratio'])
+                'chosen_cost', 'bypass_cost',
+                'drift_ratio',        # arrival-time chosen/bypass (temporal drift metric)
+                'routing_time_cost',  # routing-time cost (≈ bypass by Dijkstra optimality)
+            ])
             if write_hdr:
                 writer.writeheader()
             writer.writerow({
-                'ego_id':       ego_id,
-                'seed':         seed,
-                'arm':          arm,
-                'crossed':      crossed,
-                'chosen_cost':  round(chosen_cost, 3),
-                'bypass_cost':  round(bypass_cost, 3) if bypass_cost is not None else '',
-                'ratio':        round(ratio, 4) if ratio is not None else '',
+                'ego_id':             ego_id,
+                'seed':               seed,
+                'arm':                arm,
+                'crossed':            crossed,
+                'chosen_cost':        round(chosen_cost, 3),
+                'bypass_cost':        round(bypass_cost, 3) if bypass_cost is not None else '',
+                'drift_ratio':        round(drift_ratio, 4) if drift_ratio is not None else '',
+                'routing_time_cost':  (round(routing_time_cost, 3)
+                                       if routing_time_cost is not None else ''),
             })
 
     # =================================================================
@@ -1822,7 +1854,9 @@ class Simulation:
                         try:
                             _driven = ego_states[vid]["metrics"].get("driven_edges", [])
                             _k = int(vid.split("_")[1])
-                            self._write_crossing_diag(vid, ego_policy, _k, od_list, _driven, seed, diag_stamp)
+                            _rt_weights = ego_states[vid].get("snapshot", {}).get("saved_weights", {})
+                            self._write_crossing_diag(vid, ego_policy, _k, od_list, _driven,
+                                                      seed, diag_stamp, _rt_weights)
                         except Exception as _de:
                             print(f"[crossing_diag] failed for {vid}: {_de}")
                     if progress_log_path:

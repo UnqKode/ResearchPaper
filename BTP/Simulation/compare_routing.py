@@ -383,6 +383,29 @@ def select_targeted_od_pairs(net_file, degraded_edges, n, seed, vclass="passenge
     return pairs
 
 
+def compute_on_path_fraction(net_file, od_list, degraded_edges, vclass="passenger"):
+    """Fraction of OD pairs whose ttime-optimal static path contains a corridor edge.
+
+    Used by the [OD_COUPLING] gate to verify ≥60% of ODs are aimed at the corridor.
+    The static sumolib Dijkstra (travel-time, unblocked graph) mirrors what
+    select_targeted_od_pairs uses — both functions share _ttime_route internally.
+    """
+    if not od_list or not degraded_edges:
+        return 0.0
+    net = sumolib.net.readNet(net_file)
+    corridor_set = set(degraded_edges)
+    n_on = 0
+    for orig_id, dest_id in od_list:
+        try:
+            a = net.getEdge(orig_id)
+            b = net.getEdge(dest_id)
+        except Exception:
+            continue
+        path_ids, _ = _ttime_route(net, a, b, set(), vclass)
+        if any(de in path_ids for de in corridor_set):
+            n_on += 1
+    return n_on / len(od_list)
+
 
 def build_checkpoints(n_pairs, seed, scale, teleport, spacing=CKPT_SPACING, warmup=REWARM_STEPS):
     """
@@ -1112,11 +1135,13 @@ CORRIDOR_MEASURE_WINDOW_S = 1800.0
 # Corridor validity thresholds (Fix E / Fix K).
 CORRIDOR_SPEED_RATIO_MIN = 0.85
 CORRIDOR_OCC_MAX = 0.40
-# Fix M: minimum sampled traversals during the measurement window.
-# With vehicle_sample_mod=2, 5 sampled traversals ≈ 10 real traversals.
+# Fix M / Round-9 Step 3a: minimum sampled traversals in the 1800 s measurement window.
+# Rate criterion: 9 sampled traversals / 1800 s = 3/600 s → expected ≥3 post-activation
+# observations in the 600 s detection window before the first ego routes.
+# With vehicle_sample_mod=2, 9 sampled ≈ 18 real traversals in warmup.
 # CORRIDOR_OCC_MIN removed: with --device.rerouting.probability=1 Monaco traffic
 # disperses so completely (max occ=0.0001) that the occupancy floor was dead code.
-CORRIDOR_MIN_TRAVERSALS = 5
+CORRIDOR_MIN_TRAVERSALS = 9
 
 
 def _run_warmup_phase(seed, candidate_edges, state_path, warmup_end_time,
@@ -1434,7 +1459,7 @@ def run_paired_scenario(arm_policy, alpha, beta, gamma, od_list, traffic_seed, t
                         diag_stamp=None, theta_fuel=1.0, theta_time=0.10,
                         cost_mode="augtime",
                         fuel_aggregator="median", fuel_sample_max_age_s=600.0,
-                        junction_weight=1.0, fuel_hysteresis=0.10,
+                        junction_weight=1.0, fuel_hysteresis=0.01,
                         vehicle_sample_mod=2,
                         warm_state_path=None, warmup_end_time=None,
                         diagnose=False, diagnose_exit_at=None,
@@ -1752,7 +1777,7 @@ def _run_paired_capture(arm_policy, alpha, beta, gamma, od_list, traffic_seed, t
                         road_condition_manager=None, debug_cfs=False, diag_stamp=None,
                         theta_fuel=1.0, theta_time=0.10, cost_mode="augtime",
                         fuel_aggregator="median", fuel_sample_max_age_s=600.0,
-                        junction_weight=1.0, fuel_hysteresis=0.10,
+                        junction_weight=1.0, fuel_hysteresis=0.01,
                         vehicle_sample_mod=2,
                         warm_state_path=None, warmup_end_time=None,
                         diagnose=False, diagnose_exit_at=None,
@@ -2264,10 +2289,11 @@ def main():
     ap.add_argument("--junction-weight", type=float, default=1.0,
                     help="Change 1: multiplier on the junction entry-stop fuel penalty. "
                          "0.0 disables the penalty entirely (pre-Change-1 behaviour). Default 1.0.")
-    ap.add_argument("--fuel-hysteresis", type=float, default=0.10,
-                    help="Change 2B: minimum fractional fuel-saving required to accept a reroute "
-                         "in fuel mode. E.g. 0.10 = only switch if new route is >=10%% cheaper. "
-                         "0.0 disables (always accept). Default 0.10.")
+    ap.add_argument("--fuel-hysteresis", type=float, default=0.01,
+                    help="Change 2B / Fix S: minimum fractional fuel-saving required to accept a reroute "
+                         "in fuel mode. E.g. 0.01 = only switch if new route is >=1%% cheaper. "
+                         "Fix S: changed from 0.10 to 0.01 (= max(p50_margin/2, 0.01), "
+                         "p50=1.3%% from Smoke 5 D4). 0.0 disables. Default 0.01.")
     ap.add_argument("--vehicle-sample-mod", type=int, default=2,
                     help="Fix B: RSU subscribes/tracks only 1/N of ordinary vehicles "
                          "(egos always tracked). Higher N = faster steps, slower "
@@ -2314,6 +2340,9 @@ def main():
     ap.add_argument("--grade-emission-class", type=str, default="HBEFA3/PC_G_EU0",
                     help="heavier emission class applied to vehicles on degraded edges in grade mode")
     ap.add_argument("--targeted-od", action="store_true", help="force OD generation to target degraded edges")
+    ap.add_argument("--force-od-coupling", action="store_true",
+                    help="override the [OD_COUPLING] on_path_fraction < 0.60 hard-abort "
+                         "(deliberate control experiments only; logs a warning)")
     ap.add_argument("--max-detour-factor", type=float, default=1.25,
                     help="targeted-OD: only include pairs where the bypass path costs "
                          "at most this multiple of the normal travel-time path (default 1.25). "
@@ -2551,6 +2580,31 @@ def main():
     if not od_list:
         sys.exit("No OD pairs generated; aborting.")
 
+    # [OD_COUPLING] gate: Fix T enforced at runtime.
+    # Requires ≥60% of OD pairs to have the corridor on their ttime-optimal path.
+    # For warmup_savestate mode corridor is per-seed → gate fires inside the seed loop below.
+    _od_gen_name = ("select_targeted_od_pairs" if (args.targeted_od and degraded_edges)
+                    else "generate_od_pairs")
+    if getattr(args, 'warmup_savestate', False) and not degraded_edges:
+        # Corridor chosen per-seed during warmup; gate deferred.
+        print(f"[OD_COUPLING] generator={_od_gen_name} n_ods={len(od_list)} "
+              f"on_path_fraction=DEFERRED corridor=per-seed")
+    elif degraded_edges:
+        _opf = compute_on_path_fraction(NET_FILE, od_list, degraded_edges)
+        print(f"[OD_COUPLING] generator={_od_gen_name} n_ods={len(od_list)} "
+              f"on_path_fraction={_opf:.3f} corridor={degraded_edges}")
+        sys.stdout.flush()
+        if _opf < 0.60 and not getattr(args, 'force_od_coupling', False):
+            sys.exit(f"[OD_COUPLING] ABORT: on_path_fraction={_opf:.3f} < 0.60. "
+                     f"Use --targeted-od to aim ODs at the corridor, or "
+                     f"--force-od-coupling to override (control experiments only).")
+        elif _opf < 0.60:
+            print(f"[OD_COUPLING] WARNING: on_path_fraction={_opf:.3f} < 0.60 "
+                  f"(--force-od-coupling override active; proceeding)")
+    else:
+        print(f"[OD_COUPLING] generator={_od_gen_name} n_ods={len(od_list)} "
+              f"on_path_fraction=N/A corridor=none")
+
     # Same seed + same OD list for both arms, so the only systematic difference
     # is who routes the ego. Parallel and sequential give identical results.
     jobs = [("sumo", "sumo"), ("ours", "ours")]
@@ -2640,6 +2694,7 @@ def main():
                     seed_warm_end = None
                     seed_manager = manager
                     seed_python_state = None
+                    seed_od_list = od_list  # per-seed OD list; replaced below when targeted
                     if args.warmup_savestate:
                         seed_warm_end = depart - args.warmup_buffer
                         seed_warm_state = os.path.abspath(
@@ -2662,6 +2717,36 @@ def main():
                         warm_state_files.append(seed_warm_state)
                         if seed_python_state and os.path.exists(seed_python_state):
                             warm_python_state_files.append(seed_python_state)
+
+                        # [OD_COUPLING]: per-seed OD targeting + Fix T gate.
+                        # Corridor is now known (seed_degraded); regenerate OD list if
+                        # --targeted-od was requested (seed_od_list replaces global od_list).
+                        if args.targeted_od and seed_degraded:
+                            _ts_od = select_targeted_od_pairs(
+                                NET_FILE, seed_degraded, n=args.n, seed=args.od_seed,
+                                max_detour_factor=args.max_detour_factor,
+                                max_trip_time=args.max_od_trip_time)
+                            if _ts_od:
+                                seed_od_list = _ts_od
+                            else:
+                                print(f"[OD_COUPLING] WARNING seed={seed}: "
+                                      f"no targeted pairs found, falling back to plain OD list")
+                        _od_gen_seed = ("select_targeted_od_pairs"
+                                        if (args.targeted_od and seed_degraded) else "generate_od_pairs")
+                        _opf_seed = compute_on_path_fraction(
+                            NET_FILE, seed_od_list, seed_degraded or [])
+                        print(f"[OD_COUPLING] generator={_od_gen_seed} seed={seed} "
+                              f"n_ods={len(seed_od_list)} on_path_fraction={_opf_seed:.3f} "
+                              f"corridor={seed_degraded}")
+                        sys.stdout.flush()
+                        if _opf_seed < 0.60 and not getattr(args, 'force_od_coupling', False):
+                            sys.exit(f"[OD_COUPLING] ABORT seed={seed}: "
+                                     f"on_path_fraction={_opf_seed:.3f} < 0.60. "
+                                     f"Use --targeted-od or --force-od-coupling.")
+                        elif _opf_seed < 0.60:
+                            print(f"[OD_COUPLING] WARNING seed={seed}: on_path_fraction="
+                                  f"{_opf_seed:.3f} < 0.60 (--force-od-coupling active)")
+
                         if args.road_condition != "none" and seed_degraded:
                             from Simulation.road_conditions import RoadConditionManager
                             seed_manager = RoadConditionManager(
@@ -2677,7 +2762,7 @@ def main():
                         a, b, g, arm_cost_mode = _arm_params(arm, args)
                         is_ours = arm not in ("ablation", "sumo")
                         fut = ex.submit(
-                            _run_paired_capture, arm, a, b, g, od_list, seed,
+                            _run_paired_capture, arm, a, b, g, seed_od_list, seed,
                             f"{arm}_{seed}_{scale}_{depart}",
                             depart, args.depart_spacing, args.use_hysteresis,
                             scale, args.teleport,

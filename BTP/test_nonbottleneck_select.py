@@ -280,7 +280,7 @@ def _cand(eid, avg_occ=0.10, speed_ratio=0.90, length=200.0, warmup_traversals=1
 def test_corridor_gate_selects_top2_by_ratio():
     ms = [
         _cand("a", speed_ratio=0.90, warmup_traversals=10),
-        _cand("b", speed_ratio=0.95, warmup_traversals=8),
+        _cand("b", speed_ratio=0.95, warmup_traversals=9),   # exactly at threshold (9)
         _cand("c", speed_ratio=0.50, warmup_traversals=10),  # fails speed
     ]
     result, status = _corridor_gate(ms)
@@ -342,10 +342,10 @@ def test_corridor_gate_force_fallback():
 # ---------------------------------------------------------------------------
 
 def test_corridor_gate_traversal_passes():
-    """6 sampled traversals + ratio 0.9 must PASS."""
+    """≥9 sampled traversals + ratio 0.9 must PASS (Round-9 rate gate threshold)."""
     ms = [
-        _cand("a", speed_ratio=0.90, warmup_traversals=6),
-        _cand("b", speed_ratio=0.88, warmup_traversals=7),
+        _cand("a", speed_ratio=0.90, warmup_traversals=9),   # exactly at threshold
+        _cand("b", speed_ratio=0.88, warmup_traversals=10),
     ]
     result, status = _corridor_gate(ms)
     assert "a" in result and "b" in result, f"both candidates should pass, got {result}"
@@ -353,7 +353,7 @@ def test_corridor_gate_traversal_passes():
 
 
 def test_corridor_gate_traversal_too_few_fails():
-    """3 sampled traversals (< CORRIDOR_MIN_TRAVERSALS=5) must FAIL."""
+    """3 sampled traversals (< CORRIDOR_MIN_TRAVERSALS=9) must FAIL."""
     ms = [
         _cand("a", speed_ratio=0.90, warmup_traversals=3),   # fails traversals
         _cand("b", speed_ratio=0.88, warmup_traversals=3),   # fails traversals

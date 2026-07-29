@@ -46,7 +46,7 @@ conda run --no-capture-output -n ml ^
     --arms ours-fuel,ours-augtime,ablation ^
     --baseline ablation ^
     --fuel-aggregator median ^
-    --fuel-hysteresis 0.10 ^
+    --fuel-hysteresis 0.01 ^
     --junction-weight 1.0 ^
     --cost-mode fuel ^
     --use-hysteresis ^

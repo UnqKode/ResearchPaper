@@ -136,3 +136,13 @@ class NetworkBuilder:
 
     def get_all_edges(self):
         return [edge.getID() for edge in self.net.getEdges() if edge.getFunction() != "internal"]
+
+    def get_routable_edges(self):
+        """Return only passenger-routable edge IDs (the routing graph's edge set).
+
+        Round-9 subscription alignment: RSU subscribes to these 3,556 edges instead
+        of all 4,404 non-internal edges, eliminating ~848 non-passenger subscriptions
+        (bike lanes, bus-only roads, sub-1m stubs) that add per-step overhead with no
+        routing benefit.
+        """
+        return list({data['edge_id'] for _, _, data in self.graph.edges(data=True)})

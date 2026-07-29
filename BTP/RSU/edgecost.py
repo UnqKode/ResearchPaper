@@ -240,7 +240,11 @@ class EdgeCostCalculator:
         self._frozen_baseline_edges.add(edge_id)
         baseline_val = self._fuel_baseline.get(edge_id)
         seed_count   = len(self._fuel_seed.get(edge_id, []))
-        _sys.stderr.write(f"[FREEZE_BASELINE] {edge_id}: baseline={baseline_val} seed_buf={seed_count} samples\n")
+        source = "traversal" if seed_count > 0 else "preseed"
+        _sys.stderr.write(
+            f"[FREEZE] edge={edge_id} baseline={baseline_val} "
+            f"n_window={seed_count} source={source}\n"
+        )
         _sys.stderr.flush()
 
     def unfreeze_baseline(self, edge_id):
