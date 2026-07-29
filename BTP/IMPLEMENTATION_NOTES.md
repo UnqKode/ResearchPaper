@@ -795,3 +795,71 @@ provides sufficient headroom to observe arrivals.
 `--diagnose-exit-at 24000` (computed: ego_0 in ours-fuel had not arrived by t=22800,
 1200s after ego_0 departure at t=21600; extend to 24000 for 2400s margin).
 Fresh warmup required (teleport change affects SUMO traffic state).
+
+
+---
+
+# Round 8 (2026-07-29)
+
+## Process
+
+Hypothesis test: is the +4.18% ours-fuel fuel overhead attributable to egos being
+routed through the half-priced degraded corridor (152535#2 with n=0 post-activation
+traversals)? Evidence from Smoke 5 D2 route CSV and crossing_diag files.
+
+## Step 1 — Hypothesis verdict: REFUTED
+
+Crossing table (Smoke 5, all 9 egos): crossed=False × 9 for initial and driven routes.
+REROUTE_SUMMARY accepted=0 × 3 arms. SUMO device rerouting symmetric across arms
+(tripinfo routeLength pattern confirms same-route egos produced same driven paths).
+
+Bypass ratios (crossing_diag, Smoke 5): ours-fuel ego_1 ratio=1.371 (37% above optimal
+no-corridor bypass), ours-fuel ego_0 ratio=1.112, ours-fuel ego_2 ratio=1.007. These
+excess costs are due to cold preseed weights (R²=0.405) misleading the fuel-mode Dijkstra
+into suboptimal routes — NOT from corridor traversal.
+
+Root cause: OD pairs (seed=42) do not route through corridor edges 152534#2 / 152535#2
+in any arm. This is open item O4 from Round-7C. The corridor and OD pairs are
+geographically disjoint for this seed. The mechanism (fuel savings by avoiding a priced
+corridor) cannot engage until at least one ego OD pair has a natural path through the
+corridor.
+
+Historical note: An earlier run (D2 row 1, different corridor selection using 152535#4
+as primary degraded edge) DID show ours-fuel egos crossing the corridor. The issue is
+specific to the current corridor selection (152534#2, 152535#2) combined with seed=42
+OD pairs.
+
+Decision: STOP after Steps 1 and 2. Steps 3-5 (corridor rate gate, Fix S, Smoke 6) are
+premature until O4 is resolved.
+
+## Step 2 — D1 instrument fix (simulate.py _dump_d1_weights)
+
+Bug: _dump_d1_weights used calc._decompose(eid, m)["weight"] (augtime formula) for ALL
+arms. fuel-mode weights were never logged. Criterion 4 was NOT EVALUATED in every smoke.
+
+Fix: "weight" column now reads self.global_map.get_weight(eid) — the same call that
+update_graph_weights() uses to populate the routing graph.
+- fuel mode: warm edge → get_segment_fuel() (traversal-window median, mg);
+  cold edge → cold_nominal_rate * (L/v) + junction_penalty (mg)
+- augtime mode: t_actual * (1 + alpha*C + beta*F + gamma*S) + junction_penalty (seconds)
+
+New columns:
+- "cost_mode": arm cost mode ("fuel" or "augtime") — makes CSV self-describing
+- "augtime_weight": always the augtime formula (reference; unchanged from prior "weight")
+- "fuel_warm": True if traversal-fuel deque non-empty (warm branch active in fuel mode)
+
+D1_ASSERT: post-write spot-check, 5 random edges, GlobalMap weight vs routing graph
+weight, relative tolerance 1e-4. Output: [D1_ASSERT] PASS/FAIL eid=... dumped=... graph=...
+Catches any second formula copy that drifted from the last update_graph_weights() call.
+
+Unit test test_d1_dump_uses_arm_cost_function in test_segment_fuel.py: stub
+SimpleNamespace objects (no SUMO), verifies fuel arm weight != augtime formula weight,
+cost_mode column correct, fuel_warm True/False as expected. 24/24 tests pass.
+
+## Round-9 prerequisites (before Steps 3–5 make sense)
+
+1. **O4**: Diagnose corridor geography vs OD pair origins/sinks. Either (a) choose a
+   seed that produces corridor-crossing OD pairs, or (b) re-select the corridor to edges
+   that ARE on natural paths between the seed=42 OD pairs.
+2. Once O4 resolved: Steps 3–5 (corridor rate gate revision, Fix S δ=0.01, Smoke 6).
+   D1 fix already in place — will correctly show fuel-arm weights in Smoke 6.
