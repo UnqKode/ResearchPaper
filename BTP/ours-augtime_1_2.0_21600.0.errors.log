@@ -1,0 +1,4 @@
+Warning: Teleporting vehicle 'ego_0'; waited too long (wrong lane), lane='-153451#0_2', time=21916.50.
+Warning: Vehicle 'ego_0' ends teleporting on edge '153452#2', time=21916.50.
+Warning: Invalid route replacement for vehicle 'ego_0'. No connection between edge '-153451#0' and edge '153452#2'.
+Warning: Invalid route replacement for vehicle 'ego_0'. No connection between edge '-153451#0' and edge '153452#2'.

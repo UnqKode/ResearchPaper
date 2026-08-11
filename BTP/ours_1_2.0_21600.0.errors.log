@@ -1,0 +1,123 @@
+Warning: Invalid route replacement for vehicle 'ego_5'. No connection between edge '-153427#3' and edge '153427#3'.
+Warning: Invalid route replacement for vehicle 'ego_5'. No connection between edge '-153427#3' and edge '153427#3'.
+Warning: Invalid route replacement for vehicle 'ego_3'. No connection between edge '153024' and edge '153255#1'.
+Warning: Invalid route replacement for vehicle 'ego_0'. No connection between edge '153420#3' and edge '153145'.
+Warning: Invalid route replacement for vehicle 'ego_3'. No connection between edge '153024' and edge '153255#1'.
+Warning: Teleporting vehicle 'ego_2'; waited too long (wrong lane), lane='153563_1', time=22469.50.
+Warning: Teleporting vehicle 'ego_5'; waited too long (wrong lane), lane='-153427#3_1', time=22510.75.
+Warning: Vehicle 'ego_5' ends teleporting on edge '153427#3', time=22510.75.
+Warning: Vehicle 'ego_2' ends teleporting on edge '-152176#0', time=22515.25.
+Warning: Teleporting vehicle 'ego_0'; waited too long (wrong lane), lane='153420#3_1', time=22523.00.
+Warning: Invalid route replacement for vehicle 'ego_5'. No connection between edge '-153427#3' and edge '153427#3'.
+Warning: Vehicle 'ego_0' ends teleporting on edge '152725#3', time=22593.25.
+Warning: Invalid route replacement for vehicle 'ego_0'. No connection between edge '153420#3' and edge '153145'.
+Warning: Invalid route replacement for vehicle 'ego_3'. No connection between edge '153024' and edge '153255#1'.
+Warning: Invalid route replacement for vehicle 'ego_9'. No connection between edge '-153335#2' and edge '152514'.
+Warning: Invalid route replacement for vehicle 'ego_1'. No connection between edge '153420#3' and edge '153145'.
+Warning: Invalid route replacement for vehicle 'ego_3'. No connection between edge '153024' and edge '153255#1'.
+Warning: Teleporting vehicle 'ego_3'; waited too long (wrong lane), lane='153024_1', time=22819.75.
+Warning: Teleporting vehicle 'ego_1'; waited too long (wrong lane), lane='153420#3_1', time=22826.25.
+Warning: Invalid route replacement for vehicle 'ego_8'. No connection between edge '153420#3' and edge '153145'.
+Warning: Invalid route replacement for vehicle 'ego_8'. No connection between edge '153420#3' and edge '153145'.
+Warning: Vehicle 'ego_1' ends teleporting on edge '152725#3', time=22896.50.
+Warning: Invalid route replacement for vehicle 'ego_1'. No connection between edge '153420#3' and edge '153145'.
+Warning: Teleporting vehicle 'ego_7'; waited too long (wrong lane), lane='153007#6_1', time=22940.25.
+Warning: Vehicle 'ego_7' ends teleporting on edge '152330#0', time=22943.50.
+Warning: Invalid route replacement for vehicle 'ego_0'. No connection between edge '153420#3' and edge '153145'.
+Warning: Invalid route replacement for vehicle 'ego_9'. No connection between edge '153327#9' and edge '-153327#9'.
+Warning: Teleporting vehicle 'ego_0'; waited too long (wrong lane), lane='152996#0_1', time=23010.75.
+Warning: Vehicle 'ego_0' ends teleporting on edge '153413#8', time=23029.50.
+Warning: Vehicle 'ego_3' ends teleporting on edge '153420#5', time=23050.75.
+Warning: Invalid route replacement for vehicle 'ego_9'. No connection between edge '-153335#2' and edge '152514'.
+Warning: Invalid route replacement for vehicle 'ego_3'. No connection between edge '153024' and edge '153255#1'.
+Warning: Invalid route replacement for vehicle 'ego_11'. No connection between edge '153563' and edge '153602'.
+Warning: Invalid route replacement for vehicle 'ego_11'. No connection between edge '152355#0' and edge '153108#0'.
+Warning: Invalid route replacement for vehicle 'ego_8'. No connection between edge '-153329#5' and edge '153201'.
+Warning: Teleporting vehicle 'ego_7'; waited too long (wrong lane), lane='152330#4_2', time=23330.75.
+Warning: Invalid route replacement for vehicle 'ego_13'. No connection between edge '-153329#5' and edge '153201'.
+Warning: Teleporting vehicle 'ego_1'; waited too long (wrong lane), lane='153331#6_1', time=23342.25.
+Warning: Vehicle 'ego_1' ends teleporting on edge '152996#2', time=23352.00.
+Warning: Teleporting vehicle 'ego_0'; waited too long (wrong lane), lane='-153650_1', time=23355.25.
+Warning: Invalid route replacement for vehicle 'ego_11'. No connection between edge '152355#0' and edge '-152355#0'.
+Warning: Vehicle 'ego_7' ends teleporting on edge '-152902#6', time=23374.75.
+Warning: Vehicle 'ego_0' ends teleporting on edge '152661', time=23391.50.
+Warning: Invalid route replacement for vehicle 'ego_14'. No connection between edge '-153331#7' and edge '153135'.
+Warning: Teleporting vehicle 'ego_10'; waited too long (wrong lane), lane='153563_1', time=23419.50.
+Warning: Teleporting vehicle 'ego_5'; waited too long (wrong lane), lane='153446_1', time=23421.00.
+Warning: Invalid route replacement for vehicle 'ego_3'. No connection between edge '153024' and edge '153255#1'.
+Warning: Vehicle 'ego_5' ends teleporting on edge '152812#3', time=23445.25.
+Warning: Invalid route replacement for vehicle 'ego_13'. No connection between edge '153420#3' and edge '153145'.
+Warning: Vehicle 'ego_10' ends teleporting on edge '-152176#0', time=23465.25.
+Warning: Invalid route replacement for vehicle 'ego_3'. No connection between edge '153024' and edge '153255#1'.
+Warning: Invalid route replacement for vehicle 'ego_13'. No connection between edge '153420#3' and edge '153145'.
+Warning: Teleporting vehicle 'ego_9'; waited too long (wrong lane), lane='-153335#2_1', time=23525.00.
+Warning: Invalid route replacement for vehicle 'ego_11'. No connection between edge '152355#0' and edge '153108#0'.
+Warning: Teleporting vehicle 'ego_11'; waited too long (wrong lane), lane='152355#0_1', time=23551.75.
+Warning: Teleporting vehicle 'ego_3'; waited too long (wrong lane), lane='-153415#2_1', time=23576.50.
+Warning: Invalid route replacement for vehicle 'ego_13'. No connection between edge '153420#3' and edge '153145'.
+Warning: Vehicle 'ego_9' ends teleporting on edge '152836#0', time=23597.00.
+Warning: Vehicle 'ego_3' ends teleporting on edge '-153413#15', time=23600.25.
+Warning: Invalid route replacement for vehicle 'ego_3'. No connection between edge '153024' and edge '153255#1'.
+Warning: Invalid route replacement for vehicle 'ego_14'. No connection between edge '153024' and edge '153255#1'.
+Warning: Invalid route replacement for vehicle 'ego_14'. No connection between edge '153024' and edge '153255#1'.
+Warning: Invalid route replacement for vehicle 'ego_8'. No connection between edge '-153329#5' and edge '153201'.
+Warning: Teleporting vehicle 'ego_8'; waited too long (wrong lane), lane='-153329#5_1', time=23711.50.
+Warning: Teleporting vehicle 'ego_0'; waited too long (wrong lane), lane='-152667#8_2', time=23718.25.
+Warning: Vehicle 'ego_11' ends teleporting on edge '152591#1', time=23726.00.
+Warning: Invalid route replacement for vehicle 'ego_13'. No connection between edge '153420#3' and edge '153145'.
+Warning: Teleporting vehicle 'ego_7'; waited too long (wrong lane), lane='-153008#6_1', time=23734.75.
+Warning: Vehicle 'ego_0' ends teleporting on edge '-152664#2', time=23741.50.
+Warning: Vehicle 'ego_7' ends teleporting on edge '153453#1', time=23752.00.
+Warning: Invalid route replacement for vehicle 'ego_13'. No connection between edge '153420#3' and edge '153145'.
+Warning: Vehicle 'ego_8' ends teleporting on edge '153329#2', time=23760.75.
+Warning: Teleporting vehicle 'ego_13'; waited too long (wrong lane), lane='153420#3_1', time=23807.50.
+Warning: Invalid route replacement for vehicle 'ego_3'. No connection between edge '153024' and edge '153255#1'.
+Warning: Vehicle 'ego_13' ends teleporting on edge '152725#3', time=23877.75.
+Warning: Invalid route replacement for vehicle 'ego_13'. No connection between edge '153420#3' and edge '153145'.
+Warning: Teleporting vehicle 'ego_3'; waited too long (wrong lane), lane='-153413#15_1', time=23900.50.
+Warning: Invalid route replacement for vehicle 'ego_14'. No connection between edge '153420#3' and edge '153145'.
+Warning: Vehicle 'ego_3' ends teleporting on edge '152998', time=23916.25.
+Warning: Teleporting vehicle 'ego_9'; waited too long (wrong lane), lane='152836#3_1', time=23927.00.
+Warning: Invalid route replacement for vehicle 'ego_8'. No connection between edge '-153329#5' and edge '153201'.
+Warning: Vehicle 'ego_9' ends teleporting on edge '152814#4', time=23956.25.
+Warning: Invalid route replacement for vehicle 'ego_3'. No connection between edge '153024' and edge '153255#1'.
+Warning: Teleporting vehicle 'ego_15'; waited too long (wrong lane), lane='153007#6_1', time=23986.50.
+Warning: Vehicle 'ego_15' ends teleporting on edge '152330#0', time=23989.75.
+Warning: Invalid route replacement for vehicle 'ego_19'. No connection between edge '153420#3' and edge '153145'.
+Warning: Invalid route replacement for vehicle 'ego_17'. No connection between edge '153420#3' and edge '153145'.
+Warning: Invalid route replacement for vehicle 'ego_13'. No connection between edge '153420#3' and edge '153145'.
+Warning: Teleporting vehicle 'ego_8'; waited too long (wrong lane), lane='153329#2_1', time=24072.75.
+Warning: Invalid route replacement for vehicle 'ego_17'. No connection between edge '152355#0' and edge '153108#0'.
+Warning: Teleporting vehicle 'ego_0'; waited too long (wrong lane), lane='-152669#0_1', time=24092.00.
+Warning: Teleporting vehicle 'ego_7'; waited too long (wrong lane), lane='153339#1_1', time=24094.00.
+Warning: Vehicle 'ego_7' ends teleporting on edge '-152912#4', time=24111.25.
+Warning: Invalid route replacement for vehicle 'ego_19'. No connection between edge '152355#0' and edge '153108#0'.
+Warning: Vehicle 'ego_8' ends teleporting on edge '-153413#0', time=24133.75.
+Warning: Teleporting vehicle 'ego_11'; waited too long (wrong lane), lane='153649#1_1', time=24135.25.
+Warning: Vehicle 'ego_11' ends teleporting on edge '-153418', time=24143.50.
+Warning: Invalid route replacement for vehicle 'ego_3'. No connection between edge '153024' and edge '153255#1'.
+Warning: Vehicle 'ego_0' ends teleporting on edge '-152165#1', time=24161.25.
+Warning: Teleporting vehicle 'ego_16'; waited too long (wrong lane), lane='153563_1', time=24188.00.
+Warning: Vehicle 'ego_16' ends teleporting on edge '-152176#0', time=24233.75.
+Warning: Invalid route replacement for vehicle 'ego_8'. No connection between edge '-153329#5' and edge '153201'.
+Warning: Teleporting vehicle 'ego_3'; waited too long (wrong lane), lane='152701#5_2', time=24258.25.
+Warning: Invalid route replacement for vehicle 'ego_19'. No connection between edge '153563' and edge '153602'.
+Warning: Vehicle 'ego_3' ends teleporting on edge '152704', time=24274.75.
+Warning: Teleporting vehicle 'ego_14'; waited too long (wrong lane), lane='153420#3_1', time=24289.00.
+Warning: Invalid route replacement for vehicle 'ego_18'. No connection between edge '152355#0' and edge '153108#0'.
+Warning: Teleporting vehicle 'ego_9'; waited too long (wrong lane), lane='152801_1', time=24302.00.
+Warning: Invalid route replacement for vehicle 'ego_13'. No connection between edge '153420#3' and edge '153145'.
+Warning: Teleporting vehicle 'ego_13'; waited too long (wrong lane), lane='153446_1', time=24341.25.
+Warning: Vehicle 'ego_14' ends teleporting on edge '152725#3', time=24359.25.
+Warning: Vehicle 'ego_9' ends teleporting on edge '152969#0', time=24359.75.
+Warning: Invalid route replacement for vehicle 'ego_18'. No connection between edge '152355#0' and edge '153108#0'.
+Warning: Vehicle 'ego_13' ends teleporting on edge '152812#3', time=24365.50.
+Warning: Teleporting vehicle 'ego_15'; waited too long (wrong lane), lane='152330#4_2', time=24390.25.
+Warning: Vehicle 'ego_15' ends teleporting on edge '-152902#6', time=24434.25.
+Warning: Teleporting vehicle 'ego_8'; waited too long (wrong lane), lane='152649#0_1', time=24442.25.
+Warning: Invalid route replacement for vehicle 'ego_13'. No connection between edge '153420#3' and edge '153145'.
+Warning: Teleporting vehicle 'ego_18'; waited too long (wrong lane), lane='152355#0_1', time=24452.50.
+Warning: Teleporting vehicle 'ego_21'; waited too long (wrong lane), lane='152404#1_1', time=24455.00.
+Warning: Vehicle 'ego_8' ends teleporting on edge '152648#6', time=24457.25.
+Error: Answered with error to command 0xa4: Vehicle 'ego_3' is not known.
+Error: Answered with error to command 0x

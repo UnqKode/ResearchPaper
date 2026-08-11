@@ -1,0 +1,12 @@
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\BTP\Simulation\compare_routing.py", line 2071, in <module>
+    main() 
+    ^^^^^^
+  File "C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\BTP\Simulation\compare_routing.py", line 1872, in main
+    for fut in concurrent.futures.as_completed(futs, timeout=WORKER_TIMEOUT_S):
+  File "C:\miniconda3\envs\ml\Lib\concurrent\futures\_base.py", line 239, in as_completed
+    raise TimeoutError(
+TimeoutError: 1 (of 2) futures unfinished
+ERROR conda.cli.main_run:execute(142): `conda run python -u -m Simulation.compare_routing --paired --checkpointed --seeds 1 --n 50 --road-condition grade --degraded-edges 153391#0,153391#1 --targeted-od --scale 2.0 --depart-start 21600 --cost-mode fuel --use-hysteresis --teleport 300 --baseline sumo` failed. (See above for error)

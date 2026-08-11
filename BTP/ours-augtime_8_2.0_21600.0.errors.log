@@ -1,0 +1,59 @@
+Warning: Vehicle 'ego_11' is not allowed on destination edge '-152647#2'.
+Warning: No route for vehicle 'ego_11' found.
+Warning: Vehicle 'ego_11' is not allowed on destination edge '-152647#2'.
+Warning: No route for vehicle 'ego_11' found.
+Warning: Vehicle 'ego_11' is not allowed on destination edge '-152647#2'.
+Warning: No route for vehicle 'ego_11' found.
+Warning: Vehicle 'ego_11' is not allowed on destination edge '-152647#2'.
+Warning: No route for vehicle 'ego_11' found.
+Warning: Vehicle 'ego_11' is not allowed on destination edge '-152647#2'.
+Warning: No route for vehicle 'ego_11' found.
+Warning: Vehicle 'ego_11' is not allowed on destination edge '-152647#2'.
+Warning: No route for vehicle 'ego_11' found.
+Warning: Vehicle 'ego_11' is not allowed on destination edge '-152647#2'.
+Warning: No route for vehicle 'ego_11' found.
+Warning: Vehicle 'ego_11' is not allowed on destination edge '-152647#2'.
+Warning: No route for vehicle 'ego_11' found.
+Warning: Vehicle 'ego_11' is not allowed on destination edge '-152647#2'.
+Warning: No route for vehicle 'ego_11' found.
+Warning: Invalid route replacement for vehicle 'ego_12'. No connection between edge '-152305' and edge '-152960#4'.
+Warning: Vehicle 'ego_11' is not allowed on destination edge '-152647#2'.
+Warning: No route for vehicle 'ego_11' found.
+Warning: Vehicle 'ego_11' is not allowed on destination edge '-152647#2'.
+Warning: No route for vehicle 'ego_11' found.
+Warning: Vehicle 'ego_11' is not allowed on destination edge '-152647#2'.
+Warning: No route for vehicle 'ego_11' found.
+Warning: Vehicle 'ego_11' is not allowed on destination edge '-152647#2'.
+Warning: No route for vehicle 'ego_11' found.
+Warning: Vehicle 'ego_11' is not allowed on destination edge '-152647#2'.
+Warning: No route for vehicle 'ego_11' found.
+Warning: Vehicle 'ego_11' is not allowed on destination edge '-152647#2'.
+Warning: No route for vehicle 'ego_11' found.
+Warning: Teleporting vehicle 'ego_11'; waited too long (wrong lane), lane='-152702#0_2', time=23367.25.
+Warning: Vehicle 'ego_11' is not allowed on source edge '-152704'.
+Warning: No route for vehicle 'ego_11' found.
+Warning: Vehicle 'ego_11' ends teleporting on edge '152175', time=23385.75.
+Warning: Vehicle 'ego_11' is not allowed on destination edge '-152647#2'.
+Warning: No route for vehicle 'ego_11' found.
+Warning: Vehicle 'ego_11' is not allowed on destination edge '-152647#2'.
+Warning: No route for vehicle 'ego_11' found.
+Warning: Vehicle 'ego_11' is not allowed on destination edge '-152647#2'.
+Warning: No route for vehicle 'ego_11' found.
+Warning: Vehicle 'ego_11' is not allowed on destination edge '-152647#2'.
+Warning: No route for vehicle 'ego_11' found.
+Warning: Vehicle 'ego_11' is not allowed on destination edge '-152647#2'.
+Warning: No route for vehicle 'ego_11' found.
+Warning: Vehicle 'ego_11' is not allowed on destination edge '-152647#2'.
+Warning: No route for vehicle 'ego_11' found.
+Warning: Vehicle 'ego_11' is not allowed on destination edge '-152647#2'.
+Warning: No route for vehicle 'ego_11' found.
+Warning: Vehicle 'ego_11' is not allowed on destination edge '-152647#2'.
+Warning: No route for vehicle 'ego_11' found.
+Warning: Vehicle 'ego_11' is not allowed on destination edge '-152647#2'.
+Warning: No route for vehicle 'ego_11' found.
+Warning: Vehicle 'ego_11' is not allowed on destination edge '-152647#2'.
+Warning: No route for vehicle 'ego_11' found.
+Warning: Teleporting vehicle 'ego_11'; waited too long (wrong lane), lane='152175_1', time=23687.00.
+Warning: Vehicle 'ego_11' is not allowed on source edge '-153405#0'.
+Warning: No route for vehicle 'ego_11' found.
+Warning: Vehicle 'ego_11' teleports beyond arrival edge '-152647#2', time=23701.75.

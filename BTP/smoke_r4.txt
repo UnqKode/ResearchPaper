@@ -1,0 +1,245 @@
+[CAMPAIGN] degrade_start=21000.0 (depart_start=21600.0 grade_lead=600.0)
+Building 3 OD pairs from C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in\most.net.xml (seed=42) ...
+  Got 3 routable pairs in 3 attempts.
+[AUTO_NONBOTTLENECK] 6 corridor candidates for per-seed gate: ['152167', '153443', '-152164', '152969#0', '153327#0', '153327#1']
+Building 3 OD pairs from C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in\most.net.xml (seed=42) ...
+  Got 3 routable pairs in 3 attempts.
+
+[Paired Mode] Running fixed-departure continuous fuel campaign.
+[arms] Using explicit --arms: ['ours-fuel', 'ours-augtime', 'ablation']
+
+=======================================================
+ SWEEP POINT: scale=2.0, depart=21600.0
+=======================================================
+[seed-parallelism] P=1, arms=3, total_workers=3
+
+--- Queuing SEED 1 ---
+[WARMUP] seed=1 warmup_buffer=1200.0 warmup_end=20400.0 degrade_start=21000.0
+[WARMUP] seed=1 begin=14400 end=20400.0 candidates=['152167', '153443', '-152164', '152969#0', '153327#0', '153327#1'] state=C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\BTP\ws_1_200_21600.xml.gz
+***Starting server on port 56831 ***
+Loading net-file from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/most.net.xml' ... done (5711ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.poly.xml' ... done (5308ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.busstops.add.xml' ... done (166ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.trainstops.add.xml' ... done (181ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.parking.allvisible.add.xml' ... done (522ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/basic.vType.xml' ... done (21ms).
+Loading route-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.commercial.rou.xml' ... done (3625ms).
+Loading route-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.highway.flows.xml' ... done (49ms).
+Loading done.
+Simulation version 1.27.0 started with time: 14400.00.
+Simulation ended at time: 20400.00.
+Reason: TraCI requested termination.
+Performance:
+ Duration: 125.76s
+ TraCI-Duration: 41.48s
+ Real time factor: 47.7084
+ UPS: 10805.866544
+Vehicles:
+ Inserted: 834 (Loaded: 7320)
+ Running: 175
+ Waiting: 0
+Statistics (avg of 659):
+ RouteLength: 7428.53
+ Speed: 19.52
+ Duration: 415.00
+ WaitingTime: 5.14
+ TimeLoss: 37.65
+ DepartDelay: 0.29
+DijkstraRouter answered 10885 queries and explored 820.35 edges on average.
+DijkstraRouter spent 9.53s answering queries (0.88ms on average).
+[WARMUP] state file verified: C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\BTP\ws_1_200_21600.xml.gz (379286 bytes)
+[CORRIDOR_GATE] PASS edge=152167 ratio=0.998 occ=0.000
+[CORRIDOR_GATE] PASS edge=153443 ratio=1.000 occ=0.000
+[CORRIDOR_GATE] PASS edge=-152164 ratio=1.000 occ=0.000
+[CORRIDOR_GATE] PASS edge=152969#0 ratio=0.998 occ=0.000
+[CORRIDOR_GATE] PASS edge=153327#0 ratio=0.999 occ=0.000
+[CORRIDOR_GATE] PASS edge=153327#1 ratio=0.999 occ=0.000
+[CORRIDOR_GATE] selected degraded_edges=['153443', '-152164']
+***Starting server on port 56865 ***
+Loading net-file from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/most.net.xml' ...***Starting server on port 56866 ***
+***Starting server on port 56867 ***
+Loading net-file from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/most.net.xml' ...Loading net-file from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/most.net.xml' ... done (5046ms).
+ done (5018ms).
+ done (5201ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.poly.xml' ...Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.poly.xml' ...Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.poly.xml' ... done (4495ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.busstops.add.xml' ... done (4525ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.busstops.add.xml' ... done (147ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.trainstops.add.xml' ... done (159ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.trainstops.add.xml' ... done (166ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.parking.allvisible.add.xml' ... done (4446ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.busstops.add.xml' ... done (177ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.parking.allvisible.add.xml' ... done (229ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.trainstops.add.xml' ... done (217ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.parking.allvisible.add.xml' ... done (548ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/basic.vType.xml' ... done (27ms).
+ done (661ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/basic.vType.xml' ... done (20ms).
+ done (609ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/basic.vType.xml' ... done (16ms).
+Loading state from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\BTP\ws_1_200_21600.xml.gz' ...Loading state from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\BTP\ws_1_200_21600.xml.gz' ...Loading state from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\BTP\ws_1_200_21600.xml.gz' ... done (5741ms).
+Loading route-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.commercial.rou.xml' ... done (5821ms).
+Loading route-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.commercial.rou.xml' ... done (5768ms).
+Loading route-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.commercial.rou.xml' ... done (735ms).
+Loading route-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.highway.flows.xml' ... done (32ms).
+Loading done.
+Simulation version 1.27.0 started with time: 20400.00.
+ done (729ms).
+Loading route-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.highway.flows.xml' ... done (38ms).
+Loading done.
+Simulation version 1.27.0 started with time: 20400.00.
+ done (738ms).
+Loading route-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.highway.flows.xml' ... done (39ms).
+Loading done.
+Simulation version 1.27.0 started with time: 20400.00.
+Simulation ended at time: 22382.50.
+Reason: TraCI requested termination.
+Performance:
+ Duration: 4367.74s
+ TraCI-Duration: 4144.32s
+ Real time factor: 0.453896
+ UPS: 381.915307
+Vehicles:
+ Inserted: 1707 (Loaded: 7589)
+ Running: 234
+ Waiting: 0
+Statistics (avg of 814):
+ RouteLength: 7211.89
+ Speed: 17.97
+ Duration: 442.77
+ WaitingTime: 6.03
+ TimeLoss: 41.90
+ DepartDelay: 0.33
+DijkstraRouter answered 12415 queries and explored 815.89 edges on average.
+DijkstraRouter spent 20.06s answering queries (1.62ms on average).
+
+# scenario 'ours-augtime_1_2.0_21600.0' (seed=1) finished in 4376.2s
+[SUMO_CMD] tag=ours-augtime_1_2.0_21600.0 seed=1 cmd=sumo -c C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\most.sumocfg --seed 1 --scale 2.0 --no-step-log true --no-warnings true --time-to-teleport 300 --end 28060 --output-prefix ours-augtime_1_2.0_21600.0. --tripinfo-output tripinfo.xml --log sim.log --error-log errors.log --device.rerouting.probability 1 --device.emissions.probability 1 --device.rerouting.period 30 --route-steps 0 --load-state C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\BTP\ws_1_200_21600.xml.gz --begin 20400
+[RSU] coverage: 4329 / 4404 non-internal edges have an RSU (88 assigned via from_node fallback for dead-end terminations).
+[ARM_CONFIG] arm=ours-augtime cost_mode=augtime alpha=1.0 beta=8.0 gamma=10.0 junction_weight=1.0 hysteresis=0.15 aggregator=median
+[ours-augtime_1_2.0_21600.0] RoadConditionManager bound (mode=grade, edges=['153443', '-152164'])
+[RSU] subscribed 4329 edges (VEHICLE_ID_LIST + OCCUPANCY + HALTING_NUMBER + FUEL + MEAN_SPEED).
+[RSU] vehicle sampling 1/2: expect ~2x slower fuel-window fill
+[BASELINE_GATE] PASS edge=153443 baseline=1235.2mg frozen=True at t=21000.0
+[BASELINE_GATE] PASS edge=-152164 baseline=1235.2mg frozen=True at t=21000.0
+[BASELINE_GATE] PASS all 2 degraded edges have baselines at t=21000.0
+[PRE_INJECT] ego_0 t=21600.0s  153443:[n=0 spd=13.89m/s occ=0.0% fuel=12261.0mg]  -152164:[n=0 spd=13.89m/s occ=0.0% fuel=Nonemg]
+[FUEL_WINDOW] first_ego=ego_0 t=21600.0 arm=ours-augtime
+[FUEL_WINDOW]   153443: n_traversals=1 baseline=1235.2mg frozen=True
+[FUEL_WINDOW]   -152164: n_traversals=0 baseline=1235.2mg frozen=True
+[ours-augtime] Injected ego_0 at sim_time 21600.0s (vcount=219, possum=41953.4)
+[PRE_INJECT] ego_1 t=21720.0s  153443:[n=0 spd=13.89m/s occ=0.0% fuel=12261.0mg]  -152164:[n=0 spd=13.89m/s occ=0.0% fuel=Nonemg]
+[ours-augtime] Injected ego_1 at sim_time 21720.0s (vcount=230, possum=41075.9)
+[PRE_INJECT] ego_2 t=21840.0s  153443:[n=0 spd=13.89m/s occ=0.0% fuel=12261.0mg]  -152164:[n=0 spd=13.89m/s occ=0.0% fuel=Nonemg]
+[ours-augtime] Injected ego_2 at sim_time 21840.0s (vcount=236, possum=49196.8)
+[ours-augtime] ego_1 arrived. reroute_evals=7 accepted_reroutes=0
+[ours-augtime] ego_0 arrived. reroute_evals=21 accepted_reroutes=0
+[ours-augtime] ego_2 arrived. reroute_evals=19 accepted_reroutes=0
+[REROUTE_SUMMARY] arm=ours-augtime seed=1 reroute_evals=47 accepted=0 best_rejected_margin=0.0%
+Simulation ended at time: 22382.50.
+Reason: TraCI requested termination.
+Performance:
+ Duration: 4368.74s
+ TraCI-Duration: 4144.84s
+ Real time factor: 0.453793
+ UPS: 381.828062
+Vehicles:
+ Inserted: 1707 (Loaded: 7589)
+ Running: 234
+ Waiting: 0
+Statistics (avg of 814):
+ RouteLength: 7211.89
+ Speed: 17.97
+ Duration: 442.77
+ WaitingTime: 6.03
+ TimeLoss: 41.90
+ DepartDelay: 0.33
+DijkstraRouter answered 12415 queries and explored 815.89 edges on average.
+DijkstraRouter spent 20.94s answering queries (1.69ms on average).
+
+# scenario 'ours-fuel_1_2.0_21600.0' (seed=1) finished in 4377.0s
+[SUMO_CMD] tag=ours-fuel_1_2.0_21600.0 seed=1 cmd=sumo -c C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\most.sumocfg --seed 1 --scale 2.0 --no-step-log true --no-warnings true --time-to-teleport 300 --end 28060 --output-prefix ours-fuel_1_2.0_21600.0. --tripinfo-output tripinfo.xml --log sim.log --error-log errors.log --device.rerouting.probability 1 --device.emissions.probability 1 --device.rerouting.period 30 --route-steps 0 --load-state C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\BTP\ws_1_200_21600.xml.gz --begin 20400
+[RSU] coverage: 4329 / 4404 non-internal edges have an RSU (88 assigned via from_node fallback for dead-end terminations).
+[ARM_CONFIG] arm=ours-fuel cost_mode=fuel alpha=1.0 beta=8.0 gamma=10.0 junction_weight=1.0 hysteresis=0.15 aggregator=median
+[ours-fuel_1_2.0_21600.0] RoadConditionManager bound (mode=grade, edges=['153443', '-152164'])
+[RSU] subscribed 4329 edges (VEHICLE_ID_LIST + OCCUPANCY + HALTING_NUMBER + FUEL + MEAN_SPEED).
+[RSU] vehicle sampling 1/2: expect ~2x slower fuel-window fill
+[BASELINE_GATE] PASS edge=153443 baseline=1235.2mg frozen=True at t=21000.0
+[BASELINE_GATE] PASS edge=-152164 baseline=1235.2mg frozen=True at t=21000.0
+[BASELINE_GATE] PASS all 2 degraded edges have baselines at t=21000.0
+[PRE_INJECT] ego_0 t=21600.0s  153443:[n=0 spd=13.89m/s occ=0.0% fuel=12261.0mg]  -152164:[n=0 spd=13.89m/s occ=0.0% fuel=Nonemg]
+[FUEL_WINDOW] first_ego=ego_0 t=21600.0 arm=ours-fuel
+[FUEL_WINDOW]   153443: n_traversals=1 baseline=1235.2mg frozen=True
+[FUEL_WINDOW]   -152164: n_traversals=0 baseline=1235.2mg frozen=True
+[ours-fuel] Injected ego_0 at sim_time 21600.0s (vcount=219, possum=41953.4)
+[PRE_INJECT] ego_1 t=21720.0s  153443:[n=0 spd=13.89m/s occ=0.0% fuel=12261.0mg]  -152164:[n=0 spd=13.89m/s occ=0.0% fuel=Nonemg]
+[ours-fuel] Injected ego_1 at sim_time 21720.0s (vcount=230, possum=41075.9)
+[PRE_INJECT] ego_2 t=21840.0s  153443:[n=0 spd=13.89m/s occ=0.0% fuel=12261.0mg]  -152164:[n=0 spd=13.89m/s occ=0.0% fuel=Nonemg]
+[ours-fuel] Injected ego_2 at sim_time 21840.0s (vcount=236, possum=49196.8)
+[ours-fuel] ego_1 arrived. reroute_evals=7 accepted_reroutes=0
+[ours-fuel] ego_0 arrived. reroute_evals=21 accepted_reroutes=0
+[ours-fuel] ego_2 arrived. reroute_evals=19 accepted_reroutes=0
+[REROUTE_SUMMARY] arm=ours-fuel seed=1 reroute_evals=47 accepted=0 best_rejected_margin=0.0%
+Simulation ended at time: 22382.50.
+Reason: TraCI requested termination.
+Performance:
+ Duration: 4380.98s
+ TraCI-Duration: 4157.17s
+ Real time factor: 0.452525
+ UPS: 380.761360
+Vehicles:
+ Inserted: 1707 (Loaded: 7589)
+ Running: 234
+ Waiting: 0
+Statistics (avg of 814):
+ RouteLength: 7211.89
+ Speed: 17.97
+ Duration: 442.77
+ WaitingTime: 6.03
+ TimeLoss: 41.90
+ DepartDelay: 0.33
+DijkstraRouter answered 12415 queries and explored 815.89 edges on average.
+DijkstraRouter spent 20.19s answering queries (1.63ms on average).
+
+# scenario 'ablation_1_2.0_21600.0' (seed=1) finished in 4388.9s
+[SUMO_CMD] tag=ablation_1_2.0_21600.0 seed=1 cmd=sumo -c C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\most.sumocfg --seed 1 --scale 2.0 --no-step-log true --no-warnings true --time-to-teleport 300 --end 28060 --output-prefix ablation_1_2.0_21600.0. --tripinfo-output tripinfo.xml --log sim.log --error-log errors.log --device.rerouting.probability 1 --device.emissions.probability 1 --device.rerouting.period 30 --route-steps 0 --load-state C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\BTP\ws_1_200_21600.xml.gz --begin 20400
+[RSU] coverage: 4329 / 4404 non-internal edges have an RSU (88 assigned via from_node fallback for dead-end terminations).
+[ARM_CONFIG] arm=ablation cost_mode=augtime alpha=0.0 beta=0.0 gamma=0.0 junction_weight=0.0 hysteresis=0.15 aggregator=median
+[ablation_1_2.0_21600.0] RoadConditionManager bound (mode=grade, edges=['153443', '-152164'])
+[RSU] subscribed 4329 edges (VEHICLE_ID_LIST + OCCUPANCY + HALTING_NUMBER + FUEL + MEAN_SPEED).
+[RSU] vehicle sampling 1/2: expect ~2x slower fuel-window fill
+[BASELINE_GATE] PASS edge=153443 baseline=1235.2mg frozen=True at t=21000.0
+[BASELINE_GATE] PASS edge=-152164 baseline=1235.2mg frozen=True at t=21000.0
+[BASELINE_GATE] PASS all 2 degraded edges have baselines at t=21000.0
+[PRE_INJECT] ego_0 t=21600.0s  153443:[n=0 spd=13.89m/s occ=0.0% fuel=12261.0mg]  -152164:[n=0 spd=13.89m/s occ=0.0% fuel=Nonemg]
+[FUEL_WINDOW] first_ego=ego_0 t=21600.0 arm=ablation
+[FUEL_WINDOW]   153443: n_traversals=1 baseline=1235.2mg frozen=True
+[FUEL_WINDOW]   -152164: n_traversals=0 baseline=1235.2mg frozen=True
+[ablation] Injected ego_0 at sim_time 21600.0s (vcount=219, possum=41953.4)
+[PRE_INJECT] ego_1 t=21720.0s  153443:[n=0 spd=13.89m/s occ=0.0% fuel=12261.0mg]  -152164:[n=0 spd=13.89m/s occ=0.0% fuel=Nonemg]
+[ablation] Injected ego_1 at sim_time 21720.0s (vcount=230, possum=41075.9)
+[PRE_INJECT] ego_2 t=21840.0s  153443:[n=0 spd=13.89m/s occ=0.0% fuel=12261.0mg]  -152164:[n=0 spd=13.89m/s occ=0.0% fuel=Nonemg]
+[ablation] Injected ego_2 at sim_time 21840.0s (vcount=236, possum=49196.8)
+[ablation] ego_1 arrived. reroute_evals=7 accepted_reroutes=0
+[ablation] ego_0 arrived. reroute_evals=21 accepted_reroutes=0
+[ablation] ego_2 arrived. reroute_evals=19 accepted_reroutes=0
+[REROUTE_SUMMARY] arm=ablation seed=1 reroute_evals=47 accepted=0 best_rejected_margin=0.0%
+[ARRIVAL_COUNTS] seed=1: ours=3 arrived / 0 did-not-arrive; ablation=3 arrived / 0 did-not-arrive
+
+=======================================================
+ PAIRED FUEL RESULTS: OURS vs ABLATION
+=======================================================
+ N (seeds) = 1
+ Mean Fuel Saving: +0.00%
+ Mean Time Saving: +0.00%
+
+[FUEL_SPECIFICITY] Per-seed intercept analysis (n_valid_seeds=0)
+[ARRIVAL_COUNTS] seed=1: ours=3 arrived / 0 did-not-arrive; ablation=3 arrived / 0 did-not-arrive
+
+=======================================================
+ PAIRED FUEL RESULTS: OURS vs ABLATION
+=======================================================
+ N (seeds) = 1
+ Mean Fuel Saving: +0.00%
+ Mean Time Saving: +0.00%
+
+[FUEL_SPECIFICITY] Per-seed intercept analysis (n_valid_seeds=0)

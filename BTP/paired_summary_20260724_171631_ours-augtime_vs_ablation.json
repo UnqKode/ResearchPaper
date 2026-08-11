@@ -1,0 +1,55 @@
+{
+  "run_meta": {
+    "n": 3,
+    "od_seed": 42,
+    "seeds": [
+      1
+    ],
+    "scale": 2.0,
+    "teleport": -1,
+    "alpha": 1.0,
+    "beta": 8.0,
+    "gamma": 10.0,
+    "depart_start": 21600,
+    "depart_spacing": 120,
+    "reroute_interval": 30,
+    "use_hysteresis": false,
+    "baseline": "both",
+    "degraded_edges": [
+      "152535#4",
+      "-152535#4",
+      "-152534#2"
+    ],
+    "road_condition": "grade"
+  },
+  "K_seeds": 0,
+  "gate_c": {
+    "degraded_edges": [
+      "152535#4",
+      "-152535#4",
+      "-152534#2"
+    ],
+    "road_condition": "grade",
+    "avoidance_rate_ours_pct": 0.0,
+    "avoidance_rate_ablation_pct": 0.0,
+    "artifact_flag": false
+  },
+  "fuel_specificity": {
+    "per_seed_intercepts_pct": [],
+    "mean_intercept_pct": null,
+    "CI_95_intercept_seedlevel": null,
+    "wilcoxon_p_intercepts": null,
+    "equal_time_subset": {
+      "n_egos": 0,
+      "n_valid_seeds": 0,
+      "mean_dfuel_pct": null,
+      "t_p_seedlevel": null
+    },
+    "seedlevel_ols": {
+      "intercept_pct": null,
+      "slope": null,
+      "se_intercept": null,
+      "CI_95_intercept": null
+    }
+  }
+}

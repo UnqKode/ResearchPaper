@@ -1,0 +1,31 @@
+***Starting server on port 55401 ***
+Loading net-file from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/most.net.xml' ... done (13970ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.poly.xml' ... done (4537ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.busstops.add.xml' ... done (166ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.trainstops.add.xml' ... done (199ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.parking.allvisible.add.xml' ... done (522ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/basic.vType.xml' ... done (26ms).
+Loading route-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.commercial.rou.xml' ... done (4221ms).
+Loading route-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.highway.flows.xml' ... done (95ms).
+Loading done.
+Simulation version 1.27.0 started with time: 14400.00.
+Simulation ended at time: 21000.00.
+Reason: TraCI requested termination.
+Performance:
+ Duration: 198.18s
+ TraCI-Duration: 47.59s
+ Real time factor: 33.3027
+ UPS: 9038.838038
+Vehicles:
+ Inserted: 1050 (Loaded: 7400)
+ Running: 189
+ Waiting: 0
+Statistics (avg of 861):
+ RouteLength: 7519.24
+ Speed: 19.39
+ Duration: 425.83
+ WaitingTime: 5.30
+ TimeLoss: 38.27
+ DepartDelay: 0.28
+DijkstraRouter answered 14118 queries and explored 816.58 edges on average.
+DijkstraRouter spent 14.75s answering queries (1.04ms on average).

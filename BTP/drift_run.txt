@@ -1,0 +1,467 @@
+***Starting server on port 60282 ***
+Loading net-file from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/most.net.xml' ... done (6087ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.poly.xml' ... done (6142ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.busstops.add.xml' ... done (198ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.trainstops.add.xml' ... done (209ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.parking.allvisible.add.xml' ... done (540ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/basic.vType.xml' ... done (29ms).
+Loading route-files incrementally from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.commercial.rou.xml'
+Loading route-files incrementally from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.highway.flows.xml'
+Loading done.
+Simulation version 1.27.0 started with time: 14400.00.
+***Starting server on port 61486 ***
+Loading net-file from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/most.net.xml' ... done (4761ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.poly.xml' ... done (4451ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.busstops.add.xml' ... done (185ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.trainstops.add.xml' ... done (187ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.parking.allvisible.add.xml' ... done (444ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/basic.vType.xml' ... done (18ms).
+Loading route-files incrementally from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.commercial.rou.xml'
+Loading route-files incrementally from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.highway.flows.xml'
+Loading done.
+Simulation version 1.27.0 started with time: 14400.00.
+Simulation ended at time: 23795.00.
+Reason: TraCI requested termination.
+Performance:
+ Duration: 7764.37s
+ TraCI-Duration: 7446.65s
+ Real time factor: 1.21001
+ UPS: 566.826581
+Vehicles:
+ Inserted: 2322 (Loaded: 2332)
+ Running: 235
+ Waiting: 0
+ Teleports: 4 (Wrong Lane: 4)
+Statistics (avg of 2087):
+ RouteLength: 7361.00
+ Speed: 18.32
+ Duration: 442.62
+ WaitingTime: 6.58
+ TimeLoss: 42.44
+ DepartDelay: 0.34
+DijkstraRouter answered 774 queries and explored 268.16 edges on average.
+DijkstraRouter spent 0.32s answering queries (0.41ms on average).
+Building 10 targeted OD pairs crossing ['153391#0', '153391#1'] with viable bypass (detour <=1.25x)...
+  OD pair 1: trip=704.2s free-flow, corridor=33.6s (5%), bypass=722.6s (103%)
+  OD pair 2: trip=558.2s free-flow, corridor=33.6s (6%), bypass=576.6s (103%)
+  OD pair 3: trip=511.4s free-flow, corridor=33.6s (7%), bypass=526.7s (103%)
+  OD pair 4: trip=591.0s free-flow, corridor=33.6s (6%), bypass=607.3s (103%)
+  OD pair 5: trip=400.4s free-flow, corridor=33.6s (8%), bypass=418.8s (105%)
+  OD pair 6: trip=427.1s free-flow, corridor=33.6s (8%), bypass=508.9s (119%)
+  OD pair 7: trip=346.9s free-flow, corridor=33.6s (10%), bypass=365.3s (105%)
+  OD pair 8: trip=474.9s free-flow, corridor=33.6s (7%), bypass=507.2s (107%)
+  OD pair 9: trip=591.5s free-flow, corridor=33.6s (6%), bypass=609.9s (103%)
+  OD pair 10: trip=447.2s free-flow, corridor=33.6s (8%), bypass=471.4s (105%)
+  Got 10 targeted pairs with viable bypass in 109 attempts.
+
+[Paired Mode] Running fixed-departure continuous fuel campaign.
+
+=======================================================
+ SWEEP POINT: scale=2.0, depart=21600.0
+=======================================================
+[seed-parallelism] P=1, arms=2, total_workers=1 (sequential within seed)
+
+--- Queuing SEED 1 ---
+
+# scenario 'ours_1_2.0_21600.0' (seed=1) finished in 11620.5s
+[SUMO_CMD] tag=ours_1_2.0_21600.0 seed=1 cmd=sumo -c C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\most.sumocfg --seed 1 --scale 2.0 --no-step-log true --no-warnings true --time-to-teleport 300 --end 28900 --output-prefix ours_1_2.0_21600.0. --tripinfo-output tripinfo.xml --log sim.log --error-log errors.log --device.rerouting.probability 0 --device.emissions.probability 0
+ Retrying in 1 seconds
+[RSU] coverage: 4329 / 4404 non-internal edges have an RSU (88 assigned via from_node fallback for dead-end terminations).
+[ours_1_2.0_21600.0] RoadConditionManager bound (mode=grade, edges=['153391#0', '153391#1'])
+[RSU] subscribed 4329 edges (VEHICLE_ID_LIST + OCCUPANCY + HALTING_NUMBER).
+[DRIFT_LOG] arm=ours file=drift_ours_seed1.csv
+[DRIFT_LOG] corridor_edges=['153391#0', '153391#1']
+[DRIFT_LOG] n_monitored=40 first5=['-152132', '-152335', '-152446', '-152558#1', '-152622']
+[PRE_INJECT] ego_0 t=21600.0s  153391#0:[n=0 spd=13.89m/s occ=0.0% fuel=18750.8mg]  153391#1:[n=0 spd=13.89m/s occ=0.0% fuel=2445.1mg]
+[ours] Injected ego_0 at sim_time 21600.0s (vcount=228, possum=43124.5)
+[DIJKSTRA_TRIGGER] vehicle=ego_0 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=0.1%
+[CANDIDATE_ROUTE] vehicle=ego_0 oldCost=382322.1 candidateCost=382322.1 improvement=0.0%
+[DECISION] vehicle=ego_0 action=KEEP_CURRENT_ROUTE
+[PRE_INJECT] ego_1 t=21720.0s  153391#0:[n=0 spd=13.89m/s occ=0.0% fuel=18814.8mg]  153391#1:[n=0 spd=13.89m/s occ=0.0% fuel=2521.1mg]
+[ours] Injected ego_1 at sim_time 21720.0s (vcount=230, possum=44854.2)
+[DIJKSTRA_TRIGGER] vehicle=ego_1 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=0.2%
+[CANDIDATE_ROUTE] vehicle=ego_1 oldCost=476057.5 candidateCost=476057.5 improvement=0.0%
+[DECISION] vehicle=ego_1 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_1 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=0.4%
+[CANDIDATE_ROUTE] vehicle=ego_1 oldCost=400734.3 candidateCost=400734.3 improvement=0.0%
+[DECISION] vehicle=ego_1 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_1 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=0.4%
+[CANDIDATE_ROUTE] vehicle=ego_1 oldCost=400866.4 candidateCost=400866.4 improvement=0.0%
+[DECISION] vehicle=ego_1 action=KEEP_CURRENT_ROUTE
+[PRE_INJECT] ego_2 t=21840.0s  153391#0:[n=0 spd=13.89m/s occ=0.0% fuel=18814.8mg]  153391#1:[n=0 spd=13.89m/s occ=0.0% fuel=2521.1mg]
+[ours] Injected ego_2 at sim_time 21840.0s (vcount=243, possum=48803.0)
+[DIJKSTRA_TRIGGER] vehicle=ego_1 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=0.4%
+[CANDIDATE_ROUTE] vehicle=ego_1 oldCost=400813.4 candidateCost=400813.4 improvement=0.0%
+[DECISION] vehicle=ego_1 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_2 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=0.3%
+[CANDIDATE_ROUTE] vehicle=ego_2 oldCost=251041.9 candidateCost=251041.9 improvement=0.0%
+[DECISION] vehicle=ego_2 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_1 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=0.6%
+[CANDIDATE_ROUTE] vehicle=ego_1 oldCost=271023.8 candidateCost=271023.8 improvement=0.0%
+[DECISION] vehicle=ego_1 action=KEEP_CURRENT_ROUTE
+[PRE_INJECT] ego_3 t=21960.0s  153391#0:[n=0 spd=13.89m/s occ=0.0% fuel=18814.8mg]  153391#1:[n=0 spd=13.89m/s occ=0.0% fuel=2521.1mg]
+[ours] Injected ego_3 at sim_time 21960.0s (vcount=248, possum=55062.0)
+[DIJKSTRA_TRIGGER] vehicle=ego_1 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=0.1%
+[CANDIDATE_ROUTE] vehicle=ego_1 oldCost=209937.8 candidateCost=209937.8 improvement=0.0%
+[DECISION] vehicle=ego_1 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_1 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=0.1%
+[CANDIDATE_ROUTE] vehicle=ego_1 oldCost=168804.6 candidateCost=168804.6 improvement=0.0%
+[DECISION] vehicle=ego_1 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_1 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=0.8%
+[CANDIDATE_ROUTE] vehicle=ego_1 oldCost=155408.7 candidateCost=155408.7 improvement=0.0%
+[DECISION] vehicle=ego_1 action=KEEP_CURRENT_ROUTE
+[PRE_INJECT] ego_4 t=22080.0s  153391#0:[n=0 spd=13.89m/s occ=0.0% fuel=18814.8mg]  153391#1:[n=0 spd=13.89m/s occ=0.0% fuel=2521.1mg]
+[ours] Injected ego_4 at sim_time 22080.0s (vcount=253, possum=65204.7)
+[DIJKSTRA_TRIGGER] vehicle=ego_1 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=1.7%
+[CANDIDATE_ROUTE] vehicle=ego_1 oldCost=141230.3 candidateCost=141230.3 improvement=0.0%
+[DECISION] vehicle=ego_1 action=KEEP_CURRENT_ROUTE
+TraCI error in paired scenario 'ours_1_2.0_21600.0': Connection closed by SUMO.
+
+# scenario 'ablation_1_2.0_21600.0' (seed=1) finished in 7771.7s
+[SUMO_CMD] tag=ablation_1_2.0_21600.0 seed=1 cmd=sumo -c C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\most.sumocfg --seed 1 --scale 2.0 --no-step-log true --no-warnings true --time-to-teleport 300 --end 28900 --output-prefix ablation_1_2.0_21600.0. --tripinfo-output tripinfo.xml --log sim.log --error-log errors.log --device.rerouting.probability 0 --device.emissions.probability 0
+[RSU] coverage: 4329 / 4404 non-internal edges have an RSU (88 assigned via from_node fallback for dead-end terminations).
+[ablation_1_2.0_21600.0] RoadConditionManager bound (mode=grade, edges=['153391#0', '153391#1'])
+[RSU] subscribed 4329 edges (VEHICLE_ID_LIST + OCCUPANCY + HALTING_NUMBER).
+[DRIFT_LOG] arm=ablation file=drift_ablation_seed1.csv
+[DRIFT_LOG] corridor_edges=['153391#0', '153391#1']
+[DRIFT_LOG] n_monitored=40 first5=['-152132', '-152335', '-152446', '-152558#1', '-152622']
+[PRE_INJECT] ego_0 t=21600.0s  153391#0:[n=0 spd=13.89m/s occ=0.0% fuel=18750.8mg]  153391#1:[n=0 spd=13.89m/s occ=0.0% fuel=2445.1mg]
+[ablation] Injected ego_0 at sim_time 21600.0s (vcount=228, possum=43124.5)
+[DIJKSTRA_TRIGGER] vehicle=ego_0 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=0.0%
+[CANDIDATE_ROUTE] vehicle=ego_0 oldCost=698.4 candidateCost=698.4 improvement=0.0%
+[DECISION] vehicle=ego_0 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_0 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=0.0%
+[CANDIDATE_ROUTE] vehicle=ego_0 oldCost=698.4 candidateCost=698.4 improvement=0.0%
+[DECISION] vehicle=ego_0 action=KEEP_CURRENT_ROUTE
+[PRE_INJECT] ego_1 t=21720.0s  153391#0:[n=0 spd=13.89m/s occ=0.0% fuel=18814.8mg]  153391#1:[n=0 spd=13.89m/s occ=0.0% fuel=2521.1mg]
+[ablation] Injected ego_1 at sim_time 21720.0s (vcount=230, possum=44854.2)
+[DIJKSTRA_TRIGGER] vehicle=ego_1 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=0.0%
+[CANDIDATE_ROUTE] vehicle=ego_1 oldCost=548.4 candidateCost=548.4 improvement=0.0%
+[DECISION] vehicle=ego_1 action=KEEP_CURRENT_ROUTE
+[PRE_INJECT] ego_2 t=21840.0s  153391#0:[n=0 spd=13.89m/s occ=0.0% fuel=18814.8mg]  153391#1:[n=0 spd=13.89m/s occ=0.0% fuel=2521.1mg]
+[ablation] Injected ego_2 at sim_time 21840.0s (vcount=243, possum=48803.0)
+[DIJKSTRA_TRIGGER] vehicle=ego_1 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=0.0%
+[CANDIDATE_ROUTE] vehicle=ego_1 oldCost=501.6 candidateCost=501.6 improvement=0.0%
+[DECISION] vehicle=ego_1 action=KEEP_CURRENT_ROUTE
+[PRE_INJECT] ego_3 t=21960.0s  153391#0:[n=1 spd=13.38m/s occ=0.01% fuel=18814.8mg]  153391#1:[n=0 spd=13.89m/s occ=0.0% fuel=2521.1mg]
+[ablation] Injected ego_3 at sim_time 21960.0s (vcount=248, possum=54998.6)
+[DIJKSTRA_TRIGGER] vehicle=ego_0 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=0.0%
+[CANDIDATE_ROUTE] vehicle=ego_0 oldCost=434.6 candidateCost=434.6 improvement=0.0%
+[DECISION] vehicle=ego_0 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_0 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=0.0%
+[CANDIDATE_ROUTE] vehicle=ego_0 oldCost=401.0 candidateCost=401.0 improvement=0.0%
+[DECISION] vehicle=ego_0 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_0 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=0.0%
+[CANDIDATE_ROUTE] vehicle=ego_0 oldCost=401.0 candidateCost=401.0 improvement=0.0%
+[DECISION] vehicle=ego_0 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_0 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=0.1%
+[CANDIDATE_ROUTE] vehicle=ego_0 oldCost=360.0 candidateCost=360.0 improvement=0.0%
+[DECISION] vehicle=ego_0 action=KEEP_CURRENT_ROUTE
+[PRE_INJECT] ego_4 t=22080.0s  153391#0:[n=0 spd=13.89m/s occ=0.0% fuel=19112.6mg]  153391#1:[n=0 spd=13.89m/s occ=0.0% fuel=2514.9mg]
+[ablation] Injected ego_4 at sim_time 22080.0s (vcount=253, possum=64266.7)
+[DIJKSTRA_TRIGGER] vehicle=ego_0 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=0.0%
+[CANDIDATE_ROUTE] vehicle=ego_0 oldCost=339.4 candidateCost=339.4 improvement=0.0%
+[DECISION] vehicle=ego_0 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_3 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=0.0%
+[CANDIDATE_ROUTE] vehicle=ego_3 oldCost=489.6 candidateCost=489.6 improvement=0.0%
+[DECISION] vehicle=ego_3 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_2 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=0.0%
+[CANDIDATE_ROUTE] vehicle=ego_2 oldCost=283.8 candidateCost=283.8 improvement=0.0%
+[DECISION] vehicle=ego_2 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_0 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=0.1%
+[CANDIDATE_ROUTE] vehicle=ego_0 oldCost=306.2 candidateCost=306.2 improvement=0.0%
+[DECISION] vehicle=ego_0 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_3 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=0.0%
+[CANDIDATE_ROUTE] vehicle=ego_3 oldCost=479.5 candidateCost=479.5 improvement=0.0%
+[DECISION] vehicle=ego_3 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_0 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=0.0%
+[CANDIDATE_ROUTE] vehicle=ego_0 oldCost=279.6 candidateCost=279.6 improvement=0.0%
+[DECISION] vehicle=ego_0 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_4 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=0.0%
+[CANDIDATE_ROUTE] vehicle=ego_4 oldCost=369.3 candidateCost=369.3 improvement=0.0%
+[DECISION] vehicle=ego_4 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_3 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=0.0%
+[CANDIDATE_ROUTE] vehicle=ego_3 oldCost=463.9 candidateCost=463.9 improvement=0.0%
+[DECISION] vehicle=ego_3 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_4 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=0.0%
+[CANDIDATE_ROUTE] vehicle=ego_4 oldCost=348.5 candidateCost=348.5 improvement=0.0%
+[DECISION] vehicle=ego_4 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_1 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=0.1%
+[CANDIDATE_ROUTE] vehicle=ego_1 oldCost=172.7 candidateCost=172.7 improvement=0.0%
+[DECISION] vehicle=ego_1 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_3 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=0.0%
+[CANDIDATE_ROUTE] vehicle=ego_3 oldCost=423.2 candidateCost=423.2 improvement=0.0%
+[DECISION] vehicle=ego_3 action=KEEP_CURRENT_ROUTE
+[PRE_INJECT] ego_5 t=22200.0s  153391#0:[n=1 spd=14.49m/s occ=0.01% fuel=19112.6mg]  153391#1:[n=0 spd=13.89m/s occ=0.0% fuel=2514.9mg]
+[ablation] Injected ego_5 at sim_time 22200.0s (vcount=249, possum=69665.7)
+[DIJKSTRA_TRIGGER] vehicle=ego_2 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=0.0%
+[CANDIDATE_ROUTE] vehicle=ego_2 oldCost=217.8 candidateCost=217.8 improvement=0.0%
+[DECISION] vehicle=ego_2 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_0 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=0.0%
+[CANDIDATE_ROUTE] vehicle=ego_0 oldCost=240.2 candidateCost=240.2 improvement=0.0%
+[DECISION] vehicle=ego_0 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_4 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=0.0%
+[CANDIDATE_ROUTE] vehicle=ego_4 oldCost=337.0 candidateCost=337.0 improvement=0.0%
+[DECISION] vehicle=ego_4 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_1 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=0.1%
+[CANDIDATE_ROUTE] vehicle=ego_1 oldCost=149.8 candidateCost=149.8 improvement=0.0%
+[DECISION] vehicle=ego_1 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_3 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=0.0%
+[CANDIDATE_ROUTE] vehicle=ego_3 oldCost=418.5 candidateCost=418.5 improvement=0.0%
+[DECISION] vehicle=ego_3 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_2 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=0.0%
+[CANDIDATE_ROUTE] vehicle=ego_2 oldCost=202.6 candidateCost=202.6 improvement=0.0%
+[DECISION] vehicle=ego_2 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_1 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=0.0%
+[CANDIDATE_ROUTE] vehicle=ego_1 oldCost=131.1 candidateCost=131.1 improvement=0.0%
+[DECISION] vehicle=ego_1 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_3 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=0.0%
+[CANDIDATE_ROUTE] vehicle=ego_3 oldCost=384.9 candidateCost=384.9 improvement=0.0%
+[DECISION] vehicle=ego_3 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_2 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=0.0%
+[CANDIDATE_ROUTE] vehicle=ego_2 oldCost=155.5 candidateCost=155.5 improvement=0.0%
+[DECISION] vehicle=ego_2 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_5 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=211.7%
+[CANDIDATE_ROUTE] vehicle=ego_5 oldCost=1261.0 candidateCost=1261.0 improvement=0.0%
+[DECISION] vehicle=ego_5 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_2 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=0.1%
+[CANDIDATE_ROUTE] vehicle=ego_2 oldCost=148.1 candidateCost=148.1 improvement=0.0%
+[DECISION] vehicle=ego_2 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_5 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=211.7%
+[CANDIDATE_ROUTE] vehicle=ego_5 oldCost=1261.0 candidateCost=1261.0 improvement=0.0%
+[DECISION] vehicle=ego_5 action=KEEP_CURRENT_ROUTE
+[PRE_INJECT] ego_6 t=22320.0s  153391#0:[n=0 spd=13.89m/s occ=0.0% fuel=19580.9mg]  153391#1:[n=0 spd=13.89m/s occ=0.0% fuel=2408.2mg]
+[ablation] Injected ego_6 at sim_time 22320.0s (vcount=247, possum=70294.0)
+[DIJKSTRA_TRIGGER] vehicle=ego_5 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=211.7%
+[CANDIDATE_ROUTE] vehicle=ego_5 oldCost=1261.0 candidateCost=1261.0 improvement=0.0%
+[DECISION] vehicle=ego_5 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_5 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=211.7%
+[CANDIDATE_ROUTE] vehicle=ego_5 oldCost=1261.0 candidateCost=1261.0 improvement=0.0%
+[DECISION] vehicle=ego_5 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_5 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=211.7%
+[CANDIDATE_ROUTE] vehicle=ego_5 oldCost=1261.0 candidateCost=1261.0 improvement=0.0%
+[DECISION] vehicle=ego_5 action=KEEP_CURRENT_ROUTE
+[ablation] ego_1 arrived. reroute_evals=23 accepted_reroutes=0
+[ablation] ego_2 arrived. reroute_evals=19 accepted_reroutes=0
+[DIJKSTRA_TRIGGER] vehicle=ego_4 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=0.0%
+[CANDIDATE_ROUTE] vehicle=ego_4 oldCost=178.4 candidateCost=178.4 improvement=0.0%
+[DECISION] vehicle=ego_4 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_5 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=211.7%
+[CANDIDATE_ROUTE] vehicle=ego_5 oldCost=1261.0 candidateCost=1261.0 improvement=0.0%
+[DECISION] vehicle=ego_5 action=KEEP_CURRENT_ROUTE
+[PRE_INJECT] ego_7 t=22440.0s  153391#0:[n=0 spd=13.89m/s occ=0.0% fuel=19580.9mg]  153391#1:[n=0 spd=13.89m/s occ=0.0% fuel=2408.2mg]
+[ablation] Injected ego_7 at sim_time 22440.0s (vcount=234, possum=66281.6)
+[DIJKSTRA_TRIGGER] vehicle=ego_5 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=211.7%
+[CANDIDATE_ROUTE] vehicle=ego_5 oldCost=1261.0 candidateCost=1261.0 improvement=0.0%
+[DECISION] vehicle=ego_5 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_6 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=0.1%
+[CANDIDATE_ROUTE] vehicle=ego_6 oldCost=243.3 candidateCost=243.3 improvement=0.0%
+[DECISION] vehicle=ego_6 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_7 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=0.0%
+[CANDIDATE_ROUTE] vehicle=ego_7 oldCost=463.0 candidateCost=463.0 improvement=0.0%
+[DECISION] vehicle=ego_7 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_3 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=0.0%
+[CANDIDATE_ROUTE] vehicle=ego_3 oldCost=184.4 candidateCost=184.4 improvement=0.0%
+[DECISION] vehicle=ego_3 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_5 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=211.8%
+[CANDIDATE_ROUTE] vehicle=ego_5 oldCost=1261.1 candidateCost=1261.1 improvement=0.0%
+[DECISION] vehicle=ego_5 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_6 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=0.0%
+[CANDIDATE_ROUTE] vehicle=ego_6 oldCost=227.6 candidateCost=227.6 improvement=0.0%
+[DECISION] vehicle=ego_6 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_5 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=211.7%
+[CANDIDATE_ROUTE] vehicle=ego_5 oldCost=1261.0 candidateCost=1261.0 improvement=0.0%
+[DECISION] vehicle=ego_5 action=KEEP_CURRENT_ROUTE
+[ablation] ego_0 arrived. reroute_evals=31 accepted_reroutes=0
+[DIJKSTRA_TRIGGER] vehicle=ego_7 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=0.0%
+[CANDIDATE_ROUTE] vehicle=ego_7 oldCost=434.6 candidateCost=434.6 improvement=0.0%
+[DECISION] vehicle=ego_7 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_5 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=0.1%
+[CANDIDATE_ROUTE] vehicle=ego_5 oldCost=392.4 candidateCost=392.4 improvement=0.0%
+[DECISION] vehicle=ego_5 action=KEEP_CURRENT_ROUTE
+[PRE_INJECT] ego_8 t=22560.0s  153391#0:[n=2 spd=13.33m/s occ=0.02% fuel=19650.0mg]  153391#1:[n=1 spd=10.28m/s occ=0.01% fuel=2610.3mg]
+[ablation] Injected ego_8 at sim_time 22560.0s (vcount=224, possum=60254.3)
+[DIJKSTRA_TRIGGER] vehicle=ego_6 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=0.0%
+[CANDIDATE_ROUTE] vehicle=ego_6 oldCost=182.3 candidateCost=182.3 improvement=0.0%
+[DECISION] vehicle=ego_6 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_7 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=0.0%
+[CANDIDATE_ROUTE] vehicle=ego_7 oldCost=414.7 candidateCost=414.7 improvement=0.0%
+[DECISION] vehicle=ego_7 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_3 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=0.0%
+[CANDIDATE_ROUTE] vehicle=ego_3 oldCost=115.9 candidateCost=115.9 improvement=0.0%
+[DECISION] vehicle=ego_3 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_5 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=0.0%
+[CANDIDATE_ROUTE] vehicle=ego_5 oldCost=363.0 candidateCost=363.0 improvement=0.0%
+[DECISION] vehicle=ego_5 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_7 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=0.0%
+[CANDIDATE_ROUTE] vehicle=ego_7 oldCost=384.4 candidateCost=384.4 improvement=0.0%
+[DECISION] vehicle=ego_7 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_5 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=0.0%
+[CANDIDATE_ROUTE] vehicle=ego_5 oldCost=340.7 candidateCost=340.7 improvement=0.0%
+[DECISION] vehicle=ego_5 action=KEEP_CURRENT_ROUTE
+[ablation] ego_4 arrived. reroute_evals=18 accepted_reroutes=0
+[DIJKSTRA_TRIGGER] vehicle=ego_6 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=0.0%
+[CANDIDATE_ROUTE] vehicle=ego_6 oldCost=148.6 candidateCost=148.6 improvement=0.0%
+[DECISION] vehicle=ego_6 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_7 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=0.0%
+[CANDIDATE_ROUTE] vehicle=ego_7 oldCost=353.7 candidateCost=353.7 improvement=0.0%
+[DECISION] vehicle=ego_7 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_3 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=0.0%
+[CANDIDATE_ROUTE] vehicle=ego_3 oldCost=68.1 candidateCost=68.1 improvement=0.0%
+[DECISION] vehicle=ego_3 action=KEEP_CURRENT_ROUTE
+[PRE_INJECT] ego_9 t=22680.0s  153391#0:[n=1 spd=8.63m/s occ=0.0% fuel=19463.2mg]  153391#1:[n=1 spd=14.5m/s occ=0.01% fuel=2402.6mg]
+[ablation] Injected ego_9 at sim_time 22680.0s (vcount=231, possum=43518.4)
+[DIJKSTRA_TRIGGER] vehicle=ego_3 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=82.7%
+[CANDIDATE_ROUTE] vehicle=ego_3 oldCost=119.4 candidateCost=119.4 improvement=0.0%
+[DECISION] vehicle=ego_3 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_5 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=0.0%
+[CANDIDATE_ROUTE] vehicle=ego_5 oldCost=304.7 candidateCost=304.7 improvement=0.0%
+[DECISION] vehicle=ego_5 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_8 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=0.0%
+[CANDIDATE_ROUTE] vehicle=ego_8 oldCost=482.3 candidateCost=482.3 improvement=0.0%
+[DECISION] vehicle=ego_8 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_7 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=0.0%
+[CANDIDATE_ROUTE] vehicle=ego_7 oldCost=281.4 candidateCost=281.4 improvement=0.0%
+[DECISION] vehicle=ego_7 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_3 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=82.7%
+[CANDIDATE_ROUTE] vehicle=ego_3 oldCost=119.4 candidateCost=119.4 improvement=0.0%
+[DECISION] vehicle=ego_3 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_6 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=0.1%
+[CANDIDATE_ROUTE] vehicle=ego_6 oldCost=27.3 candidateCost=27.3 improvement=0.0%
+[DECISION] vehicle=ego_6 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_3 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=82.7%
+[CANDIDATE_ROUTE] vehicle=ego_3 oldCost=119.4 candidateCost=119.4 improvement=0.0%
+[DECISION] vehicle=ego_3 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_9 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=0.0%
+[CANDIDATE_ROUTE] vehicle=ego_9 oldCost=400.4 candidateCost=400.4 improvement=0.0%
+[DECISION] vehicle=ego_9 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_8 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=0.0%
+[CANDIDATE_ROUTE] vehicle=ego_8 oldCost=432.8 candidateCost=432.8 improvement=0.0%
+[DECISION] vehicle=ego_8 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_7 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=0.0%
+[CANDIDATE_ROUTE] vehicle=ego_7 oldCost=212.3 candidateCost=212.3 improvement=0.0%
+[DECISION] vehicle=ego_7 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_3 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=82.8%
+[CANDIDATE_ROUTE] vehicle=ego_3 oldCost=119.5 candidateCost=119.5 improvement=0.0%
+[DECISION] vehicle=ego_3 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_5 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=0.0%
+[CANDIDATE_ROUTE] vehicle=ego_5 oldCost=254.5 candidateCost=254.5 improvement=0.0%
+[DECISION] vehicle=ego_5 action=KEEP_CURRENT_ROUTE
+[ablation] ego_6 arrived. reroute_evals=16 accepted_reroutes=0
+[DIJKSTRA_TRIGGER] vehicle=ego_3 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=82.7%
+[CANDIDATE_ROUTE] vehicle=ego_3 oldCost=119.4 candidateCost=119.4 improvement=0.0%
+[DECISION] vehicle=ego_3 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_3 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=82.7%
+[CANDIDATE_ROUTE] vehicle=ego_3 oldCost=119.4 candidateCost=119.4 improvement=0.0%
+[DECISION] vehicle=ego_3 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_5 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=0.1%
+[CANDIDATE_ROUTE] vehicle=ego_5 oldCost=217.2 candidateCost=217.2 improvement=0.0%
+[DECISION] vehicle=ego_5 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_8 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=0.0%
+[CANDIDATE_ROUTE] vehicle=ego_8 oldCost=384.2 candidateCost=384.2 improvement=0.0%
+[DECISION] vehicle=ego_8 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_3 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=82.7%
+[CANDIDATE_ROUTE] vehicle=ego_3 oldCost=119.4 candidateCost=119.4 improvement=0.0%
+[DECISION] vehicle=ego_3 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_3 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=82.7%
+[CANDIDATE_ROUTE] vehicle=ego_3 oldCost=119.4 candidateCost=119.4 improvement=0.0%
+[DECISION] vehicle=ego_3 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_9 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=0.1%
+[CANDIDATE_ROUTE] vehicle=ego_9 oldCost=326.5 candidateCost=326.5 improvement=0.0%
+[DECISION] vehicle=ego_9 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_7 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=0.0%
+[CANDIDATE_ROUTE] vehicle=ego_7 oldCost=119.3 candidateCost=119.3 improvement=0.0%
+[DECISION] vehicle=ego_7 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_3 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=82.7%
+[CANDIDATE_ROUTE] vehicle=ego_3 oldCost=119.4 candidateCost=119.4 improvement=0.0%
+[DECISION] vehicle=ego_3 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_9 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=35.3%
+[CANDIDATE_ROUTE] vehicle=ego_9 oldCost=441.2 candidateCost=441.2 improvement=0.0%
+[DECISION] vehicle=ego_9 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_8 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=0.0%
+[CANDIDATE_ROUTE] vehicle=ego_8 oldCost=322.5 candidateCost=322.5 improvement=0.0%
+[DECISION] vehicle=ego_8 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_7 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=0.0%
+[CANDIDATE_ROUTE] vehicle=ego_7 oldCost=119.3 candidateCost=119.3 improvement=0.0%
+[DECISION] vehicle=ego_7 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_5 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=0.0%
+[CANDIDATE_ROUTE] vehicle=ego_5 oldCost=151.6 candidateCost=151.6 improvement=0.0%
+[DECISION] vehicle=ego_5 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_9 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=35.3%
+[CANDIDATE_ROUTE] vehicle=ego_9 oldCost=441.3 candidateCost=441.3 improvement=0.0%
+[DECISION] vehicle=ego_9 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_9 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=35.4%
+[CANDIDATE_ROUTE] vehicle=ego_9 oldCost=441.7 candidateCost=441.7 improvement=0.0%
+[DECISION] vehicle=ego_9 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_9 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=35.4%
+[CANDIDATE_ROUTE] vehicle=ego_9 oldCost=441.6 candidateCost=441.6 improvement=0.0%
+[DECISION] vehicle=ego_9 action=KEEP_CURRENT_ROUTE
+[ablation] ego_3 arrived. reroute_evals=36 accepted_reroutes=0
+[ablation] ego_7 arrived. reroute_evals=20 accepted_reroutes=0
+[DIJKSTRA_TRIGGER] vehicle=ego_9 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=35.4%
+[CANDIDATE_ROUTE] vehicle=ego_9 oldCost=441.5 candidateCost=441.5 improvement=0.0%
+[DECISION] vehicle=ego_9 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_9 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=35.3%
+[CANDIDATE_ROUTE] vehicle=ego_9 oldCost=441.4 candidateCost=441.4 improvement=0.0%
+[DECISION] vehicle=ego_9 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_9 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=35.4%
+[CANDIDATE_ROUTE] vehicle=ego_9 oldCost=441.7 candidateCost=441.7 improvement=0.0%
+[DECISION] vehicle=ego_9 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_9 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=35.5%
+[CANDIDATE_ROUTE] vehicle=ego_9 oldCost=441.9 candidateCost=441.9 improvement=0.0%
+[DECISION] vehicle=ego_9 action=KEEP_CURRENT_ROUTE
+[ablation] ego_5 arrived. reroute_evals=32 accepted_reroutes=0
+[DIJKSTRA_TRIGGER] vehicle=ego_9 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=0.2%
+[CANDIDATE_ROUTE] vehicle=ego_9 oldCost=250.3 candidateCost=250.3 improvement=0.0%
+[DECISION] vehicle=ego_9 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_9 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=0.2%
+[CANDIDATE_ROUTE] vehicle=ego_9 oldCost=250.3 candidateCost=250.3 improvement=0.0%
+[DECISION] vehicle=ego_9 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_9 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=0.1%
+[CANDIDATE_ROUTE] vehicle=ego_9 oldCost=250.1 candidateCost=250.1 improvement=0.0%
+[DECISION] vehicle=ego_9 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_8 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=0.1%
+[CANDIDATE_ROUTE] vehicle=ego_8 oldCost=36.2 candidateCost=36.2 improvement=0.0%
+[DECISION] vehicle=ego_8 action=KEEP_CURRENT_ROUTE
+[ablation] ego_8 arrived. reroute_evals=26 accepted_reroutes=0
+[DIJKSTRA_TRIGGER] vehicle=ego_9 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=0.0%
+[CANDIDATE_ROUTE] vehicle=ego_9 oldCost=57.2 candidateCost=57.2 improvement=0.0%
+[DECISION] vehicle=ego_9 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_9 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=21.0%
+[CANDIDATE_ROUTE] vehicle=ego_9 oldCost=57.1 candidateCost=57.1 improvement=0.0%
+[DECISION] vehicle=ego_9 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_9 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=345.4%
+[CANDIDATE_ROUTE] vehicle=ego_9 oldCost=210.2 candidateCost=210.2 improvement=0.0%
+[DECISION] vehicle=ego_9 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_9 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=345.4%
+[CANDIDATE_ROUTE] vehicle=ego_9 oldCost=210.2 candidateCost=210.2 improvement=0.0%
+[DECISION] vehicle=ego_9 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_9 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=345.4%
+[CANDIDATE_ROUTE] vehicle=ego_9 oldCost=210.2 candidateCost=210.2 improvement=0.0%
+[DECISION] vehicle=ego_9 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_9 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=345.4%
+[CANDIDATE_ROUTE] vehicle=ego_9 oldCost=210.2 candidateCost=210.2 improvement=0.0%
+[DECISION] vehicle=ego_9 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_9 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=345.4%
+[CANDIDATE_ROUTE] vehicle=ego_9 oldCost=210.2 candidateCost=210.2 improvement=0.0%
+[DECISION] vehicle=ego_9 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_9 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=345.4%
+[CANDIDATE_ROUTE] vehicle=ego_9 oldCost=210.2 candidateCost=210.2 improvement=0.0%
+[DECISION] vehicle=ego_9 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_9 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=345.4%
+[CANDIDATE_ROUTE] vehicle=ego_9 oldCost=210.2 candidateCost=210.2 improvement=0.0%
+[DECISION] vehicle=ego_9 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_9 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=345.4%
+[CANDIDATE_ROUTE] vehicle=ego_9 oldCost=210.2 candidateCost=210.2 improvement=0.0%
+[DECISION] vehicle=ego_9 action=KEEP_CURRENT_ROUTE
+[ablation] ego_9 arrived. reroute_evals=38 accepted_reroutes=0
+[ARRIVAL_COUNTS] seed=1: ours=0 arrived / 0 did-not-arrive; ablation=10 arrived / 0 did-not-arrive
+
+=======================================================
+ PAIRED FUEL RESULTS: OURS vs ABLATION
+=======================================================
+ N (seeds) = 0
+
+-- Gate C: avoidance of degraded edges ['153391#0', '153391#1'] --
+  ours: avoided=0/0 (0.0%), crossed=0/0
+  ablation: avoided=1/10 (10.0%), crossed=9/10

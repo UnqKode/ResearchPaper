@@ -1,0 +1,83 @@
+***Starting server on port 53247 ***
+Loading net-file from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/most.net.xml' ... done (4945ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.poly.xml' ... done (5033ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.busstops.add.xml' ... done (209ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.trainstops.add.xml' ... done (200ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.parking.allvisible.add.xml' ... done (488ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/basic.vType.xml' ... done (16ms).
+Loading route-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.commercial.rou.xml' ... done (3254ms).
+Loading route-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.highway.flows.xml' ... done (60ms).
+Loading done.
+Simulation version 1.27.0 started with time: 14400.00.
+Simulation ended at time: 20400.00.
+Reason: TraCI requested termination.
+Performance:
+ Duration: 1867.58s
+ TraCI-Duration: 1758.71s
+ Real time factor: 3.21272
+ UPS: 727.675340
+Vehicles:
+ Inserted: 834 (Loaded: 7320)
+ Running: 175
+ Waiting: 0
+Statistics (avg of 659):
+ RouteLength: 7428.53
+ Speed: 19.52
+ Duration: 415.00
+ WaitingTime: 5.14
+ TimeLoss: 37.65
+ DepartDelay: 0.29
+DijkstraRouter answered 10885 queries and explored 820.35 edges on average.
+DijkstraRouter spent 11.80s answering queries (1.08ms on average).
+Config: C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\most.sumocfg
+Net:    C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in\most.net.xml
+Loading net...
+Candidate edges (spd 5.0-30.0, len>=50.0m): 2279
+Starting SUMO (port=53247)...
+  t=15400/20400
+  t=16400/20400
+  t=17400/20400
+  t=18400/20400
+  t=19400/20400
+  t=20400/20400
+Done. Steps simulated: 24000, measurement steps: 7201
+
+Top 30 edges by avg_occ (t=18600-20400):
+edge_id                         avg_occ  spd_m/s   len_m
+-152309                          0.0001    22.22   232.5
+152311                           0.0001    22.22   102.1
+-152308                          0.0001    27.78   102.3
+152461                           0.0001    13.89   280.8
+-152330#1                        0.0001    13.89   122.0
+-152794                          0.0001    13.89    68.1
+-152800                          0.0001    13.89   101.6
+-152761                          0.0001    13.89    58.6
+-152330#4                        0.0000    13.89    75.0
+-152206                          0.0000    22.22    96.1
+-152330#5                        0.0000    13.89    95.9
+152816#5                         0.0000    13.89   153.6
+-152330#0                        0.0000    13.89   782.4
+-152291                          0.0000    22.22    72.5
+152293                           0.0000    22.22   102.1
+152516#0                         0.0000    27.78  1039.6
+152323#1                         0.0000    27.78   372.5
+152517                           0.0000    27.78   132.9
+152525#0                         0.0000    27.78   172.9
+152516#1                         0.0000    27.78   168.0
+152520                           0.0000    27.78    93.3
+152518                           0.0000    27.78   135.3
+153627                           0.0000    27.78   155.8
+153632#0                         0.0000    27.78   406.0
+152522                           0.0000    27.78  1777.0
+152524#2                         0.0000    27.78   455.5
+153631                           0.0000    27.78   439.0
+153632#1                         0.0000    27.78   487.6
+152323#0                         0.0000    27.78   169.0
+152945#2                         0.0000    13.89    60.0
+
+Edges with occ >= 0.005: 0
+Edges with occ >= 0.001: 0
+Edges with occ  > 0:     918
+
+Top edges with spd<=20 AND occ>=0.005:
+  Count: 0

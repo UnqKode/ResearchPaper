@@ -1,0 +1,2359 @@
+Building 50 targeted OD pairs crossing ['153391#0', '153391#1'] with viable bypass (detour <=1.25x)...
+  OD pair 1: trip=704.2s free-flow, corridor=33.6s (5%), bypass=722.6s (103%)
+  OD pair 2: trip=558.2s free-flow, corridor=33.6s (6%), bypass=576.6s (103%)
+  OD pair 3: trip=511.4s free-flow, corridor=33.6s (7%), bypass=526.7s (103%)
+  OD pair 4: trip=591.0s free-flow, corridor=33.6s (6%), bypass=607.3s (103%)
+  OD pair 5: trip=400.4s free-flow, corridor=33.6s (8%), bypass=418.8s (105%)
+  OD pair 6: trip=427.1s free-flow, corridor=33.6s (8%), bypass=508.9s (119%)
+  OD pair 7: trip=346.9s free-flow, corridor=33.6s (10%), bypass=365.3s (105%)
+  OD pair 8: trip=474.9s free-flow, corridor=33.6s (7%), bypass=507.2s (107%)
+  OD pair 9: trip=591.5s free-flow, corridor=33.6s (6%), bypass=609.9s (103%)
+  OD pair 10: trip=447.2s free-flow, corridor=33.6s (8%), bypass=471.4s (105%)
+  OD pair 11: trip=322.5s free-flow, corridor=33.6s (10%), bypass=337.8s (105%)
+  OD pair 12: trip=410.8s free-flow, corridor=33.6s (8%), bypass=426.1s (104%)
+  OD pair 13: trip=437.3s free-flow, corridor=33.6s (8%), bypass=455.7s (104%)
+  OD pair 14: trip=459.3s free-flow, corridor=33.6s (7%), bypass=519.8s (113%)
+  OD pair 15: trip=442.2s free-flow, corridor=33.6s (8%), bypass=460.6s (104%)
+  OD pair 16: trip=447.5s free-flow, corridor=33.6s (8%), bypass=464.8s (104%)
+  OD pair 17: trip=540.7s free-flow, corridor=33.6s (6%), bypass=556.0s (103%)
+  OD pair 18: trip=466.9s free-flow, corridor=33.6s (7%), bypass=485.3s (104%)
+  OD pair 19: trip=459.1s free-flow, corridor=33.6s (7%), bypass=477.5s (104%)
+  OD pair 20: trip=572.2s free-flow, corridor=33.6s (6%), bypass=604.3s (106%)
+  OD pair 21: trip=439.6s free-flow, corridor=33.6s (8%), bypass=458.0s (104%)
+  OD pair 22: trip=343.4s free-flow, corridor=33.6s (10%), bypass=361.6s (105%)
+  OD pair 23: trip=396.0s free-flow, corridor=33.6s (8%), bypass=414.4s (105%)
+  OD pair 24: trip=465.2s free-flow, corridor=33.6s (7%), bypass=517.9s (111%)
+  OD pair 25: trip=368.6s free-flow, corridor=33.6s (9%), bypass=405.8s (110%)
+  OD pair 26: trip=479.5s free-flow, corridor=33.6s (7%), bypass=498.0s (104%)
+  OD pair 27: trip=430.0s free-flow, corridor=33.6s (8%), bypass=445.3s (104%)
+  OD pair 28: trip=446.8s free-flow, corridor=33.6s (8%), bypass=465.2s (104%)
+  OD pair 29: trip=390.5s free-flow, corridor=33.6s (9%), bypass=408.9s (105%)
+  OD pair 30: trip=510.5s free-flow, corridor=33.6s (7%), bypass=542.7s (106%)
+  OD pair 31: trip=476.0s free-flow, corridor=33.6s (7%), bypass=494.4s (104%)
+  OD pair 32: trip=386.1s free-flow, corridor=33.6s (9%), bypass=404.5s (105%)
+  OD pair 33: trip=436.6s free-flow, corridor=33.6s (8%), bypass=489.3s (112%)
+  OD pair 34: trip=558.5s free-flow, corridor=33.6s (6%), bypass=576.9s (103%)
+  OD pair 35: trip=415.0s free-flow, corridor=33.6s (8%), bypass=452.8s (109%)
+  OD pair 36: trip=418.5s free-flow, corridor=33.6s (8%), bypass=422.0s (101%)
+  OD pair 37: trip=505.5s free-flow, corridor=33.6s (7%), bypass=523.9s (104%)
+  OD pair 38: trip=245.6s free-flow, corridor=33.6s (14%), bypass=264.1s (107%)
+  OD pair 39: trip=395.0s free-flow, corridor=33.6s (9%), bypass=493.0s (125%)
+  OD pair 40: trip=426.4s free-flow, corridor=33.6s (8%), bypass=444.8s (104%)
+  OD pair 41: trip=476.2s free-flow, corridor=33.6s (7%), bypass=494.6s (104%)
+  OD pair 42: trip=319.2s free-flow, corridor=33.6s (11%), bypass=334.5s (105%)
+  OD pair 43: trip=578.2s free-flow, corridor=33.6s (6%), bypass=596.6s (103%)
+  OD pair 44: trip=439.2s free-flow, corridor=33.6s (8%), bypass=457.6s (104%)
+  OD pair 45: trip=565.6s free-flow, corridor=33.6s (6%), bypass=584.0s (103%)
+  OD pair 46: trip=473.6s free-flow, corridor=33.6s (7%), bypass=511.0s (108%)
+  OD pair 47: trip=409.3s free-flow, corridor=33.6s (8%), bypass=443.4s (108%)
+  OD pair 48: trip=117.3s free-flow, corridor=33.6s (29%), bypass=132.6s (113%)
+  OD pair 49: trip=446.1s free-flow, corridor=33.6s (8%), bypass=508.6s (114%)
+  OD pair 50: trip=472.3s free-flow, corridor=33.6s (7%), bypass=518.7s (110%)
+  Got 50 targeted pairs with viable bypass in 465 attempts.
+
+[Paired Mode] Running fixed-departure continuous fuel campaign.
+
+=======================================================
+ SWEEP POINT: scale=2.0, depart=21600.0
+=======================================================
+
+[Phase A - Paired] Building per-trip background checkpoints (1 seed(s) × 50 trips each) ...
+[Phase A - Paired] All 50 checkpoints already exist for seed 1 — skipping rebuild.
+  Seed 1: 50/50 checkpoints ready
+[seed-parallelism] P=1, arms=3, total_workers=3
+
+--- Queuing SEED 1 ---
+***Starting server on port 51478 ***
+***Starting server on port 51477 ***
+***Starting server on port 51481 ***
+Loading net-file from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/most.net.xml' ...Loading net-file from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/most.net.xml' ...Loading net-file from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/most.net.xml' ... done (4385ms).
+ done (4503ms).
+ done (4376ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.poly.xml' ...Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.poly.xml' ...Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.poly.xml' ... done (3774ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.busstops.add.xml' ... done (221ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.trainstops.add.xml' ... done (4045ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.busstops.add.xml' ... done (227ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.parking.allvisible.add.xml' ... done (275ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.trainstops.add.xml' ... done (4208ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.busstops.add.xml' ... done (199ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.parking.allvisible.add.xml' ... done (194ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.trainstops.add.xml' ... done (202ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.parking.allvisible.add.xml' ... done (573ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/basic.vType.xml' ... done (17ms).
+ done (563ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/basic.vType.xml' ... done (14ms).
+ done (614ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/basic.vType.xml' ... done (22ms).
+Loading route-files incrementally from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.commercial.rou.xml'
+Loading route-files incrementally from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.highway.flows.xml'
+Loading done.
+Loading route-files incrementally from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.commercial.rou.xml'
+Loading route-files incrementally from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.highway.flows.xml'
+Loading done.
+Simulation version 1.27.0 started with time: 14400.00.
+Simulation version 1.27.0 started with time: 14400.00.
+Loading route-files incrementally from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.commercial.rou.xml'
+Loading route-files incrementally from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.highway.flows.xml'
+Loading done.
+Simulation version 1.27.0 started with time: 14400.00.
+Loading state from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\BTP\checkpoints\paired_ckpt_seed1_0.xml' ...Loading state from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\BTP\checkpoints\paired_ckpt_seed1_0.xml' ...Loading state from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\BTP\checkpoints\paired_ckpt_seed1_0.xml' ... done (3487ms).
+ done (3482ms).
+ done (3403ms).
+Simulation ended at time: 22504.75.
+Reason: TraCI issued load command.
+Performance:
+ Duration: 2009.08s
+ TraCI-Duration: 1814.46s
+ Real time factor: 4.03406
+ UPS: 763.925044
+Vehicles:
+ Inserted: 2057 (Loaded: 8263)
+ Running: 221
+ Waiting: 0
+Statistics (avg of 748):
+ RouteLength: 6381.67
+ Speed: 14.65
+ Duration: 457.55
+ WaitingTime: 13.30
+ TimeLoss: 59.13
+ DepartDelay: 698.66
+DijkstraRouter answered 121 queries and explored 1826.70 edges on average.
+DijkstraRouter spent 0.67s answering queries (5.52ms on average).
+DijkstraRouter answered 130 queries and explored 268.78 edges on average.
+DijkstraRouter spent 0.08s answering queries (0.62ms on average).
+Loading net-file from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/most.net.xml' ... done (5030ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.poly.xml' ... done (5232ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.busstops.add.xml' ... done (229ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.trainstops.add.xml' ... done (206ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.parking.allvisible.add.xml' ... done (581ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/basic.vType.xml' ... done (20ms).
+Loading route-files incrementally from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.commercial.rou.xml'
+Loading route-files incrementally from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.highway.flows.xml'
+Loading done.
+Simulation version 1.27.0 started with time: 14400.00.
+Loading state from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\BTP\checkpoints\paired_ckpt_seed1_1.xml' ... done (8255ms).
+Simulation ended at time: 22488.25.
+Reason: TraCI issued load command.
+Performance:
+ Duration: 2237.22s
+ TraCI-Duration: 2043.63s
+ Real time factor: 3.61531
+ UPS: 679.496125
+Vehicles:
+ Inserted: 2055 (Loaded: 8261)
+ Running: 223
+ Waiting: 0
+Statistics (avg of 744):
+ RouteLength: 6367.85
+ Speed: 14.56
+ Duration: 458.50
+ WaitingTime: 13.48
+ TimeLoss: 59.33
+ DepartDelay: 702.42
+DijkstraRouter answered 128 queries and explored 268.97 edges on average.
+DijkstraRouter spent 0.09s answering queries (0.68ms on average).
+Loading net-file from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/most.net.xml' ... done (4719ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.poly.xml' ... done (4912ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.busstops.add.xml' ... done (198ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.trainstops.add.xml' ... done (199ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.parking.allvisible.add.xml' ... done (408ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/basic.vType.xml' ... done (20ms).
+Loading route-files incrementally from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.commercial.rou.xml'
+Loading route-files incrementally from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.highway.flows.xml'
+Loading done.
+Simulation version 1.27.0 started with time: 14400.00.
+Loading state from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\BTP\checkpoints\paired_ckpt_seed1_1.xml' ... done (8074ms).
+Simulation ended at time: 22783.50.
+Reason: TraCI issued load command.
+Performance:
+ Duration: 2815.93s
+ TraCI-Duration: 2593.66s
+ Real time factor: 2.97717
+ UPS: 634.600838
+Vehicles:
+ Inserted: 2185 (Loaded: 8299)
+ Running: 234
+ Waiting: 0
+ Teleports: 1 (Wrong Lane: 1)
+Statistics (avg of 863):
+ RouteLength: 6553.83
+ Speed: 15.05
+ Duration: 461.46
+ WaitingTime: 12.99
+ TimeLoss: 57.38
+ DepartDelay: 618.00
+DijkstraRouter answered 166 queries and explored 268.99 edges on average.
+DijkstraRouter spent 0.10s answering queries (0.62ms on average).
+Loading net-file from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/most.net.xml' ... done (5304ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.poly.xml' ... done (5708ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.busstops.add.xml' ... done (167ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.trainstops.add.xml' ... done (162ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.parking.allvisible.add.xml' ... done (389ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/basic.vType.xml' ... done (13ms).
+Loading route-files incrementally from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.commercial.rou.xml'
+Loading route-files incrementally from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.highway.flows.xml'
+Loading done.
+Simulation version 1.27.0 started with time: 14400.00.
+Loading state from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\BTP\checkpoints\paired_ckpt_seed1_1.xml' ... done (6978ms).
+***Starting server on port 51608 ***
+Loading net-file from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/most.net.xml' ... done (4565ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.poly.xml' ... done (4386ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.busstops.add.xml' ... done (172ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.trainstops.add.xml' ... done (163ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.parking.allvisible.add.xml' ... done (561ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/basic.vType.xml' ... done (22ms).
+Loading route-files incrementally from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.commercial.rou.xml'
+Loading route-files incrementally from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.highway.flows.xml'
+Loading done.
+Simulation version 1.27.0 started with time: 14400.00.
+Simulation ended at time: 14400.00.
+Reason: TraCI issued load command.
+Performance:
+ Duration: 12.37s
+ TraCI-Duration: 0.00s
+ Real time factor: 0
+ UPS: 0.000000
+Vehicles:
+ Inserted: 0 (Loaded: 2)
+ Running: 0
+ Waiting: 0
+Statistics (avg of 0):
+ RouteLength: 0.00
+ Speed: 0.00
+ Duration: 0.00
+ WaitingTime: 0.00
+ TimeLoss: 0.00
+ DepartDelay: 0.00
+Loading net-file from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/most.net.xml' ... done (4586ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.poly.xml' ... done (5616ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.busstops.add.xml' ... done (172ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.trainstops.add.xml' ... done (140ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.parking.allvisible.add.xml' ... done (467ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/basic.vType.xml' ... done (20ms).
+Loading route-files incrementally from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.commercial.rou.xml'
+Loading route-files incrementally from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.highway.flows.xml'
+Loading done.
+Simulation version 1.27.0 started with time: 14400.00.
+Loading state from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\BTP\checkpoints\paired_ckpt_seed1_2.xml' ... done (7506ms).
+Simulation ended at time: 22458.75.
+Reason: TraCI issued load command.
+Performance:
+ Duration: 1918.96s
+ TraCI-Duration: 1730.65s
+ Real time factor: 4.19955
+ UPS: 721.558348
+Vehicles:
+ Inserted: 2057 (Loaded: 8289)
+ Running: 253
+ Waiting: 0
+Statistics (avg of 669):
+ RouteLength: 6155.11
+ Speed: 14.31
+ Duration: 445.90
+ WaitingTime: 13.91
+ TimeLoss: 59.74
+ DepartDelay: 747.40
+DijkstraRouter answered 108 queries and explored 268.92 edges on average.
+DijkstraRouter spent 0.08s answering queries (0.74ms on average).
+Loading net-file from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/most.net.xml' ... done (4651ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.poly.xml' ... done (4747ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.busstops.add.xml' ... done (269ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.trainstops.add.xml' ... done (216ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.parking.allvisible.add.xml' ... done (566ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/basic.vType.xml' ... done (22ms).
+Loading route-files incrementally from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.commercial.rou.xml'
+Loading route-files incrementally from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.highway.flows.xml'
+Loading done.
+Simulation version 1.27.0 started with time: 14400.00.
+Loading state from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\BTP\checkpoints\paired_ckpt_seed1_2.xml' ... done (7892ms).
+Simulation ended at time: 22551.25.
+Reason: TraCI issued load command.
+Performance:
+ Duration: 1663.14s
+ TraCI-Duration: 1482.23s
+ Real time factor: 4.90112
+ UPS: 808.331715
+Vehicles:
+ Inserted: 2092 (Loaded: 8325)
+ Running: 258
+ Waiting: 0
+Statistics (avg of 657):
+ RouteLength: 6088.72
+ Speed: 14.26
+ Duration: 442.12
+ WaitingTime: 14.44
+ TimeLoss: 60.33
+ DepartDelay: 763.37
+DijkstraRouter answered 95 queries and explored 1116.54 edges on average.
+DijkstraRouter spent 0.33s answering queries (3.46ms on average).
+DijkstraRouter answered 104 queries and explored 269.31 edges on average.
+DijkstraRouter spent 0.07s answering queries (0.62ms on average).
+Loading net-file from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/most.net.xml' ... done (4581ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.poly.xml' ... done (5270ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.busstops.add.xml' ... done (175ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.trainstops.add.xml' ... done (159ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.parking.allvisible.add.xml' ... done (490ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/basic.vType.xml' ... done (15ms).
+Loading route-files incrementally from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.commercial.rou.xml'
+Loading route-files incrementally from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.highway.flows.xml'
+Loading done.
+Simulation version 1.27.0 started with time: 14400.00.
+Loading state from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\BTP\checkpoints\paired_ckpt_seed1_3.xml' ... done (7529ms).
+Simulation ended at time: 22785.75.
+Reason: TraCI issued load command.
+Performance:
+ Duration: 2680.36s
+ TraCI-Duration: 2463.25s
+ Real time factor: 3.1286
+ UPS: 630.059078
+Vehicles:
+ Inserted: 2199 (Loaded: 8333)
+ Running: 234
+ Waiting: 0
+ Teleports: 1 (Wrong Lane: 1)
+Statistics (avg of 830):
+ RouteLength: 6487.43
+ Speed: 14.85
+ Duration: 461.09
+ WaitingTime: 13.95
+ TimeLoss: 59.00
+ DepartDelay: 672.22
+DijkstraRouter answered 152 queries and explored 269.08 edges on average.
+DijkstraRouter spent 0.10s answering queries (0.64ms on average).
+Loading net-file from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/most.net.xml' ... done (5013ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.poly.xml' ... done (5301ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.busstops.add.xml' ... done (142ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.trainstops.add.xml' ... done (138ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.parking.allvisible.add.xml' ... done (558ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/basic.vType.xml' ... done (19ms).
+Loading route-files incrementally from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.commercial.rou.xml'
+Loading route-files incrementally from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.highway.flows.xml'
+Loading done.
+Simulation version 1.27.0 started with time: 14400.00.
+Loading state from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\BTP\checkpoints\paired_ckpt_seed1_2.xml' ... done (6833ms).
+Simulation ended at time: 22550.75.
+Reason: TraCI issued load command.
+Performance:
+ Duration: 1862.82s
+ TraCI-Duration: 1684.04s
+ Real time factor: 4.3755
+ UPS: 720.709399
+Vehicles:
+ Inserted: 2092 (Loaded: 8325)
+ Running: 258
+ Waiting: 0
+Statistics (avg of 657):
+ RouteLength: 6079.03
+ Speed: 14.27
+ Duration: 440.89
+ WaitingTime: 13.97
+ TimeLoss: 59.57
+ DepartDelay: 764.21
+DijkstraRouter answered 104 queries and explored 269.93 edges on average.
+DijkstraRouter spent 0.08s answering queries (0.73ms on average).
+Loading net-file from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/most.net.xml' ... done (5068ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.poly.xml' ... done (4825ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.busstops.add.xml' ... done (212ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.trainstops.add.xml' ... done (215ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.parking.allvisible.add.xml' ... done (534ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/basic.vType.xml' ... done (15ms).
+Loading route-files incrementally from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.commercial.rou.xml'
+Loading route-files incrementally from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.highway.flows.xml'
+Loading done.
+Simulation version 1.27.0 started with time: 14400.00.
+Loading state from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\BTP\checkpoints\paired_ckpt_seed1_3.xml' ... done (7100ms).
+Simulation ended at time: 22683.75.
+Reason: TraCI issued load command.
+Performance:
+ Duration: 1612.56s
+ TraCI-Duration: 1434.82s
+ Real time factor: 5.13703
+ UPS: 853.169221
+Vehicles:
+ Inserted: 2178 (Loaded: 8383)
+ Running: 254
+ Waiting: 0
+Statistics (avg of 689):
+ RouteLength: 6144.55
+ Speed: 14.28
+ Duration: 445.40
+ WaitingTime: 14.26
+ TimeLoss: 59.59
+ DepartDelay: 811.97
+DijkstraRouter answered 97 queries and explored 1551.81 edges on average.
+DijkstraRouter spent 0.47s answering queries (4.88ms on average).
+DijkstraRouter answered 106 queries and explored 269.43 edges on average.
+DijkstraRouter spent 0.07s answering queries (0.62ms on average).
+Loading net-file from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/most.net.xml' ... done (5530ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.poly.xml' ... done (5378ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.busstops.add.xml' ... done (202ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.trainstops.add.xml' ... done (160ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.parking.allvisible.add.xml' ... done (531ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/basic.vType.xml' ... done (19ms).
+Loading route-files incrementally from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.commercial.rou.xml'
+Loading route-files incrementally from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.highway.flows.xml'
+Loading done.
+Simulation version 1.27.0 started with time: 14400.00.
+Loading state from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\BTP\checkpoints\paired_ckpt_seed1_4.xml' ... done (7053ms).
+Simulation ended at time: 22552.75.
+Reason: TraCI issued load command.
+Performance:
+ Duration: 1817.29s
+ TraCI-Duration: 1641.44s
+ Real time factor: 4.48622
+ UPS: 738.861018
+Vehicles:
+ Inserted: 2092 (Loaded: 8325)
+ Running: 256
+ Waiting: 0
+Statistics (avg of 659):
+ RouteLength: 6095.58
+ Speed: 14.28
+ Duration: 441.33
+ WaitingTime: 13.96
+ TimeLoss: 59.03
+ DepartDelay: 769.54
+DijkstraRouter answered 104 queries and explored 269.88 edges on average.
+DijkstraRouter spent 0.07s answering queries (0.62ms on average).
+Loading net-file from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/most.net.xml' ... done (5468ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.poly.xml' ... done (5179ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.busstops.add.xml' ... done (247ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.trainstops.add.xml' ... done (221ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.parking.allvisible.add.xml' ... done (558ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/basic.vType.xml' ... done (18ms).
+Loading route-files incrementally from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.commercial.rou.xml'
+Loading route-files incrementally from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.highway.flows.xml'
+Loading done.
+Simulation version 1.27.0 started with time: 14400.00.
+Loading state from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\BTP\checkpoints\paired_ckpt_seed1_3.xml' ... done (7876ms).
+Simulation ended at time: 22637.00.
+Reason: TraCI issued load command.
+Performance:
+ Duration: 1297.93s
+ TraCI-Duration: 1140.04s
+ Real time factor: 6.34624
+ UPS: 937.562262
+Vehicles:
+ Inserted: 2166 (Loaded: 8425)
+ Running: 337
+ Waiting: 1
+Statistics (avg of 536):
+ RouteLength: 5692.24
+ Speed: 14.23
+ Duration: 407.45
+ WaitingTime: 12.14
+ TimeLoss: 54.16
+ DepartDelay: 776.71
+DijkstraRouter answered 74 queries and explored 608.15 edges on average.
+DijkstraRouter spent 0.15s answering queries (2.04ms on average).
+DijkstraRouter answered 84 queries and explored 269.38 edges on average.
+DijkstraRouter spent 0.05s answering queries (0.61ms on average).
+Loading net-file from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/most.net.xml' ... done (4088ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.poly.xml' ... done (5305ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.busstops.add.xml' ... done (222ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.trainstops.add.xml' ... done (220ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.parking.allvisible.add.xml' ... done (564ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/basic.vType.xml' ... done (18ms).
+Loading route-files incrementally from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.commercial.rou.xml'
+Loading route-files incrementally from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.highway.flows.xml'
+Loading done.
+Simulation version 1.27.0 started with time: 14400.00.
+Loading state from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\BTP\checkpoints\paired_ckpt_seed1_5.xml' ... done (7205ms).
+***Starting server on port 51800 ***
+Loading net-file from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/most.net.xml' ... done (4717ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.poly.xml' ... done (5237ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.busstops.add.xml' ... done (196ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.trainstops.add.xml' ... done (176ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.parking.allvisible.add.xml' ... done (474ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/basic.vType.xml' ... done (16ms).
+Loading route-files incrementally from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.commercial.rou.xml'
+Loading route-files incrementally from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.highway.flows.xml'
+Loading done.
+Simulation version 1.27.0 started with time: 14400.00.
+Simulation ended at time: 14400.00.
+Reason: TraCI issued load command.
+Performance:
+ Duration: 13.92s
+ TraCI-Duration: 0.00s
+ Real time factor: 0
+ UPS: 0.000000
+Vehicles:
+ Inserted: 0 (Loaded: 2)
+ Running: 0
+ Waiting: 0
+Statistics (avg of 0):
+ RouteLength: 0.00
+ Speed: 0.00
+ Duration: 0.00
+ WaitingTime: 0.00
+ TimeLoss: 0.00
+ DepartDelay: 0.00
+Loading net-file from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/most.net.xml' ... done (4043ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.poly.xml' ... done (5261ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.busstops.add.xml' ... done (174ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.trainstops.add.xml' ... done (164ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.parking.allvisible.add.xml' ... done (430ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/basic.vType.xml' ... done (16ms).
+Loading route-files incrementally from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.commercial.rou.xml'
+Loading route-files incrementally from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.highway.flows.xml'
+Loading done.
+Simulation version 1.27.0 started with time: 14400.00.
+Loading state from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\BTP\checkpoints\paired_ckpt_seed1_6.xml' ... done (7711ms).
+Simulation ended at time: 23035.75.
+Reason: TraCI issued load command.
+Performance:
+ Duration: 2502.50s
+ TraCI-Duration: 2292.44s
+ Real time factor: 3.45086
+ UPS: 687.925850
+Vehicles:
+ Inserted: 2326 (Loaded: 8429)
+ Running: 241
+ Waiting: 0
+ Teleports: 1 (Wrong Lane: 1)
+Statistics (avg of 850):
+ RouteLength: 6494.97
+ Speed: 14.81
+ Duration: 461.37
+ WaitingTime: 13.21
+ TimeLoss: 58.62
+ DepartDelay: 735.23
+DijkstraRouter answered 152 queries and explored 268.74 edges on average.
+DijkstraRouter spent 0.09s answering queries (0.61ms on average).
+Loading net-file from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/most.net.xml' ... done (5130ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.poly.xml' ... done (5670ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.busstops.add.xml' ... done (187ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.trainstops.add.xml' ... done (206ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.parking.allvisible.add.xml' ... done (617ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/basic.vType.xml' ... done (20ms).
+Loading route-files incrementally from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.commercial.rou.xml'
+Loading route-files incrementally from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.highway.flows.xml'
+Loading done.
+Simulation version 1.27.0 started with time: 14400.00.
+Loading state from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\BTP\checkpoints\paired_ckpt_seed1_4.xml' ... done (7128ms).
+Simulation ended at time: 22937.75.
+Reason: TraCI issued load command.
+Performance:
+ Duration: 1419.73s
+ TraCI-Duration: 1249.70s
+ Real time factor: 6.01366
+ UPS: 932.703869
+Vehicles:
+ Inserted: 2313 (Loaded: 8545)
+ Running: 327
+ Waiting: 0
+Statistics (avg of 580):
+ RouteLength: 5832.31
+ Speed: 14.14
+ Duration: 420.81
+ WaitingTime: 14.27
+ TimeLoss: 57.64
+ DepartDelay: 926.39
+DijkstraRouter answered 83 queries and explored 651.04 edges on average.
+DijkstraRouter spent 0.17s answering queries (2.10ms on average).
+DijkstraRouter answered 92 queries and explored 271.25 edges on average.
+DijkstraRouter spent 0.06s answering queries (0.63ms on average).
+Loading net-file from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/most.net.xml' ... done (5267ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.poly.xml' ... done (5367ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.busstops.add.xml' ... done (224ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.trainstops.add.xml' ... done (186ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.parking.allvisible.add.xml' ... done (502ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/basic.vType.xml' ... done (19ms).
+Loading route-files incrementally from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.commercial.rou.xml'
+Loading route-files incrementally from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.highway.flows.xml'
+Loading done.
+Simulation version 1.27.0 started with time: 14400.00.
+Loading state from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\BTP\checkpoints\paired_ckpt_seed1_7.xml' ... done (6582ms).
+Simulation ended at time: 22637.75.
+Reason: TraCI issued load command.
+Performance:
+ Duration: 1458.14s
+ TraCI-Duration: 1299.02s
+ Real time factor: 5.64951
+ UPS: 835.496140
+Vehicles:
+ Inserted: 2167 (Loaded: 8425)
+ Running: 335
+ Waiting: 0
+Statistics (avg of 539):
+ RouteLength: 5713.25
+ Speed: 14.26
+ Duration: 408.67
+ WaitingTime: 12.24
+ TimeLoss: 54.45
+ DepartDelay: 778.64
+DijkstraRouter answered 84 queries and explored 268.57 edges on average.
+DijkstraRouter spent 0.05s answering queries (0.60ms on average).
+Loading net-file from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/most.net.xml' ... done (5720ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.poly.xml' ... done (5363ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.busstops.add.xml' ... done (235ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.trainstops.add.xml' ... done (257ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.parking.allvisible.add.xml' ... done (497ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/basic.vType.xml' ... done (12ms).
+Loading route-files incrementally from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.commercial.rou.xml'
+Loading route-files incrementally from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.highway.flows.xml'
+Loading done.
+Simulation version 1.27.0 started with time: 14400.00.
+Loading state from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\BTP\checkpoints\paired_ckpt_seed1_5.xml' ... done (7011ms).
+Simulation ended at time: 23330.25.
+Reason: TraCI issued load command.
+Performance:
+ Duration: 3241.88s
+ TraCI-Duration: 2995.18s
+ Real time factor: 2.75466
+ UPS: 626.519221
+Vehicles:
+ Inserted: 2464 (Loaded: 8469)
+ Running: 256
+ Waiting: 0
+ Teleports: 2 (Wrong Lane: 2)
+Statistics (avg of 973):
+ RouteLength: 6621.23
+ Speed: 15.10
+ Duration: 464.53
+ WaitingTime: 14.02
+ TimeLoss: 58.50
+ DepartDelay: 649.28
+DijkstraRouter answered 192 queries and explored 268.59 edges on average.
+DijkstraRouter spent 0.12s answering queries (0.61ms on average).
+Loading net-file from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/most.net.xml' ... done (4147ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.poly.xml' ... done (5400ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.busstops.add.xml' ... done (200ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.trainstops.add.xml' ... done (194ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.parking.allvisible.add.xml' ... done (555ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/basic.vType.xml' ... done (16ms).
+Loading route-files incrementally from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.commercial.rou.xml'
+Loading route-files incrementally from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.highway.flows.xml'
+Loading done.
+Simulation version 1.27.0 started with time: 14400.00.
+Loading state from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\BTP\checkpoints\paired_ckpt_seed1_4.xml' ... done (6961ms).
+Simulation ended at time: 23140.00.
+Reason: TraCI issued load command.
+Performance:
+ Duration: 1571.62s
+ TraCI-Duration: 1384.40s
+ Real time factor: 5.56115
+ UPS: 935.647807
+Vehicles:
+ Inserted: 2444 (Loaded: 8619)
+ Running: 315
+ Waiting: 0
+Statistics (avg of 657):
+ RouteLength: 6091.66
+ Speed: 14.21
+ Duration: 440.13
+ WaitingTime: 13.00
+ TimeLoss: 59.81
+ DepartDelay: 1027.38
+DijkstraRouter answered 93 queries and explored 1376.65 edges on average.
+DijkstraRouter spent 0.39s answering queries (4.24ms on average).
+DijkstraRouter answered 102 queries and explored 270.03 edges on average.
+DijkstraRouter spent 0.06s answering queries (0.55ms on average).
+Loading net-file from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/most.net.xml' ... done (4627ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.poly.xml' ... done (4785ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.busstops.add.xml' ... done (209ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.trainstops.add.xml' ... done (224ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.parking.allvisible.add.xml' ... done (524ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/basic.vType.xml' ... done (16ms).
+Loading route-files incrementally from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.commercial.rou.xml'
+Loading route-files incrementally from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.highway.flows.xml'
+Loading done.
+Simulation version 1.27.0 started with time: 14400.00.
+Loading state from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\BTP\checkpoints\paired_ckpt_seed1_8.xml' ... done (7771ms).
+Simulation ended at time: 23008.50.
+Reason: TraCI issued load command.
+Performance:
+ Duration: 1964.39s
+ TraCI-Duration: 1774.39s
+ Real time factor: 4.38227
+ UPS: 773.769187
+Vehicles:
+ Inserted: 2339 (Loaded: 8509)
+ Running: 267
+ Waiting: 0
+ Teleports: 1 (Wrong Lane: 1)
+Statistics (avg of 722):
+ RouteLength: 6242.96
+ Speed: 14.33
+ Duration: 451.74
+ WaitingTime: 13.75
+ TimeLoss: 59.34
+ DepartDelay: 913.94
+DijkstraRouter answered 116 queries and explored 268.85 edges on average.
+DijkstraRouter spent 0.09s answering queries (0.74ms on average).
+Loading net-file from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/most.net.xml' ... done (4907ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.poly.xml' ... done (5846ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.busstops.add.xml' ... done (195ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.trainstops.add.xml' ... done (260ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.parking.allvisible.add.xml' ... done (473ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/basic.vType.xml' ... done (14ms).
+Loading route-files incrementally from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.commercial.rou.xml'
+Loading route-files incrementally from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.highway.flows.xml'
+Loading done.
+Simulation version 1.27.0 started with time: 14400.00.
+Loading state from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\BTP\checkpoints\paired_ckpt_seed1_6.xml' ... done (7492ms).
+Simulation ended at time: 22652.50.
+Reason: TraCI issued load command.
+Performance:
+ Duration: 1541.89s
+ TraCI-Duration: 1381.83s
+ Real time factor: 5.35218
+ UPS: 802.174469
+Vehicles:
+ Inserted: 2173 (Loaded: 8427)
+ Running: 330
+ Waiting: 2
+Statistics (avg of 550):
+ RouteLength: 5740.15
+ Speed: 14.26
+ Duration: 411.17
+ WaitingTime: 11.91
+ TimeLoss: 54.34
+ DepartDelay: 774.70
+DijkstraRouter answered 86 queries and explored 268.57 edges on average.
+DijkstraRouter spent 0.06s answering queries (0.72ms on average).
+Loading net-file from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/most.net.xml' ... done (4936ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.poly.xml' ... done (5570ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.busstops.add.xml' ... done (220ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.trainstops.add.xml' ... done (213ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.parking.allvisible.add.xml' ... done (544ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/basic.vType.xml' ... done (16ms).
+Loading route-files incrementally from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.commercial.rou.xml'
+Loading route-files incrementally from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.highway.flows.xml'
+Loading done.
+Simulation version 1.27.0 started with time: 14400.00.
+Loading state from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\BTP\checkpoints\paired_ckpt_seed1_5.xml' ... done (7627ms).
+Simulation ended at time: 23343.25.
+Reason: TraCI issued load command.
+Performance:
+ Duration: 1762.62s
+ TraCI-Duration: 1556.43s
+ Real time factor: 5.07383
+ UPS: 918.165757
+Vehicles:
+ Inserted: 2530 (Loaded: 8685)
+ Running: 278
+ Waiting: 0
+Statistics (avg of 726):
+ RouteLength: 6374.80
+ Speed: 14.26
+ Duration: 464.41
+ WaitingTime: 17.80
+ TimeLoss: 65.35
+ DepartDelay: 1055.64
+DijkstraRouter answered 105 queries and explored 1738.86 edges on average.
+DijkstraRouter spent 0.60s answering queries (5.70ms on average).
+DijkstraRouter answered 114 queries and explored 271.09 edges on average.
+DijkstraRouter spent 0.07s answering queries (0.65ms on average).
+Loading net-file from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/most.net.xml' ... done (3704ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.poly.xml' ... done (5767ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.busstops.add.xml' ... done (180ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.trainstops.add.xml' ... done (159ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.parking.allvisible.add.xml' ... done (466ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/basic.vType.xml' ... done (20ms).
+Loading route-files incrementally from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.commercial.rou.xml'
+Loading route-files incrementally from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.highway.flows.xml'
+Loading done.
+Simulation version 1.27.0 started with time: 14400.00.
+Loading state from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\BTP\checkpoints\paired_ckpt_seed1_9.xml' ... done (7358ms).
+Simulation ended at time: 22791.50.
+Reason: TraCI issued load command.
+Performance:
+ Duration: 1293.84s
+ TraCI-Duration: 1144.79s
+ Real time factor: 6.48576
+ UPS: 855.298396
+Vehicles:
+ Inserted: 2255 (Loaded: 8525)
+ Running: 397
+ Waiting: 0
+Statistics (avg of 452):
+ RouteLength: 5382.47
+ Speed: 13.96
+ Duration: 388.24
+ WaitingTime: 14.44
+ TimeLoss: 55.34
+ DepartDelay: 813.21
+DijkstraRouter answered 72 queries and explored 271.46 edges on average.
+DijkstraRouter spent 0.05s answering queries (0.62ms on average).
+Loading net-file from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/most.net.xml' ... done (4996ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.poly.xml' ... done (4759ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.busstops.add.xml' ... done (176ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.trainstops.add.xml' ... done (249ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.parking.allvisible.add.xml' ... done (566ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/basic.vType.xml' ... done (19ms).
+Loading route-files incrementally from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.commercial.rou.xml'
+Loading route-files incrementally from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.highway.flows.xml'
+Loading done.
+Simulation version 1.27.0 started with time: 14400.00.
+Loading state from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\BTP\checkpoints\paired_ckpt_seed1_7.xml' ... done (5246ms).
+Simulation ended at time: 23008.50.
+Reason: TraCI issued load command.
+Performance:
+ Duration: 2094.58s
+ TraCI-Duration: 1902.54s
+ Real time factor: 4.10989
+ UPS: 725.675445
+Vehicles:
+ Inserted: 2339 (Loaded: 8509)
+ Running: 267
+ Waiting: 0
+ Teleports: 1 (Wrong Lane: 1)
+Statistics (avg of 722):
+ RouteLength: 6242.96
+ Speed: 14.33
+ Duration: 451.74
+ WaitingTime: 13.75
+ TimeLoss: 59.34
+ DepartDelay: 913.94
+DijkstraRouter answered 116 queries and explored 268.85 edges on average.
+DijkstraRouter spent 0.07s answering queries (0.64ms on average).
+Loading net-file from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/most.net.xml' ... done (5072ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.poly.xml' ... done (5615ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.busstops.add.xml' ... done (192ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.trainstops.add.xml' ... done (151ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.parking.allvisible.add.xml' ... done (568ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/basic.vType.xml' ... done (20ms).
+Loading route-files incrementally from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.commercial.rou.xml'
+Loading route-files incrementally from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.highway.flows.xml'
+Loading done.
+Simulation version 1.27.0 started with time: 14400.00.
+Loading state from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\BTP\checkpoints\paired_ckpt_seed1_6.xml' ... done (5303ms).
+***Starting server on port 52099 ***
+Loading net-file from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/most.net.xml' ... done (4505ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.poly.xml' ... done (4541ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.busstops.add.xml' ... done (200ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.trainstops.add.xml' ... done (169ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.parking.allvisible.add.xml' ... done (444ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/basic.vType.xml' ... done (13ms).
+Loading route-files incrementally from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.commercial.rou.xml'
+Loading route-files incrementally from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.highway.flows.xml'
+Loading done.
+Simulation version 1.27.0 started with time: 14400.00.
+Simulation ended at time: 14400.00.
+Reason: TraCI issued load command.
+Performance:
+ Duration: 12.21s
+ TraCI-Duration: 0.00s
+ Real time factor: 0
+ UPS: 0.000000
+Vehicles:
+ Inserted: 0 (Loaded: 2)
+ Running: 0
+ Waiting: 0
+Statistics (avg of 0):
+ RouteLength: 0.00
+ Speed: 0.00
+ Duration: 0.00
+ WaitingTime: 0.00
+ TimeLoss: 0.00
+ DepartDelay: 0.00
+Loading net-file from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/most.net.xml' ... done (4990ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.poly.xml' ... done (4251ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.busstops.add.xml' ... done (194ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.trainstops.add.xml' ... done (193ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.parking.allvisible.add.xml' ... done (602ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/basic.vType.xml' ... done (15ms).
+Loading route-files incrementally from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.commercial.rou.xml'
+Loading route-files incrementally from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.highway.flows.xml'
+Loading done.
+Simulation version 1.27.0 started with time: 14400.00.
+Loading state from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\BTP\checkpoints\paired_ckpt_seed1_10.xml' ... done (6732ms).
+***Starting server on port 52110 ***
+Loading net-file from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/most.net.xml' ... done (5384ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.poly.xml' ... done (4227ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.busstops.add.xml' ... done (221ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.trainstops.add.xml' ... done (211ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.parking.allvisible.add.xml' ... done (476ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/basic.vType.xml' ... done (24ms).
+Loading route-files incrementally from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.commercial.rou.xml'
+Loading route-files incrementally from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.highway.flows.xml'
+Loading done.
+Simulation version 1.27.0 started with time: 14400.00.
+Simulation ended at time: 14400.00.
+Reason: TraCI issued load command.
+Performance:
+ Duration: 12.17s
+ TraCI-Duration: 0.00s
+ Real time factor: 0
+ UPS: 0.000000
+Vehicles:
+ Inserted: 0 (Loaded: 2)
+ Running: 0
+ Waiting: 0
+Statistics (avg of 0):
+ RouteLength: 0.00
+ Speed: 0.00
+ Duration: 0.00
+ WaitingTime: 0.00
+ TimeLoss: 0.00
+ DepartDelay: 0.00
+Loading net-file from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/most.net.xml' ... done (5394ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.poly.xml' ... done (5134ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.busstops.add.xml' ... done (171ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.trainstops.add.xml' ... done (167ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.parking.allvisible.add.xml' ... done (568ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/basic.vType.xml' ... done (18ms).
+Loading route-files incrementally from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.commercial.rou.xml'
+Loading route-files incrementally from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.highway.flows.xml'
+Loading done.
+Simulation version 1.27.0 started with time: 14400.00.
+Loading state from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\BTP\checkpoints\paired_ckpt_seed1_8.xml' ... done (7777ms).
+Simulation ended at time: 22793.50.
+Reason: TraCI issued load command.
+Performance:
+ Duration: 1347.61s
+ TraCI-Duration: 1199.06s
+ Real time factor: 6.22843
+ UPS: 823.671537
+Vehicles:
+ Inserted: 2257 (Loaded: 8525)
+ Running: 398
+ Waiting: 0
+Statistics (avg of 453):
+ RouteLength: 5392.21
+ Speed: 13.98
+ Duration: 388.30
+ WaitingTime: 14.49
+ TimeLoss: 55.33
+ DepartDelay: 811.41
+DijkstraRouter answered 72 queries and explored 271.46 edges on average.
+DijkstraRouter spent 0.05s answering queries (0.72ms on average).
+Loading net-file from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/most.net.xml' ... done (4717ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.poly.xml' ... done (5606ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.busstops.add.xml' ... done (212ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.trainstops.add.xml' ... done (218ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.parking.allvisible.add.xml' ... done (541ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/basic.vType.xml' ... done (31ms).
+Loading route-files incrementally from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.commercial.rou.xml'
+Loading route-files incrementally from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.highway.flows.xml'
+Loading done.
+Simulation version 1.27.0 started with time: 14400.00.
+Loading state from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\BTP\checkpoints\paired_ckpt_seed1_7.xml' ... done (8070ms).
+Simulation ended at time: 23287.25.
+Reason: TraCI issued load command.
+Performance:
+ Duration: 1211.32s
+ TraCI-Duration: 1049.13s
+ Real time factor: 7.33685
+ UPS: 1028.188327
+Vehicles:
+ Inserted: 2513 (Loaded: 8743)
+ Running: 439
+ Waiting: 1
+Statistics (avg of 454):
+ RouteLength: 5436.13
+ Speed: 14.00
+ Duration: 393.26
+ WaitingTime: 17.24
+ TimeLoss: 59.31
+ DepartDelay: 1019.37
+DijkstraRouter answered 61 queries and explored 333.15 edges on average.
+DijkstraRouter spent 0.07s answering queries (1.16ms on average).
+DijkstraRouter answered 74 queries and explored 268.45 edges on average.
+DijkstraRouter spent 0.05s answering queries (0.72ms on average).
+Loading net-file from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/most.net.xml' ... done (4947ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.poly.xml' ... done (5683ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.busstops.add.xml' ... done (168ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.trainstops.add.xml' ... done (177ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.parking.allvisible.add.xml' ... done (685ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/basic.vType.xml' ... done (28ms).
+Loading route-files incrementally from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.commercial.rou.xml'
+Loading route-files incrementally from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.highway.flows.xml'
+Loading done.
+Simulation version 1.27.0 started with time: 14400.00.
+Loading state from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\BTP\checkpoints\paired_ckpt_seed1_11.xml' ... done (7416ms).
+Simulation ended at time: 23311.25.
+Reason: TraCI issued load command.
+Performance:
+ Duration: 1921.25s
+ TraCI-Duration: 1718.64s
+ Real time factor: 4.63826
+ UPS: 822.253036
+Vehicles:
+ Inserted: 2515 (Loaded: 8681)
+ Running: 296
+ Waiting: 1
+Statistics (avg of 693):
+ RouteLength: 6312.11
+ Speed: 14.20
+ Duration: 459.64
+ WaitingTime: 16.75
+ TimeLoss: 64.23
+ DepartDelay: 1069.05
+DijkstraRouter answered 110 queries and explored 271.16 edges on average.
+DijkstraRouter spent 0.07s answering queries (0.67ms on average).
+Loading net-file from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/most.net.xml' ... done (4689ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.poly.xml' ... done (5848ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.busstops.add.xml' ... done (205ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.trainstops.add.xml' ... done (212ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.parking.allvisible.add.xml' ... done (563ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/basic.vType.xml' ... done (20ms).
+Loading route-files incrementally from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.commercial.rou.xml'
+Loading route-files incrementally from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.highway.flows.xml'
+Loading done.
+Simulation version 1.27.0 started with time: 14400.00.
+Loading state from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\BTP\checkpoints\paired_ckpt_seed1_9.xml' ... done (6875ms).
+Simulation ended at time: 23549.75.
+Reason: TraCI issued load command.
+Performance:
+ Duration: 1477.88s
+ TraCI-Duration: 1291.59s
+ Real time factor: 6.19114
+ UPS: 981.397665
+Vehicles:
+ Inserted: 2613 (Loaded: 8799)
+ Running: 331
+ Waiting: 0
+Statistics (avg of 616):
+ RouteLength: 6062.04
+ Speed: 14.19
+ Duration: 440.33
+ WaitingTime: 15.27
+ TimeLoss: 60.53
+ DepartDelay: 1114.73
+DijkstraRouter answered 84 queries and explored 871.06 edges on average.
+DijkstraRouter spent 0.23s answering queries (2.74ms on average).
+DijkstraRouter answered 92 queries and explored 267.93 edges on average.
+DijkstraRouter spent 0.06s answering queries (0.65ms on average).
+Loading net-file from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/most.net.xml' ... done (3251ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.poly.xml' ... done (5673ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.busstops.add.xml' ... done (228ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.trainstops.add.xml' ... done (207ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.parking.allvisible.add.xml' ... done (510ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/basic.vType.xml' ... done (15ms).
+Loading route-files incrementally from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.commercial.rou.xml'
+Loading route-files incrementally from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.highway.flows.xml'
+Loading done.
+Simulation version 1.27.0 started with time: 14400.00.
+Loading state from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\BTP\checkpoints\paired_ckpt_seed1_12.xml' ... done (7443ms).
+***Starting server on port 52224 ***
+Loading net-file from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/most.net.xml' ... done (5065ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.poly.xml' ... done (5415ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.busstops.add.xml' ... done (158ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.trainstops.add.xml' ... done (131ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.parking.allvisible.add.xml' ... done (511ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/basic.vType.xml' ... done (19ms).
+Loading route-files incrementally from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.commercial.rou.xml'
+Loading route-files incrementally from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.highway.flows.xml'
+Loading done.
+Simulation version 1.27.0 started with time: 14400.00.
+Simulation ended at time: 14400.00.
+Reason: TraCI issued load command.
+Performance:
+ Duration: 13.64s
+ TraCI-Duration: 0.00s
+ Real time factor: 0
+ UPS: 0.000000
+Vehicles:
+ Inserted: 0 (Loaded: 2)
+ Running: 0
+ Waiting: 0
+Statistics (avg of 0):
+ RouteLength: 0.00
+ Speed: 0.00
+ Duration: 0.00
+ WaitingTime: 0.00
+ TimeLoss: 0.00
+ DepartDelay: 0.00
+Loading net-file from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/most.net.xml' ... done (4970ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.poly.xml' ... done (5639ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.busstops.add.xml' ... done (189ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.trainstops.add.xml' ... done (135ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.parking.allvisible.add.xml' ... done (492ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/basic.vType.xml' ... done (21ms).
+Loading route-files incrementally from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.commercial.rou.xml'
+Loading route-files incrementally from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.highway.flows.xml'
+Loading done.
+Simulation version 1.27.0 started with time: 14400.00.
+Loading state from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\BTP\checkpoints\paired_ckpt_seed1_8.xml' ... done (6804ms).
+Simulation ended at time: 23577.00.
+Reason: TraCI issued load command.
+Performance:
+ Duration: 1304.10s
+ TraCI-Duration: 1131.24s
+ Real time factor: 7.03706
+ UPS: 1026.681318
+Vehicles:
+ Inserted: 2634 (Loaded: 8843)
+ Running: 389
+ Waiting: 0
+Statistics (avg of 525):
+ RouteLength: 5688.80
+ Speed: 13.81
+ Duration: 419.43
+ WaitingTime: 19.17
+ TimeLoss: 63.35
+ DepartDelay: 1116.06
+DijkstraRouter answered 70 queries and explored 628.96 edges on average.
+DijkstraRouter spent 0.15s answering queries (2.20ms on average).
+DijkstraRouter answered 80 queries and explored 267.45 edges on average.
+DijkstraRouter spent 0.04s answering queries (0.54ms on average).
+Loading net-file from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/most.net.xml' ... done (4434ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.poly.xml' ... done (4739ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.busstops.add.xml' ... done (160ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.trainstops.add.xml' ... done (175ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.parking.allvisible.add.xml' ... done (472ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/basic.vType.xml' ... done (19ms).
+Loading route-files incrementally from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.commercial.rou.xml'
+Loading route-files incrementally from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.highway.flows.xml'
+Loading done.
+Simulation version 1.27.0 started with time: 14400.00.
+Loading state from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\BTP\checkpoints\paired_ckpt_seed1_13.xml' ... done (7144ms).
+Simulation ended at time: 23780.50.
+Reason: TraCI issued load command.
+Performance:
+ Duration: 2665.05s
+ TraCI-Duration: 2422.81s
+ Real time factor: 3.51982
+ UPS: 734.428998
+Vehicles:
+ Inserted: 2717 (Loaded: 8773)
+ Running: 241
+ Waiting: 0
+ Teleports: 2 (Wrong Lane: 2)
+Statistics (avg of 907):
+ RouteLength: 6634.76
+ Speed: 14.58
+ Duration: 480.54
+ WaitingTime: 15.57
+ TimeLoss: 64.44
+ DepartDelay: 948.62
+DijkstraRouter answered 156 queries and explored 269.52 edges on average.
+DijkstraRouter spent 0.11s answering queries (0.69ms on average).
+Loading net-file from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/most.net.xml' ... done (4616ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.poly.xml' ... done (5286ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.busstops.add.xml' ... done (184ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.trainstops.add.xml' ... done (210ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.parking.allvisible.add.xml' ... done (489ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/basic.vType.xml' ... done (15ms).
+Loading route-files incrementally from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.commercial.rou.xml'
+Loading route-files incrementally from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.highway.flows.xml'
+Loading done.
+Simulation version 1.27.0 started with time: 14400.00.
+Loading state from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\BTP\checkpoints\paired_ckpt_seed1_10.xml' ... done (7399ms).
+Simulation ended at time: 23311.75.
+Reason: TraCI issued load command.
+Performance:
+ Duration: 2020.32s
+ TraCI-Duration: 1818.17s
+ Real time factor: 4.41105
+ UPS: 782.251047
+Vehicles:
+ Inserted: 2515 (Loaded: 8681)
+ Running: 297
+ Waiting: 1
+Statistics (avg of 692):
+ RouteLength: 6311.29
+ Speed: 14.20
+ Duration: 459.41
+ WaitingTime: 16.68
+ TimeLoss: 64.17
+ DepartDelay: 1070.60
+DijkstraRouter answered 110 queries and explored 271.11 edges on average.
+DijkstraRouter spent 0.08s answering queries (0.69ms on average).
+Loading net-file from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/most.net.xml' ... done (4732ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.poly.xml' ... done (5102ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.busstops.add.xml' ... done (175ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.trainstops.add.xml' ... done (241ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.parking.allvisible.add.xml' ... done (564ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/basic.vType.xml' ... done (15ms).
+Loading route-files incrementally from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.commercial.rou.xml'
+Loading route-files incrementally from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.highway.flows.xml'
+Loading done.
+Simulation version 1.27.0 started with time: 14400.00.
+Loading state from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\BTP\checkpoints\paired_ckpt_seed1_9.xml' ... done (6112ms).
+Simulation ended at time: 23752.00.
+Reason: TraCI issued load command.
+Performance:
+ Duration: 1414.44s
+ TraCI-Duration: 1232.40s
+ Real time factor: 6.6118
+ UPS: 1009.273628
+Vehicles:
+ Inserted: 2707 (Loaded: 8897)
+ Running: 363
+ Waiting: 0
+Statistics (avg of 574):
+ RouteLength: 5884.92
+ Speed: 13.83
+ Duration: 436.11
+ WaitingTime: 18.05
+ TimeLoss: 63.63
+ DepartDelay: 1173.18
+DijkstraRouter answered 78 queries and explored 1487.10 edges on average.
+DijkstraRouter spent 0.35s answering queries (4.53ms on average).
+DijkstraRouter answered 88 queries and explored 267.68 edges on average.
+DijkstraRouter spent 0.06s answering queries (0.66ms on average).
+Loading net-file from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/most.net.xml' ... done (4226ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.poly.xml' ... done (5398ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.busstops.add.xml' ... done (238ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.trainstops.add.xml' ... done (200ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.parking.allvisible.add.xml' ... done (552ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/basic.vType.xml' ... done (16ms).
+Loading route-files incrementally from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.commercial.rou.xml'
+Loading route-files incrementally from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.highway.flows.xml'
+Loading done.
+Simulation version 1.27.0 started with time: 14400.00.
+Loading state from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\BTP\checkpoints\paired_ckpt_seed1_14.xml' ... done (7165ms).
+Simulation ended at time: 23262.25.
+Reason: TraCI issued load command.
+Performance:
+ Duration: 1293.52s
+ TraCI-Duration: 1134.13s
+ Real time factor: 6.85129
+ UPS: 926.468576
+Vehicles:
+ Inserted: 2503 (Loaded: 8739)
+ Running: 459
+ Waiting: 1
+Statistics (avg of 424):
+ RouteLength: 5348.18
+ Speed: 13.98
+ Duration: 386.02
+ WaitingTime: 16.64
+ TimeLoss: 58.20
+ DepartDelay: 1017.93
+DijkstraRouter answered 70 queries and explored 268.17 edges on average.
+DijkstraRouter spent 0.06s answering queries (0.84ms on average).
+Loading net-file from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/most.net.xml' ... done (4767ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.poly.xml' ... done (3695ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.busstops.add.xml' ... done (97ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.trainstops.add.xml' ... done (93ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.parking.allvisible.add.xml' ... done (298ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/basic.vType.xml' ... done (22ms).
+Loading route-files incrementally from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.commercial.rou.xml'
+Loading route-files incrementally from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.highway.flows.xml'
+Loading done.
+Simulation version 1.27.0 started with time: 14400.00.
+Loading state from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\BTP\checkpoints\paired_ckpt_seed1_11.xml' ... done (8005ms).
+Simulation ended at time: 23985.75.
+Reason: TraCI issued load command.
+Performance:
+ Duration: 1623.66s
+ TraCI-Duration: 1429.61s
+ Real time factor: 5.90381
+ UPS: 943.609361
+Vehicles:
+ Inserted: 2795 (Loaded: 8949)
+ Running: 293
+ Waiting: 1
+Statistics (avg of 703):
+ RouteLength: 6243.48
+ Speed: 14.05
+ Duration: 462.64
+ WaitingTime: 19.14
+ TimeLoss: 67.87
+ DepartDelay: 1264.55
+DijkstraRouter answered 95 queries and explored 967.92 edges on average.
+DijkstraRouter spent 0.30s answering queries (3.17ms on average).
+DijkstraRouter answered 104 queries and explored 266.94 edges on average.
+DijkstraRouter spent 0.06s answering queries (0.57ms on average).
+Loading net-file from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/most.net.xml' ... done (4161ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.poly.xml' ... done (5489ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.busstops.add.xml' ... done (185ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.trainstops.add.xml' ... done (161ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.parking.allvisible.add.xml' ... done (511ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/basic.vType.xml' ... done (19ms).
+Loading route-files incrementally from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.commercial.rou.xml'
+Loading route-files incrementally from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.highway.flows.xml'
+Loading done.
+Simulation version 1.27.0 started with time: 14400.00.
+Loading state from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\BTP\checkpoints\paired_ckpt_seed1_15.xml' ... done (7897ms).
+Simulation ended at time: 23550.00.
+Reason: TraCI issued load command.
+Performance:
+ Duration: 1651.14s
+ TraCI-Duration: 1467.79s
+ Real time factor: 5.54163
+ UPS: 879.176811
+Vehicles:
+ Inserted: 2613 (Loaded: 8799)
+ Running: 339
+ Waiting: 0
+Statistics (avg of 608):
+ RouteLength: 6031.33
+ Speed: 14.10
+ Duration: 439.48
+ WaitingTime: 15.34
+ TimeLoss: 60.63
+ DepartDelay: 1112.80
+DijkstraRouter answered 92 queries and explored 267.76 edges on average.
+DijkstraRouter spent 0.07s answering queries (0.71ms on average).
+Loading net-file from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/most.net.xml' ... done (4795ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.poly.xml' ... done (5417ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.busstops.add.xml' ... done (228ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.trainstops.add.xml' ... done (240ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.parking.allvisible.add.xml' ... done (539ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/basic.vType.xml' ... done (18ms).
+Loading route-files incrementally from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.commercial.rou.xml'
+Loading route-files incrementally from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.highway.flows.xml'
+Loading done.
+Simulation version 1.27.0 started with time: 14400.00.
+Loading state from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\BTP\checkpoints\paired_ckpt_seed1_12.xml' ... done (7798ms).
+Simulation ended at time: 23780.50.
+Reason: TraCI issued load command.
+Performance:
+ Duration: 2807.95s
+ TraCI-Duration: 2563.53s
+ Real time factor: 3.3407
+ UPS: 697.053507
+Vehicles:
+ Inserted: 2717 (Loaded: 8773)
+ Running: 241
+ Waiting: 0
+ Teleports: 2 (Wrong Lane: 2)
+Statistics (avg of 907):
+ RouteLength: 6634.76
+ Speed: 14.58
+ Duration: 480.54
+ WaitingTime: 15.57
+ TimeLoss: 64.44
+ DepartDelay: 948.62
+DijkstraRouter answered 156 queries and explored 269.52 edges on average.
+DijkstraRouter spent 0.09s answering queries (0.60ms on average).
+Loading net-file from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/most.net.xml' ... done (5643ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.poly.xml' ... done (4840ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.busstops.add.xml' ... done (166ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.trainstops.add.xml' ... done (168ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.parking.allvisible.add.xml' ... done (540ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/basic.vType.xml' ... done (30ms).
+Loading route-files incrementally from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.commercial.rou.xml'
+Loading route-files incrementally from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.highway.flows.xml'
+Loading done.
+Simulation version 1.27.0 started with time: 14400.00.
+Loading state from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\BTP\checkpoints\paired_ckpt_seed1_10.xml' ... done (7184ms).
+Simulation ended at time: 24121.25.
+Reason: TraCI issued load command.
+Performance:
+ Duration: 1662.64s
+ TraCI-Duration: 1458.25s
+ Real time factor: 5.84687
+ UPS: 964.406671
+Vehicles:
+ Inserted: 2882 (Loaded: 9019)
+ Running: 290
+ Waiting: 0
+Statistics (avg of 724):
+ RouteLength: 6174.52
+ Speed: 13.79
+ Duration: 466.56
+ WaitingTime: 19.89
+ TimeLoss: 68.88
+ DepartDelay: 1289.39
+DijkstraRouter answered 96 queries and explored 1771.86 edges on average.
+DijkstraRouter spent 0.52s answering queries (5.44ms on average).
+DijkstraRouter answered 106 queries and explored 267.92 edges on average.
+DijkstraRouter spent 0.07s answering queries (0.62ms on average).
+Loading net-file from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/most.net.xml' ... done (4996ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.poly.xml' ... done (5965ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.busstops.add.xml' ... done (204ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.trainstops.add.xml' ... done (226ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.parking.allvisible.add.xml' ... done (457ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/basic.vType.xml' ... done (29ms).
+Loading route-files incrementally from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.commercial.rou.xml'
+Loading route-files incrementally from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.highway.flows.xml'
+Loading done.
+Simulation version 1.27.0 started with time: 14400.00.
+Loading state from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\BTP\checkpoints\paired_ckpt_seed1_16.xml' ... done (6224ms).
+Simulation ended at time: 23530.25.
+Reason: TraCI issued load command.
+Performance:
+ Duration: 1371.35s
+ TraCI-Duration: 1205.92s
+ Real time factor: 6.65785
+ UPS: 923.097734
+Vehicles:
+ Inserted: 2616 (Loaded: 8837)
+ Running: 420
+ Waiting: 0
+Statistics (avg of 476):
+ RouteLength: 5531.95
+ Speed: 13.69
+ Duration: 409.78
+ WaitingTime: 20.06
+ TimeLoss: 63.84
+ DepartDelay: 1085.65
+DijkstraRouter answered 74 queries and explored 268.70 edges on average.
+DijkstraRouter spent 0.05s answering queries (0.69ms on average).
+Loading net-file from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/most.net.xml' ... done (4618ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.poly.xml' ... done (5738ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.busstops.add.xml' ... done (192ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.trainstops.add.xml' ... done (172ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.parking.allvisible.add.xml' ... done (571ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/basic.vType.xml' ... done (19ms).
+Loading route-files incrementally from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.commercial.rou.xml'
+Loading route-files incrementally from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.highway.flows.xml'
+Loading done.
+Simulation version 1.27.0 started with time: 14400.00.
+Loading state from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\BTP\checkpoints\paired_ckpt_seed1_13.xml' ... done (7440ms).
+***Starting server on port 52503 ***
+Loading net-file from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/most.net.xml' ... done (4840ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.poly.xml' ... done (5482ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.busstops.add.xml' ... done (157ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.trainstops.add.xml' ... done (148ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.parking.allvisible.add.xml' ... done (449ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/basic.vType.xml' ... done (20ms).
+Loading route-files incrementally from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.commercial.rou.xml'
+Loading route-files incrementally from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.highway.flows.xml'
+Loading done.
+Simulation version 1.27.0 started with time: 14400.00.
+Simulation ended at time: 14400.00.
+Reason: TraCI issued load command.
+Performance:
+ Duration: 14.27s
+ TraCI-Duration: 0.00s
+ Real time factor: 0
+ UPS: 0.000000
+Vehicles:
+ Inserted: 0 (Loaded: 2)
+ Running: 0
+ Waiting: 0
+Statistics (avg of 0):
+ RouteLength: 0.00
+ Speed: 0.00
+ Duration: 0.00
+ WaitingTime: 0.00
+ TimeLoss: 0.00
+ DepartDelay: 0.00
+Loading net-file from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/most.net.xml' ... done (5233ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.poly.xml' ... done (4966ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.busstops.add.xml' ... done (152ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.trainstops.add.xml' ... done (195ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.parking.allvisible.add.xml' ... done (555ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/basic.vType.xml' ... done (18ms).
+Loading route-files incrementally from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.commercial.rou.xml'
+Loading route-files incrementally from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.highway.flows.xml'
+Loading done.
+Simulation version 1.27.0 started with time: 14400.00.
+Loading state from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\BTP\checkpoints\paired_ckpt_seed1_11.xml' ... done (7365ms).
+Simulation ended at time: 24357.75.
+Reason: TraCI issued load command.
+Performance:
+ Duration: 1902.59s
+ TraCI-Duration: 1674.79s
+ Real time factor: 5.23379
+ UPS: 942.193475
+Vehicles:
+ Inserted: 3030 (Loaded: 9093)
+ Running: 284
+ Waiting: 1
+Statistics (avg of 817):
+ RouteLength: 6412.51
+ Speed: 13.95
+ Duration: 483.85
+ WaitingTime: 21.50
+ TimeLoss: 72.83
+ DepartDelay: 1345.13
+DijkstraRouter answered 109 queries and explored 1075.90 edges on average.
+DijkstraRouter spent 0.38s answering queries (3.46ms on average).
+DijkstraRouter answered 120 queries and explored 267.87 edges on average.
+DijkstraRouter spent 0.08s answering queries (0.62ms on average).
+Loading net-file from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/most.net.xml' ... done (4074ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.poly.xml' ... done (5431ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.busstops.add.xml' ... done (190ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.trainstops.add.xml' ... done (207ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.parking.allvisible.add.xml' ... done (598ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/basic.vType.xml' ... done (19ms).
+Loading route-files incrementally from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.commercial.rou.xml'
+Loading route-files incrementally from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.highway.flows.xml'
+Loading done.
+Simulation version 1.27.0 started with time: 14400.00.
+Loading state from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\BTP\checkpoints\paired_ckpt_seed1_17.xml' ... done (7447ms).
+Simulation ended at time: 24053.25.
+Reason: TraCI issued load command.
+Performance:
+ Duration: 2252.48s
+ TraCI-Duration: 2026.48s
+ Real time factor: 4.2856
+ UPS: 794.226194
+Vehicles:
+ Inserted: 2843 (Loaded: 8937)
+ Running: 251
+ Waiting: 0
+ Teleports: 1 (Wrong Lane: 1)
+Statistics (avg of 822):
+ RouteLength: 6539.85
+ Speed: 14.09
+ Duration: 490.00
+ WaitingTime: 19.96
+ TimeLoss: 71.22
+ DepartDelay: 1192.59
+DijkstraRouter answered 128 queries and explored 267.80 edges on average.
+DijkstraRouter spent 0.09s answering queries (0.70ms on average).
+Loading net-file from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/most.net.xml' ... done (4331ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.poly.xml' ... done (5541ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.busstops.add.xml' ... done (225ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.trainstops.add.xml' ... done (204ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.parking.allvisible.add.xml' ... done (428ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/basic.vType.xml' ... done (23ms).
+Loading route-files incrementally from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.commercial.rou.xml'
+Loading route-files incrementally from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.highway.flows.xml'
+Loading done.
+Simulation version 1.27.0 started with time: 14400.00.
+Loading state from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\BTP\checkpoints\paired_ckpt_seed1_14.xml' ... done (6768ms).
+Simulation ended at time: 23552.50.
+Reason: TraCI issued load command.
+Performance:
+ Duration: 1760.11s
+ TraCI-Duration: 1573.62s
+ Real time factor: 5.19995
+ UPS: 825.916958
+Vehicles:
+ Inserted: 2615 (Loaded: 8801)
+ Running: 335
+ Waiting: 0
+Statistics (avg of 614):
+ RouteLength: 6041.42
+ Speed: 14.08
+ Duration: 440.89
+ WaitingTime: 15.08
+ TimeLoss: 60.24
+ DepartDelay: 1130.33
+DijkstraRouter answered 94 queries and explored 267.78 edges on average.
+DijkstraRouter spent 0.06s answering queries (0.64ms on average).
+Loading net-file from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/most.net.xml' ... done (4678ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.poly.xml' ... done (4897ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.busstops.add.xml' ... done (210ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.trainstops.add.xml' ... done (198ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.parking.allvisible.add.xml' ... done (528ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/basic.vType.xml' ... done (18ms).
+Loading route-files incrementally from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.commercial.rou.xml'
+Loading route-files incrementally from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.highway.flows.xml'
+Loading done.
+Simulation version 1.27.0 started with time: 14400.00.
+Loading state from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\BTP\checkpoints\paired_ckpt_seed1_12.xml' ... done (7475ms).
+Simulation ended at time: 24256.75.
+Reason: TraCI issued load command.
+Performance:
+ Duration: 1479.55s
+ TraCI-Duration: 1284.65s
+ Real time factor: 6.662
+ UPS: 1020.773236
+Vehicles:
+ Inserted: 2984 (Loaded: 9113)
+ Running: 374
+ Waiting: 0
+Statistics (avg of 631):
+ RouteLength: 5758.22
+ Speed: 13.80
+ Duration: 429.56
+ WaitingTime: 18.72
+ TimeLoss: 63.13
+ DepartDelay: 1334.94
+DijkstraRouter answered 82 queries and explored 660.93 edges on average.
+DijkstraRouter spent 0.18s answering queries (2.16ms on average).
+DijkstraRouter answered 92 queries and explored 268.58 edges on average.
+DijkstraRouter spent 0.06s answering queries (0.62ms on average).
+Loading net-file from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/most.net.xml' ... done (4750ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.poly.xml' ... done (5451ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.busstops.add.xml' ... done (197ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.trainstops.add.xml' ... done (202ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.parking.allvisible.add.xml' ... done (481ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/basic.vType.xml' ... done (16ms).
+Loading route-files incrementally from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.commercial.rou.xml'
+Loading route-files incrementally from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.highway.flows.xml'
+Loading done.
+Simulation version 1.27.0 started with time: 14400.00.
+Loading state from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\BTP\checkpoints\paired_ckpt_seed1_18.xml' ... done (3084ms).
+
+# scenario 'sumo_1_2.0_21600.0' (seed=1) finished in 26897.9s
+[SUMO_CMD] tag=sumo_1_2.0_21600.0 seed=1 cmd=sumo -c C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\most.sumocfg --seed 1 --scale 2.0 --no-step-log true --no-warnings true --time-to-teleport 300 --end 33700 --output-prefix sumo_1_2.0_21600.0. --tripinfo-output tripinfo.xml --log sim.log --error-log errors.log --device.rerouting.probability 0 --device.emissions.probability 0
+[RSU] coverage: 4329 / 4404 non-internal edges have an RSU (88 assigned via from_node fallback for dead-end terminations).
+[sumo_1_2.0_21600.0] RoadConditionManager bound (mode=grade, edges=['153391#0', '153391#1'])
+[RSU] subscribed 4329 edges (VEHICLE_ID_LIST + OCCUPANCY + HALTING_NUMBER).
+[sumo|seed=1] run 1/50 | time=904.5s fuel=427173mg reroutes=121 | cumulative: 1 arrived, 904s 427173mg
+[RSU] subscribed 4329 edges (VEHICLE_ID_LIST + OCCUPANCY + HALTING_NUMBER).
+[trip 1] SUMO disconnected during step: FatalTraCIError('Connection closed by SUMO.')
+[sumo|seed=1] run 2/50 | SUMO disconnected; non-arrived
+[RSU] subscribed 4329 edges (VEHICLE_ID_LIST + OCCUPANCY + HALTING_NUMBER).
+[sumo|seed=1] run 3/50 | time=711.0s fuel=266482mg reroutes=95 | cumulative: 2 arrived, 1616s 693655mg
+[RSU] subscribed 4329 edges (VEHICLE_ID_LIST + OCCUPANCY + HALTING_NUMBER).
+[sumo|seed=1] run 4/50 | time=723.5s fuel=567438mg reroutes=97 | cumulative: 3 arrived, 2339s 1261094mg
+[RSU] subscribed 4329 edges (VEHICLE_ID_LIST + OCCUPANCY + HALTING_NUMBER).
+[sumo|seed=1] run 5/50 | time=556.8s fuel=346726mg reroutes=75 | cumulative: 4 arrived, 2896s 1607819mg
+[RSU] subscribed 4329 edges (VEHICLE_ID_LIST + OCCUPANCY + HALTING_NUMBER).
+[trip 5] SUMO disconnected during step: FatalTraCIError('Connection closed by SUMO.')
+[sumo|seed=1] run 6/50 | SUMO disconnected; non-arrived
+[RSU] subscribed 4329 edges (VEHICLE_ID_LIST + OCCUPANCY + HALTING_NUMBER).
+[sumo|seed=1] run 7/50 | time=617.5s fuel=447101mg reroutes=83 | cumulative: 5 arrived, 3513s 2054920mg
+[RSU] subscribed 4329 edges (VEHICLE_ID_LIST + OCCUPANCY + HALTING_NUMBER).
+[sumo|seed=1] run 8/50 | time=699.8s fuel=451537mg reroutes=94 | cumulative: 6 arrived, 4213s 2506457mg
+[RSU] subscribed 4329 edges (VEHICLE_ID_LIST + OCCUPANCY + HALTING_NUMBER).
+[sumo|seed=1] run 9/50 | time=783.0s fuel=603715mg reroutes=105 | cumulative: 7 arrived, 4996s 3110172mg
+[RSU] subscribed 4329 edges (VEHICLE_ID_LIST + OCCUPANCY + HALTING_NUMBER).
+[trip 9] SUMO disconnected during step: FatalTraCIError('Connection closed by SUMO.')
+[sumo|seed=1] run 10/50 | SUMO disconnected; non-arrived
+[RSU] subscribed 4329 edges (VEHICLE_ID_LIST + OCCUPANCY + HALTING_NUMBER).
+[sumo|seed=1] run 11/50 | time=487.0s fuel=216512mg reroutes=65 | cumulative: 8 arrived, 5483s 3326684mg
+[RSU] subscribed 4329 edges (VEHICLE_ID_LIST + OCCUPANCY + HALTING_NUMBER).
+[sumo|seed=1] run 12/50 | time=629.5s fuel=259334mg reroutes=84 | cumulative: 9 arrived, 6112s 3586018mg
+[RSU] subscribed 4329 edges (VEHICLE_ID_LIST + OCCUPANCY + HALTING_NUMBER).
+[sumo|seed=1] run 13/50 | time=536.8s fuel=486801mg reroutes=72 | cumulative: 10 arrived, 6649s 4072819mg
+[RSU] subscribed 4329 edges (VEHICLE_ID_LIST + OCCUPANCY + HALTING_NUMBER).
+[sumo|seed=1] run 14/50 | time=591.8s fuel=371271mg reroutes=79 | cumulative: 11 arrived, 7241s 4444089mg
+[RSU] subscribed 4329 edges (VEHICLE_ID_LIST + OCCUPANCY + HALTING_NUMBER).
+[sumo|seed=1] run 15/50 | time=705.5s fuel=311877mg reroutes=95 | cumulative: 12 arrived, 7946s 4755967mg
+[RSU] subscribed 4329 edges (VEHICLE_ID_LIST + OCCUPANCY + HALTING_NUMBER).
+[sumo|seed=1] run 16/50 | time=721.0s fuel=396988mg reroutes=97 | cumulative: 13 arrived, 8668s 5152954mg
+[RSU] subscribed 4329 edges (VEHICLE_ID_LIST + OCCUPANCY + HALTING_NUMBER).
+[sumo|seed=1] run 17/50 | time=837.5s fuel=277470mg reroutes=112 | cumulative: 14 arrived, 9505s 5430425mg
+[RSU] subscribed 4329 edges (VEHICLE_ID_LIST + OCCUPANCY + HALTING_NUMBER).
+[sumo|seed=1] run 18/50 | time=616.5s fuel=462589mg reroutes=83 | cumulative: 15 arrived, 10122s 5893014mg
+[RSU] subscribed 4329 edges (VEHICLE_ID_LIST + OCCUPANCY + HALTING_NUMBER).
+TraCI error in paired scenario 'sumo_1_2.0_21600.0': Connection closed by SUMO.
+Simulation ended at time: 23531.00.
+Reason: TraCI issued load command.
+Performance:
+ Duration: 1358.10s
+ TraCI-Duration: 1197.21s
+ Real time factor: 6.72336
+ UPS: 932.627200
+Vehicles:
+ Inserted: 2616 (Loaded: 8837)
+ Running: 417
+ Waiting: 0
+Statistics (avg of 479):
+ RouteLength: 5529.11
+ Speed: 13.68
+ Duration: 409.64
+ WaitingTime: 19.96
+ TimeLoss: 63.79
+ DepartDelay: 1088.18
+DijkstraRouter answered 74 queries and explored 268.73 edges on average.
+DijkstraRouter spent 0.05s answering queries (0.64ms on average).
+Loading net-file from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/most.net.xml' ... done (4762ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.poly.xml' ... done (5628ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.busstops.add.xml' ... done (217ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.trainstops.add.xml' ... done (190ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.parking.allvisible.add.xml' ... done (536ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/basic.vType.xml' ... done (18ms).
+Loading route-files incrementally from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.commercial.rou.xml'
+Loading route-files incrementally from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.highway.flows.xml'
+Loading done.
+Simulation version 1.27.0 started with time: 14400.00.
+Loading state from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\BTP\checkpoints\paired_ckpt_seed1_13.xml' ... done (7395ms).
+Simulation ended at time: 23944.75.
+Reason: TraCI issued load command.
+Performance:
+ Duration: 1655.49s
+ TraCI-Duration: 1470.55s
+ Real time factor: 5.76551
+ UPS: 894.603474
+Vehicles:
+ Inserted: 2772 (Loaded: 8943)
+ Running: 308
+ Waiting: 0
+Statistics (avg of 665):
+ RouteLength: 6114.94
+ Speed: 14.04
+ Duration: 452.11
+ WaitingTime: 18.67
+ TimeLoss: 66.19
+ DepartDelay: 1239.62
+DijkstraRouter answered 98 queries and explored 266.95 edges on average.
+DijkstraRouter spent 0.07s answering queries (0.70ms on average).
+Loading net-file from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/most.net.xml' ... done (5061ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.poly.xml' ... done (5558ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.busstops.add.xml' ... done (234ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.trainstops.add.xml' ... done (209ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.parking.allvisible.add.xml' ... done (562ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/basic.vType.xml' ... done (26ms).
+Loading route-files incrementally from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.commercial.rou.xml'
+Loading route-files incrementally from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.highway.flows.xml'
+Loading done.
+Simulation version 1.27.0 started with time: 14400.00.
+Loading state from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\BTP\checkpoints\paired_ckpt_seed1_15.xml' ... done (7688ms).
+Simulation ended at time: 23754.75.
+Reason: TraCI issued load command.
+Performance:
+ Duration: 1614.53s
+ TraCI-Duration: 1433.88s
+ Real time factor: 5.79409
+ UPS: 886.150980
+Vehicles:
+ Inserted: 2707 (Loaded: 8897)
+ Running: 359
+ Waiting: 0
+Statistics (avg of 578):
+ RouteLength: 5885.21
+ Speed: 13.79
+ Duration: 437.40
+ WaitingTime: 17.71
+ TimeLoss: 63.56
+ DepartDelay: 1183.16
+DijkstraRouter answered 88 queries and explored 267.49 edges on average.
+DijkstraRouter spent 0.06s answering queries (0.67ms on average).
+Loading net-file from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/most.net.xml' ... done (4877ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.poly.xml' ... done (5620ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.busstops.add.xml' ... done (211ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.trainstops.add.xml' ... done (206ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.parking.allvisible.add.xml' ... done (536ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/basic.vType.xml' ... done (19ms).
+Loading route-files incrementally from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.commercial.rou.xml'
+Loading route-files incrementally from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.highway.flows.xml'
+Loading done.
+Simulation version 1.27.0 started with time: 14400.00.
+Loading state from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\BTP\checkpoints\paired_ckpt_seed1_14.xml' ... done (7309ms).
+Simulation ended at time: 24608.50.
+Reason: TraCI issued load command.
+Performance:
+ Duration: 2730.13s
+ TraCI-Duration: 2480.00s
+ Real time factor: 3.7392
+ UPS: 777.722917
+Vehicles:
+ Inserted: 3133 (Loaded: 9083)
+ Running: 269
+ Waiting: 1
+ Teleports: 2 (Wrong Lane: 2)
+Statistics (avg of 996):
+ RouteLength: 6547.12
+ Speed: 14.44
+ Duration: 481.96
+ WaitingTime: 18.21
+ TimeLoss: 66.06
+ DepartDelay: 1110.02
+DijkstraRouter answered 170 queries and explored 268.22 edges on average.
+DijkstraRouter spent 0.12s answering queries (0.71ms on average).
+Loading net-file from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/most.net.xml' ... done (4770ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.poly.xml' ... done (5110ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.busstops.add.xml' ... done (211ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.trainstops.add.xml' ... done (207ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.parking.allvisible.add.xml' ... done (555ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/basic.vType.xml' ... done (19ms).
+Loading route-files incrementally from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.commercial.rou.xml'
+Loading route-files incrementally from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.highway.flows.xml'
+Loading done.
+Simulation version 1.27.0 started with time: 14400.00.
+Loading state from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\BTP\checkpoints\paired_ckpt_seed1_16.xml' ... done (7163ms).
+Simulation ended at time: 23949.75.
+Reason: TraCI issued load command.
+Performance:
+ Duration: 1714.44s
+ TraCI-Duration: 1533.31s
+ Real time factor: 5.5702
+ UPS: 868.239545
+Vehicles:
+ Inserted: 2774 (Loaded: 8943)
+ Running: 305
+ Waiting: 0
+Statistics (avg of 670):
+ RouteLength: 6126.28
+ Speed: 14.02
+ Duration: 453.90
+ WaitingTime: 18.77
+ TimeLoss: 66.67
+ DepartDelay: 1235.60
+DijkstraRouter answered 98 queries and explored 266.93 edges on average.
+DijkstraRouter spent 0.06s answering queries (0.63ms on average).
+Loading net-file from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/most.net.xml' ... done (5522ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.poly.xml' ... done (5490ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.busstops.add.xml' ... done (186ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.trainstops.add.xml' ... done (192ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.parking.allvisible.add.xml' ... done (523ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/basic.vType.xml' ... done (15ms).
+Loading route-files incrementally from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.commercial.rou.xml'
+Loading route-files incrementally from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.highway.flows.xml'
+Loading done.
+Simulation version 1.27.0 started with time: 14400.00.
+Loading state from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\BTP\checkpoints\paired_ckpt_seed1_15.xml' ... done (7401ms).
+Simulation ended at time: 24357.75.
+Reason: TraCI issued load command.
+Performance:
+ Duration: 2011.06s
+ TraCI-Duration: 1795.16s
+ Real time factor: 4.9515
+ UPS: 890.643577
+Vehicles:
+ Inserted: 3030 (Loaded: 9093)
+ Running: 286
+ Waiting: 1
+Statistics (avg of 815):
+ RouteLength: 6420.11
+ Speed: 13.93
+ Duration: 484.03
+ WaitingTime: 22.65
+ TimeLoss: 72.56
+ DepartDelay: 1340.02
+DijkstraRouter answered 120 queries and explored 268.76 edges on average.
+DijkstraRouter spent 0.08s answering queries (0.68ms on average).
+Loading net-file from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/most.net.xml' ... done (4343ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.poly.xml' ... done (5321ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.busstops.add.xml' ... done (167ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.trainstops.add.xml' ... done (150ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.parking.allvisible.add.xml' ... done (496ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/basic.vType.xml' ... done (29ms).
+Loading route-files incrementally from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.commercial.rou.xml'
+Loading route-files incrementally from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.highway.flows.xml'
+Loading done.
+Simulation version 1.27.0 started with time: 14400.00.
+Loading state from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\BTP\checkpoints\paired_ckpt_seed1_17.xml' ... done (7255ms).
+Simulation ended at time: 24592.50.
+Reason: TraCI issued load command.
+Performance:
+ Duration: 2847.80s
+ TraCI-Duration: 2601.06s
+ Real time factor: 3.57908
+ UPS: 740.803518
+Vehicles:
+ Inserted: 3124 (Loaded: 9081)
+ Running: 264
+ Waiting: 0
+ Teleports: 2 (Wrong Lane: 2)
+Statistics (avg of 992):
+ RouteLength: 6538.80
+ Speed: 14.39
+ Duration: 482.75
+ WaitingTime: 18.48
+ TimeLoss: 67.06
+ DepartDelay: 1114.50
+DijkstraRouter answered 168 queries and explored 268.22 edges on average.
+DijkstraRouter spent 0.10s answering queries (0.57ms on average).
+Loading net-file from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/most.net.xml' ... done (4139ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.poly.xml' ... done (4958ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.busstops.add.xml' ... done (217ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.trainstops.add.xml' ... done (197ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.parking.allvisible.add.xml' ... done (545ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/basic.vType.xml' ... done (23ms).
+Loading route-files incrementally from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.commercial.rou.xml'
+Loading route-files incrementally from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.highway.flows.xml'
+Loading done.
+Simulation version 1.27.0 started with time: 14400.00.
+Loading state from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\BTP\checkpoints\paired_ckpt_seed1_16.xml' ... done (5381ms).
+Simulation ended at time: 24256.75.
+Reason: TraCI issued load command.
+Performance:
+ Duration: 1535.49s
+ TraCI-Duration: 1352.21s
+ Real time factor: 6.41928
+ UPS: 983.583101
+Vehicles:
+ Inserted: 2984 (Loaded: 9113)
+ Running: 374
+ Waiting: 0
+Statistics (avg of 631):
+ RouteLength: 5758.22
+ Speed: 13.80
+ Duration: 429.56
+ WaitingTime: 18.72
+ TimeLoss: 63.13
+ DepartDelay: 1334.94
+DijkstraRouter answered 92 queries and explored 268.58 edges on average.
+DijkstraRouter spent 0.06s answering queries (0.67ms on average).
+Loading net-file from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/most.net.xml' ... done (4796ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.poly.xml' ... done (5364ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.busstops.add.xml' ... done (200ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.trainstops.add.xml' ... done (187ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.parking.allvisible.add.xml' ... done (561ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/basic.vType.xml' ... done (16ms).
+Loading route-files incrementally from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.commercial.rou.xml'
+Loading route-files incrementally from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.highway.flows.xml'
+Loading done.
+Simulation version 1.27.0 started with time: 14400.00.
+Loading state from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\BTP\checkpoints\paired_ckpt_seed1_18.xml' ... done (6872ms).
+
+# scenario 'ablation_1_2.0_21600.0' (seed=1) finished in 34341.1s
+[SUMO_CMD] tag=ablation_1_2.0_21600.0 seed=1 cmd=sumo -c C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\most.sumocfg --seed 1 --scale 2.0 --no-step-log true --no-warnings true --time-to-teleport 300 --end 33700 --output-prefix ablation_1_2.0_21600.0. --tripinfo-output tripinfo.xml --log sim.log --error-log errors.log --device.rerouting.probability 0 --device.emissions.probability 0
+[RSU] coverage: 4329 / 4404 non-internal edges have an RSU (88 assigned via from_node fallback for dead-end terminations).
+[ablation_1_2.0_21600.0] RoadConditionManager bound (mode=grade, edges=['153391#0', '153391#1'])
+[RSU] subscribed 4329 edges (VEHICLE_ID_LIST + OCCUPANCY + HALTING_NUMBER).
+[ours|seed=1] run 1/50 | time=888.0s fuel=412802mg reroutes=0 | cumulative: 1 arrived, 888s 412802mg
+[RSU] subscribed 4329 edges (VEHICLE_ID_LIST + OCCUPANCY + HALTING_NUMBER).
+[ours|seed=1] run 2/50 | time=738.5s fuel=535041mg reroutes=0 | cumulative: 2 arrived, 1626s 947844mg
+[RSU] subscribed 4329 edges (VEHICLE_ID_LIST + OCCUPANCY + HALTING_NUMBER).
+[ours|seed=1] run 3/50 | time=710.5s fuel=272310mg reroutes=0 | cumulative: 3 arrived, 2337s 1220154mg
+[RSU] subscribed 4329 edges (VEHICLE_ID_LIST + OCCUPANCY + HALTING_NUMBER).
+[DIJKSTRA_TRIGGER] vehicle=ego_3 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=82.9%
+[CANDIDATE_ROUTE] vehicle=ego_3 oldCost=119.4 candidateCost=119.4 improvement=0.0%
+[DECISION] vehicle=ego_3 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_3 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=82.9%
+[CANDIDATE_ROUTE] vehicle=ego_3 oldCost=119.4 candidateCost=119.4 improvement=0.0%
+[DECISION] vehicle=ego_3 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_3 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=83.0%
+[CANDIDATE_ROUTE] vehicle=ego_3 oldCost=119.5 candidateCost=119.5 improvement=0.0%
+[DECISION] vehicle=ego_3 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_3 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=83.0%
+[CANDIDATE_ROUTE] vehicle=ego_3 oldCost=119.5 candidateCost=119.5 improvement=0.0%
+[DECISION] vehicle=ego_3 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_3 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=82.9%
+[CANDIDATE_ROUTE] vehicle=ego_3 oldCost=119.4 candidateCost=119.4 improvement=0.0%
+[DECISION] vehicle=ego_3 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_3 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=82.9%
+[CANDIDATE_ROUTE] vehicle=ego_3 oldCost=119.4 candidateCost=119.4 improvement=0.0%
+[DECISION] vehicle=ego_3 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_3 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=82.9%
+[CANDIDATE_ROUTE] vehicle=ego_3 oldCost=119.4 candidateCost=119.4 improvement=0.0%
+[DECISION] vehicle=ego_3 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_3 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=82.9%
+[CANDIDATE_ROUTE] vehicle=ego_3 oldCost=119.4 candidateCost=119.4 improvement=0.0%
+[DECISION] vehicle=ego_3 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_3 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=82.9%
+[CANDIDATE_ROUTE] vehicle=ego_3 oldCost=119.4 candidateCost=119.4 improvement=0.0%
+[DECISION] vehicle=ego_3 action=KEEP_CURRENT_ROUTE
+[ours|seed=1] run 4/50 | time=1075.5s fuel=796543mg reroutes=0 | cumulative: 4 arrived, 3412s 2016696mg
+[RSU] subscribed 4329 edges (VEHICLE_ID_LIST + OCCUPANCY + HALTING_NUMBER).
+[ours|seed=1] run 5/50 | time=557.5s fuel=346314mg reroutes=0 | cumulative: 5 arrived, 3970s 2363010mg
+[RSU] subscribed 4329 edges (VEHICLE_ID_LIST + OCCUPANCY + HALTING_NUMBER).
+[DIJKSTRA_TRIGGER] vehicle=ego_5 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=211.6%
+[CANDIDATE_ROUTE] vehicle=ego_5 oldCost=1261.1 candidateCost=1261.1 improvement=0.0%
+[DECISION] vehicle=ego_5 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_5 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=211.6%
+[CANDIDATE_ROUTE] vehicle=ego_5 oldCost=1261.1 candidateCost=1261.1 improvement=0.0%
+[DECISION] vehicle=ego_5 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_5 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=211.6%
+[CANDIDATE_ROUTE] vehicle=ego_5 oldCost=1261.0 candidateCost=1261.0 improvement=0.0%
+[DECISION] vehicle=ego_5 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_5 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=211.6%
+[CANDIDATE_ROUTE] vehicle=ego_5 oldCost=1261.2 candidateCost=1261.2 improvement=0.0%
+[DECISION] vehicle=ego_5 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_5 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=211.6%
+[CANDIDATE_ROUTE] vehicle=ego_5 oldCost=1261.3 candidateCost=1261.3 improvement=0.0%
+[DECISION] vehicle=ego_5 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_5 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=211.6%
+[CANDIDATE_ROUTE] vehicle=ego_5 oldCost=1261.1 candidateCost=1261.1 improvement=0.0%
+[DECISION] vehicle=ego_5 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_5 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=211.7%
+[CANDIDATE_ROUTE] vehicle=ego_5 oldCost=1261.8 candidateCost=1261.8 improvement=0.0%
+[DECISION] vehicle=ego_5 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_5 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=211.8%
+[CANDIDATE_ROUTE] vehicle=ego_5 oldCost=1261.9 candidateCost=1261.9 improvement=0.0%
+[DECISION] vehicle=ego_5 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_5 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=211.7%
+[CANDIDATE_ROUTE] vehicle=ego_5 oldCost=1261.6 candidateCost=1261.6 improvement=0.0%
+[DECISION] vehicle=ego_5 action=KEEP_CURRENT_ROUTE
+[ours|seed=1] run 6/50 | time=808.2s fuel=506120mg reroutes=0 | cumulative: 6 arrived, 4778s 2869130mg
+[RSU] subscribed 4329 edges (VEHICLE_ID_LIST + OCCUPANCY + HALTING_NUMBER).
+[ours|seed=1] run 7/50 | time=471.2s fuel=314244mg reroutes=0 | cumulative: 7 arrived, 5250s 3183374mg
+[RSU] subscribed 4329 edges (VEHICLE_ID_LIST + OCCUPANCY + HALTING_NUMBER).
+[trip 7] SUMO disconnected during step: FatalTraCIError('Connection closed by SUMO.')
+[ours|seed=1] run 8/50 | SUMO disconnected; non-arrived
+[RSU] subscribed 4329 edges (VEHICLE_ID_LIST + OCCUPANCY + HALTING_NUMBER).
+[ours|seed=1] run 9/50 | time=751.0s fuel=578906mg reroutes=0 | cumulative: 8 arrived, 6000s 3762280mg
+[RSU] subscribed 4329 edges (VEHICLE_ID_LIST + OCCUPANCY + HALTING_NUMBER).
+[DIJKSTRA_TRIGGER] vehicle=ego_9 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=35.6%
+[CANDIDATE_ROUTE] vehicle=ego_9 oldCost=442.6 candidateCost=442.6 improvement=0.0%
+[DECISION] vehicle=ego_9 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_9 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=35.5%
+[CANDIDATE_ROUTE] vehicle=ego_9 oldCost=442.5 candidateCost=442.5 improvement=0.0%
+[DECISION] vehicle=ego_9 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_9 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=35.9%
+[CANDIDATE_ROUTE] vehicle=ego_9 oldCost=443.6 candidateCost=443.6 improvement=0.0%
+[DECISION] vehicle=ego_9 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_9 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=35.9%
+[CANDIDATE_ROUTE] vehicle=ego_9 oldCost=443.6 candidateCost=443.6 improvement=0.0%
+[DECISION] vehicle=ego_9 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_9 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=36.1%
+[CANDIDATE_ROUTE] vehicle=ego_9 oldCost=444.2 candidateCost=444.2 improvement=0.0%
+[DECISION] vehicle=ego_9 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_9 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=36.4%
+[CANDIDATE_ROUTE] vehicle=ego_9 oldCost=445.3 candidateCost=445.3 improvement=0.0%
+[DECISION] vehicle=ego_9 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_9 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=36.7%
+[CANDIDATE_ROUTE] vehicle=ego_9 oldCost=446.3 candidateCost=446.3 improvement=0.0%
+[DECISION] vehicle=ego_9 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_9 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=36.6%
+[CANDIDATE_ROUTE] vehicle=ego_9 oldCost=446.0 candidateCost=446.0 improvement=0.0%
+[DECISION] vehicle=ego_9 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_9 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=36.8%
+[CANDIDATE_ROUTE] vehicle=ego_9 oldCost=446.7 candidateCost=446.7 improvement=0.0%
+[DECISION] vehicle=ego_9 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_9 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=345.2%
+[CANDIDATE_ROUTE] vehicle=ego_9 oldCost=210.2 candidateCost=210.2 improvement=0.0%
+[DECISION] vehicle=ego_9 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_9 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=345.2%
+[CANDIDATE_ROUTE] vehicle=ego_9 oldCost=210.2 candidateCost=210.2 improvement=0.0%
+[DECISION] vehicle=ego_9 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_9 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=345.2%
+[CANDIDATE_ROUTE] vehicle=ego_9 oldCost=210.2 candidateCost=210.2 improvement=0.0%
+[DECISION] vehicle=ego_9 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_9 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=345.2%
+[CANDIDATE_ROUTE] vehicle=ego_9 oldCost=210.2 candidateCost=210.2 improvement=0.0%
+[DECISION] vehicle=ego_9 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_9 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=345.2%
+[CANDIDATE_ROUTE] vehicle=ego_9 oldCost=210.2 candidateCost=210.2 improvement=0.0%
+[DECISION] vehicle=ego_9 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_9 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=345.2%
+[CANDIDATE_ROUTE] vehicle=ego_9 oldCost=210.2 candidateCost=210.2 improvement=0.0%
+[DECISION] vehicle=ego_9 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_9 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=345.2%
+[CANDIDATE_ROUTE] vehicle=ego_9 oldCost=210.2 candidateCost=210.2 improvement=0.0%
+[DECISION] vehicle=ego_9 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_9 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=345.2%
+[CANDIDATE_ROUTE] vehicle=ego_9 oldCost=210.2 candidateCost=210.2 improvement=0.0%
+[DECISION] vehicle=ego_9 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_9 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=345.2%
+[CANDIDATE_ROUTE] vehicle=ego_9 oldCost=210.2 candidateCost=210.2 improvement=0.0%
+[DECISION] vehicle=ego_9 action=KEEP_CURRENT_ROUTE
+[ours|seed=1] run 10/50 | time=1100.2s fuel=620103mg reroutes=0 | cumulative: 9 arrived, 7101s 4382382mg
+[RSU] subscribed 4329 edges (VEHICLE_ID_LIST + OCCUPANCY + HALTING_NUMBER).
+[ours|seed=1] run 11/50 | time=462.0s fuel=199920mg reroutes=0 | cumulative: 10 arrived, 7563s 4582303mg
+[RSU] subscribed 4329 edges (VEHICLE_ID_LIST + OCCUPANCY + HALTING_NUMBER).
+[ours|seed=1] run 12/50 | time=629.8s fuel=256472mg reroutes=0 | cumulative: 11 arrived, 8192s 4838775mg
+[RSU] subscribed 4329 edges (VEHICLE_ID_LIST + OCCUPANCY + HALTING_NUMBER).
+[ours|seed=1] run 13/50 | time=490.0s fuel=455450mg reroutes=0 | cumulative: 12 arrived, 8682s 5294224mg
+[RSU] subscribed 4329 edges (VEHICLE_ID_LIST + OCCUPANCY + HALTING_NUMBER).
+[DIJKSTRA_TRIGGER] vehicle=ego_13 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=147.6%
+[CANDIDATE_ROUTE] vehicle=ego_13 oldCost=272.9 candidateCost=272.9 improvement=0.0%
+[DECISION] vehicle=ego_13 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_13 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=147.6%
+[CANDIDATE_ROUTE] vehicle=ego_13 oldCost=272.9 candidateCost=272.9 improvement=0.0%
+[DECISION] vehicle=ego_13 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_13 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=147.6%
+[CANDIDATE_ROUTE] vehicle=ego_13 oldCost=272.9 candidateCost=272.9 improvement=0.0%
+[DECISION] vehicle=ego_13 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_13 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=147.6%
+[CANDIDATE_ROUTE] vehicle=ego_13 oldCost=272.9 candidateCost=272.9 improvement=0.0%
+[DECISION] vehicle=ego_13 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_13 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=147.6%
+[CANDIDATE_ROUTE] vehicle=ego_13 oldCost=272.9 candidateCost=272.9 improvement=0.0%
+[DECISION] vehicle=ego_13 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_13 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=147.6%
+[CANDIDATE_ROUTE] vehicle=ego_13 oldCost=272.9 candidateCost=272.9 improvement=0.0%
+[DECISION] vehicle=ego_13 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_13 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=147.6%
+[CANDIDATE_ROUTE] vehicle=ego_13 oldCost=272.9 candidateCost=272.9 improvement=0.0%
+[DECISION] vehicle=ego_13 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_13 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=147.6%
+[CANDIDATE_ROUTE] vehicle=ego_13 oldCost=272.9 candidateCost=272.9 improvement=0.0%
+[DECISION] vehicle=ego_13 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_13 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=147.7%
+[CANDIDATE_ROUTE] vehicle=ego_13 oldCost=273.1 candidateCost=273.1 improvement=0.0%
+[DECISION] vehicle=ego_13 action=KEEP_CURRENT_ROUTE
+[ours|seed=1] run 14/50 | time=893.0s fuel=581190mg reroutes=0 | cumulative: 13 arrived, 9576s 5875415mg
+[RSU] subscribed 4329 edges (VEHICLE_ID_LIST + OCCUPANCY + HALTING_NUMBER).
+[ours|seed=1] run 15/50 | time=664.5s fuel=288618mg reroutes=0 | cumulative: 14 arrived, 10240s 6164033mg
+[RSU] subscribed 4329 edges (VEHICLE_ID_LIST + OCCUPANCY + HALTING_NUMBER).
+[DIJKSTRA_TRIGGER] vehicle=ego_15 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=23.5%
+[CANDIDATE_ROUTE] vehicle=ego_15 oldCost=80.7 candidateCost=80.7 improvement=0.0%
+[DECISION] vehicle=ego_15 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_15 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=841.8%
+[CANDIDATE_ROUTE] vehicle=ego_15 oldCost=615.3 candidateCost=615.3 improvement=0.0%
+[DECISION] vehicle=ego_15 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_15 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=841.8%
+[CANDIDATE_ROUTE] vehicle=ego_15 oldCost=615.3 candidateCost=615.3 improvement=0.0%
+[DECISION] vehicle=ego_15 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_15 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=841.8%
+[CANDIDATE_ROUTE] vehicle=ego_15 oldCost=615.3 candidateCost=615.3 improvement=0.0%
+[DECISION] vehicle=ego_15 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_15 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=841.8%
+[CANDIDATE_ROUTE] vehicle=ego_15 oldCost=615.3 candidateCost=615.3 improvement=0.0%
+[DECISION] vehicle=ego_15 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_15 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=841.8%
+[CANDIDATE_ROUTE] vehicle=ego_15 oldCost=615.3 candidateCost=615.3 improvement=0.0%
+[DECISION] vehicle=ego_15 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_15 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=841.8%
+[CANDIDATE_ROUTE] vehicle=ego_15 oldCost=615.3 candidateCost=615.3 improvement=0.0%
+[DECISION] vehicle=ego_15 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_15 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=841.8%
+[CANDIDATE_ROUTE] vehicle=ego_15 oldCost=615.3 candidateCost=615.3 improvement=0.0%
+[DECISION] vehicle=ego_15 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_15 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=841.8%
+[CANDIDATE_ROUTE] vehicle=ego_15 oldCost=615.3 candidateCost=615.3 improvement=0.0%
+[DECISION] vehicle=ego_15 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_15 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=64.8%
+[CANDIDATE_ROUTE] vehicle=ego_15 oldCost=34.4 candidateCost=34.4 improvement=0.0%
+[DECISION] vehicle=ego_15 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_15 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=8499.6%
+[CANDIDATE_ROUTE] vehicle=ego_15 oldCost=1795.9 candidateCost=1795.9 improvement=0.0%
+[DECISION] vehicle=ego_15 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_15 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=8499.6%
+[CANDIDATE_ROUTE] vehicle=ego_15 oldCost=1795.9 candidateCost=1795.9 improvement=0.0%
+[DECISION] vehicle=ego_15 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_15 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=8499.6%
+[CANDIDATE_ROUTE] vehicle=ego_15 oldCost=1795.9 candidateCost=1795.9 improvement=0.0%
+[DECISION] vehicle=ego_15 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_15 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=8499.6%
+[CANDIDATE_ROUTE] vehicle=ego_15 oldCost=1795.9 candidateCost=1795.9 improvement=0.0%
+[DECISION] vehicle=ego_15 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_15 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=8499.6%
+[CANDIDATE_ROUTE] vehicle=ego_15 oldCost=1795.9 candidateCost=1795.9 improvement=0.0%
+[DECISION] vehicle=ego_15 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_15 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=8499.6%
+[CANDIDATE_ROUTE] vehicle=ego_15 oldCost=1795.9 candidateCost=1795.9 improvement=0.0%
+[DECISION] vehicle=ego_15 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_15 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=8499.6%
+[CANDIDATE_ROUTE] vehicle=ego_15 oldCost=1795.9 candidateCost=1795.9 improvement=0.0%
+[DECISION] vehicle=ego_15 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_15 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=8499.6%
+[CANDIDATE_ROUTE] vehicle=ego_15 oldCost=1795.9 candidateCost=1795.9 improvement=0.0%
+[DECISION] vehicle=ego_15 action=KEEP_CURRENT_ROUTE
+[ours|seed=1] run 16/50 | time=1208.2s fuel=729595mg reroutes=0 | cumulative: 15 arrived, 11448s 6893628mg
+[RSU] subscribed 4329 edges (VEHICLE_ID_LIST + OCCUPANCY + HALTING_NUMBER).
+[ours|seed=1] run 17/50 | time=837.5s fuel=278732mg reroutes=0 | cumulative: 16 arrived, 12286s 7172359mg
+[RSU] subscribed 4329 edges (VEHICLE_ID_LIST + OCCUPANCY + HALTING_NUMBER).
+[ours|seed=1] run 18/50 | time=616.5s fuel=462589mg reroutes=0 | cumulative: 17 arrived, 12902s 7634948mg
+[RSU] subscribed 4329 edges (VEHICLE_ID_LIST + OCCUPANCY + HALTING_NUMBER).
+TraCI error in paired scenario 'ablation_1_2.0_21600.0': Connection closed by SUMO.
+Simulation ended at time: 24361.50.
+Reason: TraCI issued load command.
+Performance:
+ Duration: 1896.52s
+ TraCI-Duration: 1698.48s
+ Real time factor: 5.25252
+ UPS: 945.663637
+Vehicles:
+ Inserted: 3033 (Loaded: 9095)
+ Running: 285
+ Waiting: 0
+Statistics (avg of 819):
+ RouteLength: 6433.35
+ Speed: 13.93
+ Duration: 484.99
+ WaitingTime: 22.35
+ TimeLoss: 72.01
+ DepartDelay: 1342.39
+DijkstraRouter answered 122 queries and explored 268.71 edges on average.
+DijkstraRouter spent 0.06s answering queries (0.51ms on average).
+Loading net-file from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/most.net.xml' ... done (4355ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.poly.xml' ... done (4719ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.busstops.add.xml' ... done (139ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.trainstops.add.xml' ... done (143ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.parking.allvisible.add.xml' ... done (519ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/basic.vType.xml' ... done (19ms).
+Loading route-files incrementally from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.commercial.rou.xml'
+Loading route-files incrementally from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.highway.flows.xml'
+Loading done.
+Simulation version 1.27.0 started with time: 14400.00.
+Loading state from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\BTP\checkpoints\paired_ckpt_seed1_17.xml' ... done (5194ms).
+Simulation ended at time: 24190.75.
+Reason: TraCI issued load command.
+Performance:
+ Duration: 1317.13s
+ TraCI-Duration: 1158.11s
+ Real time factor: 7.43337
+ UPS: 1067.753167
+Vehicles:
+ Inserted: 2948 (Loaded: 9103)
+ Running: 405
+ Waiting: 0
+Statistics (avg of 564):
+ RouteLength: 5562.48
+ Speed: 13.65
+ Duration: 416.82
+ WaitingTime: 18.54
+ TimeLoss: 61.33
+ DepartDelay: 1256.77
+DijkstraRouter answered 82 queries and explored 268.70 edges on average.
+DijkstraRouter spent 0.05s answering queries (0.62ms on average).
+Loading net-file from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/most.net.xml' ... done (4340ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.poly.xml' ... done (4177ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.busstops.add.xml' ... done (133ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.trainstops.add.xml' ... done (152ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.parking.allvisible.add.xml' ... done (520ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/basic.vType.xml' ... done (16ms).
+Loading route-files incrementally from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.commercial.rou.xml'
+Loading route-files incrementally from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.highway.flows.xml'
+Loading done.
+Simulation version 1.27.0 started with time: 14400.00.
+Loading state from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\BTP\checkpoints\paired_ckpt_seed1_18.xml' ... done (5967ms).
+
+# scenario 'ours_1_2.0_21600.0' (seed=1) finished in 37260.2s
+[SUMO_CMD] tag=ours_1_2.0_21600.0 seed=1 cmd=sumo -c C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\most.sumocfg --seed 1 --scale 2.0 --no-step-log true --no-warnings true --time-to-teleport 300 --end 33700 --output-prefix ours_1_2.0_21600.0. --tripinfo-output tripinfo.xml --log sim.log --error-log errors.log --device.rerouting.probability 0 --device.emissions.probability 0
+[RSU] coverage: 4329 / 4404 non-internal edges have an RSU (88 assigned via from_node fallback for dead-end terminations).
+[ours_1_2.0_21600.0] RoadConditionManager bound (mode=grade, edges=['153391#0', '153391#1'])
+[RSU] subscribed 4329 edges (VEHICLE_ID_LIST + OCCUPANCY + HALTING_NUMBER).
+[DIJKSTRA_TRIGGER] vehicle=ego_0 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=11.7%
+[CANDIDATE_ROUTE] vehicle=ego_0 oldCost=404307.3 candidateCost=386727.2 improvement=4.3%
+[DECISION] vehicle=ego_0 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_0 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=13.3%
+[CANDIDATE_ROUTE] vehicle=ego_0 oldCost=410236.4 candidateCost=388319.3 improvement=5.3%
+[DECISION] vehicle=ego_0 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_0 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=12.6%
+[CANDIDATE_ROUTE] vehicle=ego_0 oldCost=196396.2 candidateCost=162568.0 improvement=17.2%
+[DECISION] vehicle=ego_0 action=REROUTE type=CFS_OPTIMAL
+[ours|seed=1] run 1/50 | time=1183.2s fuel=616651mg reroutes=1 | cumulative: 1 arrived, 1183s 616651mg
+[RSU] subscribed 4329 edges (VEHICLE_ID_LIST + OCCUPANCY + HALTING_NUMBER).
+[DIJKSTRA_TRIGGER] vehicle=ego_1 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=11.5%
+[CANDIDATE_ROUTE] vehicle=ego_1 oldCost=33962.2 candidateCost=33962.2 improvement=0.0%
+[DECISION] vehicle=ego_1 action=KEEP_CURRENT_ROUTE
+[ours|seed=1] run 2/50 | time=1065.5s fuel=738078mg reroutes=0 | cumulative: 2 arrived, 2249s 1354729mg
+[RSU] subscribed 4329 edges (VEHICLE_ID_LIST + OCCUPANCY + HALTING_NUMBER).
+[DIJKSTRA_TRIGGER] vehicle=ego_2 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=10.8%
+[CANDIDATE_ROUTE] vehicle=ego_2 oldCost=53134.5 candidateCost=53134.5 improvement=0.0%
+[DECISION] vehicle=ego_2 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_2 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=10.6%
+[CANDIDATE_ROUTE] vehicle=ego_2 oldCost=46900.6 candidateCost=46900.6 improvement=0.0%
+[DECISION] vehicle=ego_2 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_2 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=10.9%
+[CANDIDATE_ROUTE] vehicle=ego_2 oldCost=41623.3 candidateCost=41623.3 improvement=0.0%
+[DECISION] vehicle=ego_2 action=KEEP_CURRENT_ROUTE
+[ours|seed=1] run 3/50 | time=712.5s fuel=250705mg reroutes=0 | cumulative: 3 arrived, 2961s 1605433mg
+[RSU] subscribed 4329 edges (VEHICLE_ID_LIST + OCCUPANCY + HALTING_NUMBER).
+[ours|seed=1] run 4/50 | time=1370.0s fuel=1025968mg reroutes=0 | cumulative: 4 arrived, 4331s 2631401mg
+[RSU] subscribed 4329 edges (VEHICLE_ID_LIST + OCCUPANCY + HALTING_NUMBER).
+[ours|seed=1] run 5/50 | time=572.2s fuel=337220mg reroutes=0 | cumulative: 5 arrived, 4904s 2968621mg
+[RSU] subscribed 4329 edges (VEHICLE_ID_LIST + OCCUPANCY + HALTING_NUMBER).
+[DIJKSTRA_TRIGGER] vehicle=ego_5 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=277.5%
+[CANDIDATE_ROUTE] vehicle=ego_5 oldCost=933093.1 candidateCost=933093.1 improvement=0.0%
+[DECISION] vehicle=ego_5 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_5 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=275.6%
+[CANDIDATE_ROUTE] vehicle=ego_5 oldCost=928422.7 candidateCost=928422.7 improvement=0.0%
+[DECISION] vehicle=ego_5 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_5 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=275.3%
+[CANDIDATE_ROUTE] vehicle=ego_5 oldCost=927722.3 candidateCost=927722.3 improvement=0.0%
+[DECISION] vehicle=ego_5 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_5 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=275.8%
+[CANDIDATE_ROUTE] vehicle=ego_5 oldCost=928845.8 candidateCost=928845.8 improvement=0.0%
+[DECISION] vehicle=ego_5 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_5 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=274.6%
+[CANDIDATE_ROUTE] vehicle=ego_5 oldCost=925803.4 candidateCost=925803.4 improvement=0.0%
+[DECISION] vehicle=ego_5 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_5 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=274.4%
+[CANDIDATE_ROUTE] vehicle=ego_5 oldCost=925319.6 candidateCost=925319.6 improvement=0.0%
+[DECISION] vehicle=ego_5 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_5 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=273.3%
+[CANDIDATE_ROUTE] vehicle=ego_5 oldCost=922688.2 candidateCost=922688.2 improvement=0.0%
+[DECISION] vehicle=ego_5 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_5 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=274.8%
+[CANDIDATE_ROUTE] vehicle=ego_5 oldCost=926342.8 candidateCost=926342.8 improvement=0.0%
+[DECISION] vehicle=ego_5 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_5 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=276.8%
+[CANDIDATE_ROUTE] vehicle=ego_5 oldCost=931335.0 candidateCost=931335.0 improvement=0.0%
+[DECISION] vehicle=ego_5 action=KEEP_CURRENT_ROUTE
+[ours|seed=1] run 6/50 | time=808.2s fuel=506120mg reroutes=0 | cumulative: 6 arrived, 5712s 3474741mg
+[RSU] subscribed 4329 edges (VEHICLE_ID_LIST + OCCUPANCY + HALTING_NUMBER).
+[ours|seed=1] run 7/50 | time=473.2s fuel=292338mg reroutes=0 | cumulative: 7 arrived, 6185s 3767079mg
+[RSU] subscribed 4329 edges (VEHICLE_ID_LIST + OCCUPANCY + HALTING_NUMBER).
+[DIJKSTRA_TRIGGER] vehicle=ego_7 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=10.1%
+[CANDIDATE_ROUTE] vehicle=ego_7 oldCost=224521.6 candidateCost=220966.3 improvement=1.6%
+[DECISION] vehicle=ego_7 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_7 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=10.7%
+[CANDIDATE_ROUTE] vehicle=ego_7 oldCost=204765.6 candidateCost=197759.2 improvement=3.4%
+[DECISION] vehicle=ego_7 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_7 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=10.1%
+[CANDIDATE_ROUTE] vehicle=ego_7 oldCost=203653.9 candidateCost=195137.8 improvement=4.2%
+[DECISION] vehicle=ego_7 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_7 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=10.3%
+[CANDIDATE_ROUTE] vehicle=ego_7 oldCost=203972.5 candidateCost=198699.1 improvement=2.6%
+[DECISION] vehicle=ego_7 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_7 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=10.1%
+[CANDIDATE_ROUTE] vehicle=ego_7 oldCost=203571.8 candidateCost=198040.2 improvement=2.7%
+[DECISION] vehicle=ego_7 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_7 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=10.5%
+[CANDIDATE_ROUTE] vehicle=ego_7 oldCost=203748.6 candidateCost=197943.5 improvement=2.8%
+[DECISION] vehicle=ego_7 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_7 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=11.8%
+[CANDIDATE_ROUTE] vehicle=ego_7 oldCost=206128.6 candidateCost=200355.7 improvement=2.8%
+[DECISION] vehicle=ego_7 action=KEEP_CURRENT_ROUTE
+[trip 7] SUMO disconnected during step: FatalTraCIError('Connection closed by SUMO.')
+[ours|seed=1] run 8/50 | SUMO disconnected; non-arrived
+[RSU] subscribed 4329 edges (VEHICLE_ID_LIST + OCCUPANCY + HALTING_NUMBER).
+[ours|seed=1] run 9/50 | time=751.5s fuel=554863mg reroutes=0 | cumulative: 8 arrived, 6936s 4321942mg
+[RSU] subscribed 4329 edges (VEHICLE_ID_LIST + OCCUPANCY + HALTING_NUMBER).
+[ours|seed=1] run 10/50 | time=1100.2s fuel=620103mg reroutes=0 | cumulative: 9 arrived, 8037s 4942045mg
+[RSU] subscribed 4329 edges (VEHICLE_ID_LIST + OCCUPANCY + HALTING_NUMBER).
+[DIJKSTRA_TRIGGER] vehicle=ego_10 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=33.3%
+[CANDIDATE_ROUTE] vehicle=ego_10 oldCost=189930.9 candidateCost=189930.9 improvement=0.0%
+[DECISION] vehicle=ego_10 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_10 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=1046.0%
+[CANDIDATE_ROUTE] vehicle=ego_10 oldCost=1633296.9 candidateCost=1633296.9 improvement=0.0%
+[DECISION] vehicle=ego_10 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_10 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=1046.7%
+[CANDIDATE_ROUTE] vehicle=ego_10 oldCost=1634213.6 candidateCost=1634213.6 improvement=0.0%
+[DECISION] vehicle=ego_10 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_10 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=1050.0%
+[CANDIDATE_ROUTE] vehicle=ego_10 oldCost=1638916.0 candidateCost=1638916.0 improvement=0.0%
+[DECISION] vehicle=ego_10 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_10 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=1047.6%
+[CANDIDATE_ROUTE] vehicle=ego_10 oldCost=1635511.9 candidateCost=1635511.9 improvement=0.0%
+[DECISION] vehicle=ego_10 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_10 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=1050.6%
+[CANDIDATE_ROUTE] vehicle=ego_10 oldCost=1639819.8 candidateCost=1639819.8 improvement=0.0%
+[DECISION] vehicle=ego_10 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_10 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=1050.2%
+[CANDIDATE_ROUTE] vehicle=ego_10 oldCost=1639219.3 candidateCost=1639219.3 improvement=0.0%
+[DECISION] vehicle=ego_10 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_10 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=1050.8%
+[CANDIDATE_ROUTE] vehicle=ego_10 oldCost=1640088.0 candidateCost=1640088.0 improvement=0.0%
+[DECISION] vehicle=ego_10 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_10 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=1049.6%
+[CANDIDATE_ROUTE] vehicle=ego_10 oldCost=1638388.3 candidateCost=1638388.3 improvement=0.0%
+[DECISION] vehicle=ego_10 action=KEEP_CURRENT_ROUTE
+[trip 10] SUMO disconnected during step: FatalTraCIError('Connection closed by SUMO.')
+[ours|seed=1] run 11/50 | SUMO disconnected; non-arrived
+[RSU] subscribed 4329 edges (VEHICLE_ID_LIST + OCCUPANCY + HALTING_NUMBER).
+[ours|seed=1] run 12/50 | time=632.2s fuel=239768mg reroutes=0 | cumulative: 10 arrived, 8669s 5181813mg
+[RSU] subscribed 4329 edges (VEHICLE_ID_LIST + OCCUPANCY + HALTING_NUMBER).
+[ours|seed=1] run 13/50 | time=490.8s fuel=433338mg reroutes=0 | cumulative: 11 arrived, 9160s 5615151mg
+[RSU] subscribed 4329 edges (VEHICLE_ID_LIST + OCCUPANCY + HALTING_NUMBER).
+[DIJKSTRA_TRIGGER] vehicle=ego_13 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=10.6%
+[CANDIDATE_ROUTE] vehicle=ego_13 oldCost=273102.3 candidateCost=251201.7 improvement=8.0%
+[DECISION] vehicle=ego_13 action=KEEP_CURRENT_ROUTE
+[ours|seed=1] run 14/50 | time=594.5s fuel=370092mg reroutes=0 | cumulative: 12 arrived, 9754s 5985243mg
+[RSU] subscribed 4329 edges (VEHICLE_ID_LIST + OCCUPANCY + HALTING_NUMBER).
+[ours|seed=1] run 15/50 | time=669.5s fuel=263081mg reroutes=0 | cumulative: 13 arrived, 10424s 6248324mg
+[RSU] subscribed 4329 edges (VEHICLE_ID_LIST + OCCUPANCY + HALTING_NUMBER).
+[DIJKSTRA_TRIGGER] vehicle=ego_15 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=10.1%
+[CANDIDATE_ROUTE] vehicle=ego_15 oldCost=47852.9 candidateCost=47852.9 improvement=0.0%
+[DECISION] vehicle=ego_15 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_15 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=13.0%
+[CANDIDATE_ROUTE] vehicle=ego_15 oldCost=43384.9 candidateCost=43384.9 improvement=0.0%
+[DECISION] vehicle=ego_15 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_15 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=18.4%
+[CANDIDATE_ROUTE] vehicle=ego_15 oldCost=16710.4 candidateCost=16710.4 improvement=0.0%
+[DECISION] vehicle=ego_15 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_15 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=18.4%
+[CANDIDATE_ROUTE] vehicle=ego_15 oldCost=16710.4 candidateCost=16710.4 improvement=0.0%
+[DECISION] vehicle=ego_15 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_15 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=18.5%
+[CANDIDATE_ROUTE] vehicle=ego_15 oldCost=16720.8 candidateCost=16720.8 improvement=0.0%
+[DECISION] vehicle=ego_15 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_15 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=18.4%
+[CANDIDATE_ROUTE] vehicle=ego_15 oldCost=16716.7 candidateCost=16716.7 improvement=0.0%
+[DECISION] vehicle=ego_15 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_15 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=18.5%
+[CANDIDATE_ROUTE] vehicle=ego_15 oldCost=16723.5 candidateCost=16723.5 improvement=0.0%
+[DECISION] vehicle=ego_15 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_15 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=18.6%
+[CANDIDATE_ROUTE] vehicle=ego_15 oldCost=16734.5 candidateCost=16734.5 improvement=0.0%
+[DECISION] vehicle=ego_15 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_15 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=18.5%
+[CANDIDATE_ROUTE] vehicle=ego_15 oldCost=16720.8 candidateCost=16720.8 improvement=0.0%
+[DECISION] vehicle=ego_15 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_15 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=18.4%
+[CANDIDATE_ROUTE] vehicle=ego_15 oldCost=16716.7 candidateCost=16716.7 improvement=0.0%
+[DECISION] vehicle=ego_15 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_15 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=18.4%
+[CANDIDATE_ROUTE] vehicle=ego_15 oldCost=16710.1 candidateCost=16710.1 improvement=0.0%
+[DECISION] vehicle=ego_15 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_15 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=18.4%
+[CANDIDATE_ROUTE] vehicle=ego_15 oldCost=16709.8 candidateCost=16709.8 improvement=0.0%
+[DECISION] vehicle=ego_15 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_15 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=18.5%
+[CANDIDATE_ROUTE] vehicle=ego_15 oldCost=16720.8 candidateCost=16720.8 improvement=0.0%
+[DECISION] vehicle=ego_15 action=KEEP_CURRENT_ROUTE
+[ours|seed=1] run 16/50 | time=1192.2s fuel=693488mg reroutes=0 | cumulative: 14 arrived, 11616s 6941812mg
+[RSU] subscribed 4329 edges (VEHICLE_ID_LIST + OCCUPANCY + HALTING_NUMBER).
+[DIJKSTRA_TRIGGER] vehicle=ego_16 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=10.2%
+[CANDIDATE_ROUTE] vehicle=ego_16 oldCost=37942.5 candidateCost=37942.5 improvement=0.0%
+[DECISION] vehicle=ego_16 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_16 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=11.5%
+[CANDIDATE_ROUTE] vehicle=ego_16 oldCost=34718.3 candidateCost=34718.3 improvement=0.0%
+[DECISION] vehicle=ego_16 action=KEEP_CURRENT_ROUTE
+[DIJKSTRA_TRIGGER] vehicle=ego_16 reason=DEVIATION_THRESHOLD_EXCEEDED routeDeviation=14.8%
+[CANDIDATE_ROUTE] vehicle=ego_16 oldCost=29002.6 candidateCost=29002.6 improvement=0.0%
+[DECISION] vehicle=ego_16 action=KEEP_CURRENT_ROUTE
+[ours|seed=1] run 17/50 | time=841.2s fuel=259674mg reroutes=0 | cumulative: 15 arrived, 12457s 7201486mg
+[RSU] subscribed 4329 edges (VEHICLE_ID_LIST + OCCUPANCY + HALTING_NUMBER).
+[ours|seed=1] run 18/50 | time=550.5s fuel=424594mg reroutes=0 | cumulative: 16 arrived, 13008s 7626080mg
+[RSU] subscribed 4329 edges (VEHICLE_ID_LIST + OCCUPANCY + HALTING_NUMBER).
+TraCI error in paired scenario 'ours_1_2.0_21600.0': Connection closed by SUMO.
+
+=======================================================
+ PAIRED FUEL RESULTS: OURS vs SUMO
+=======================================================
+ N (seeds) = 0
+
+-- Gate C: avoidance of degraded edges ['153391#0', '153391#1'] --
+  ours: avoided=0/0 (0.0%), crossed=0/0
+  sumo: avoided=0/0 (0.0%), crossed=0/0
+
+=======================================================
+ PAIRED FUEL RESULTS: OURS vs ABLATION
+=======================================================
+ N (seeds) = 0
+
+-- Gate C: avoidance of degraded edges ['153391#0', '153391#1'] --
+  ours: avoided=0/0 (0.0%), crossed=0/0
+  ablation: avoided=0/0 (0.0%), crossed=0/0

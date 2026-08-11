@@ -1,0 +1,31 @@
+Loading net-file from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/most.net.xml' ... done (4670ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.poly.xml' ... done (144ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.busstops.add.xml' ... done (13ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.trainstops.add.xml' ... done (4ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.parking.allvisible.add.xml' ... done (186ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/basic.vType.xml' ... done (7ms).
+Loading state from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\BTP\ws_1_200_21600.xml.gz' ... done (2858ms).
+Loading route-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.commercial.rou.xml' ... done (559ms).
+Loading route-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.highway.flows.xml' ... done (4ms).
+Loading done.
+Simulation version 1.27.0 started via libsumo with time: 20400.00.
+Simulation ended at time: 22843.75.
+Reason: Libsumo requested termination.
+Performance:
+ Duration: 1444.78s
+ Real time factor: 15.8113
+ UPS: 1446.199347
+Vehicles:
+ Inserted: 1903 (Loaded: 7649)
+ Running: 237
+ Waiting: 0
+ Teleports: 1 (Wrong Lane: 1)
+Statistics (avg of 1009):
+ RouteLength: 7234.95
+ Speed: 17.89
+ Duration: 445.20
+ WaitingTime: 6.65
+ TimeLoss: 42.76
+ DepartDelay: 0.33
+DijkstraRouter answered 4040 queries and explored 812.07 edges on average.
+DijkstraRouter spent 7.36s answering queries (1.82ms on average).

@@ -1,0 +1,35 @@
+{
+  "run_meta": {
+    "n": 50,
+    "od_seed": 42,
+    "seeds": [
+      1
+    ],
+    "scale": 2.0,
+    "teleport": 300,
+    "alpha": 1.0,
+    "beta": 8.0,
+    "gamma": 10.0,
+    "depart_start": 21600.0,
+    "depart_spacing": 120,
+    "reroute_interval": 30,
+    "use_hysteresis": true,
+    "baseline": "both",
+    "degraded_edges": [
+      "153391#0",
+      "153391#1"
+    ],
+    "road_condition": "grade"
+  },
+  "K_seeds": 0,
+  "gate_c": {
+    "degraded_edges": [
+      "153391#0",
+      "153391#1"
+    ],
+    "road_condition": "grade",
+    "avoidance_rate_ours_pct": 24.0,
+    "avoidance_rate_ablation_pct": 0.0,
+    "artifact_flag": false
+  }
+}

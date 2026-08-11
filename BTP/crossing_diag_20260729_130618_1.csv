@@ -1,0 +1,10 @@
+ego_id,seed,arm,crossed,chosen_cost,bypass_cost,drift_ratio,routing_time_cost
+ego_0,1,ours-fuel,True,220073.401,262908.775,0.8371,183001.878
+ego_0,1,ablation,True,427.864,444.575,0.9624,427.604
+ego_0,1,ours-augtime,False,572.594,560.742,1.0211,583.085
+ego_1,1,ours-augtime,True,944.691,776.943,1.2159,887.149
+ego_2,1,ablation,True,676.161,636.51,1.0623,676.921
+ego_2,1,ours-augtime,False,885.81,838.314,1.0567,756.238
+ego_2,1,ours-fuel,True,511948.152,525954.503,0.9734,475136.636
+ego_1,1,ablation,True,741.427,714.971,1.037,742.646
+ego_1,1,ours-fuel,False,761714.519,650968.0,1.1701,614099.474

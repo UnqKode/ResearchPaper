@@ -1,0 +1,311 @@
+[run_fixed_departure_campaign] fast_forward_target=19500.0 rcm.mode=grade rcm.activate_time=21300.0
+[run_fixed_departure_campaign] fast_forward_target=19500.0 rcm.mode=grade rcm.activate_time=21300.0
+[run_fixed_departure_campaign] fast_forward_target=19500.0 rcm.mode=grade rcm.activate_time=21300.0
+[GRADE_ACTIVATE] edges=['-152780', '153331#1'] activate_time=21300.0 emission_class=HBEFA3/PC_G_EU0
+[FREEZE_BASELINE] -152780: baseline=1935.1937205823388 seed_buf=0 samples
+[FREEZE_BASELINE] 153331#1: baseline=1652.7786735950904 seed_buf=0 samples
+[FUEL_DEQUES_CLEARED] ['-152780', '153331#1']
+[GRADE_ACTIVATE] edges=['-152780', '153331#1'] activate_time=21300.0 emission_class=HBEFA3/PC_G_EU0
+[FREEZE_BASELINE] -152780: baseline=1935.1937205823388 seed_buf=0 samples
+[FREEZE_BASELINE] 153331#1: baseline=1652.7786735950904 seed_buf=0 samples
+[FUEL_DEQUES_CLEARED] ['-152780', '153331#1']
+[GRADE_ACTIVATE] edges=['-152780', '153331#1'] activate_time=21300.0 emission_class=HBEFA3/PC_G_EU0
+[FREEZE_BASELINE] -152780: baseline=1935.1937205823388 seed_buf=0 samples
+[FREEZE_BASELINE] 153331#1: baseline=1652.7786735950904 seed_buf=0 samples
+[FUEL_DEQUES_CLEARED] ['-152780', '153331#1']
+[ARM_CRASH] ours-augtime_1_2.0_21600.0: TypeError("unsupported operand type(s) for +: 'int' and 'tuple'")
+Traceback (most recent call last):
+  File "C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\BTP\Simulation\compare_routing.py", line 1344, in _run_paired_capture
+    res, cfs, route_cfs = run_paired_scenario(
+                          ^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\BTP\Simulation\compare_routing.py", line 1191, in run_paired_scenario
+    live_results = sim.run_fixed_departure_campaign(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\BTP\Simulation\simulate.py", line 1454, in run_fixed_departure_campaign
+    _mean_fuel = round(sum(_dq) / len(_dq), 1) if _dq else None
+                       ^^^^^^^^
+TypeError: unsupported operand type(s) for +: 'int' and 'tuple'
+[run_fixed_departure_campaign] fast_forward_target=19500.0 rcm.mode=grade rcm.activate_time=21300.0
+[ARM_CRASH] ours-fuel_1_2.0_21600.0: TypeError("unsupported operand type(s) for +: 'int' and 'tuple'")
+Traceback (most recent call last):
+  File "C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\BTP\Simulation\compare_routing.py", line 1344, in _run_paired_capture
+    res, cfs, route_cfs = run_paired_scenario(
+                          ^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\BTP\Simulation\compare_routing.py", line 1191, in run_paired_scenario
+    live_results = sim.run_fixed_departure_campaign(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\BTP\Simulation\simulate.py", line 1454, in run_fixed_departure_campaign
+    _mean_fuel = round(sum(_dq) / len(_dq), 1) if _dq else None
+                       ^^^^^^^^
+TypeError: unsupported operand type(s) for +: 'int' and 'tuple'
+[run_fixed_departure_campaign] fast_forward_target=19500.0 rcm.mode=grade rcm.activate_time=21300.0
+[ARM_CRASH] ablation_1_2.0_21600.0: TypeError("unsupported operand type(s) for +: 'int' and 'tuple'")
+Traceback (most recent call last):
+  File "C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\BTP\Simulation\compare_routing.py", line 1344, in _run_paired_capture
+    res, cfs, route_cfs = run_paired_scenario(
+                          ^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\BTP\Simulation\compare_routing.py", line 1191, in run_paired_scenario
+    live_results = sim.run_fixed_departure_campaign(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\BTP\Simulation\simulate.py", line 1454, in run_fixed_departure_campaign
+    _mean_fuel = round(sum(_dq) / len(_dq), 1) if _dq else None
+                       ^^^^^^^^
+TypeError: unsupported operand type(s) for +: 'int' and 'tuple'
+[run_fixed_departure_campaign] fast_forward_target=19500.0 rcm.mode=grade rcm.activate_time=21300.0
+[GRADE_ACTIVATE] edges=['-152780', '153331#1'] activate_time=21300.0 emission_class=HBEFA3/PC_G_EU0
+[FREEZE_BASELINE] -152780: baseline=1712.2872600984197 seed_buf=0 samples
+[FREEZE_BASELINE] 153331#1: baseline=1783.146272443868 seed_buf=0 samples
+[FUEL_DEQUES_CLEARED] ['-152780', '153331#1']
+[GRADE_ACTIVATE] edges=['-152780', '153331#1'] activate_time=21300.0 emission_class=HBEFA3/PC_G_EU0
+[FREEZE_BASELINE] -152780: baseline=1712.2872600984197 seed_buf=0 samples
+[FREEZE_BASELINE] 153331#1: baseline=1783.146272443868 seed_buf=0 samples
+[FUEL_DEQUES_CLEARED] ['-152780', '153331#1']
+[GRADE_ACTIVATE] edges=['-152780', '153331#1'] activate_time=21300.0 emission_class=HBEFA3/PC_G_EU0
+[FREEZE_BASELINE] -152780: baseline=1712.2872600984197 seed_buf=0 samples
+[FREEZE_BASELINE] 153331#1: baseline=1783.146272443868 seed_buf=0 samples
+[FUEL_DEQUES_CLEARED] ['-152780', '153331#1']
+[ARM_CRASH] ours-fuel_2_2.0_21600.0: TypeError("unsupported operand type(s) for +: 'int' and 'tuple'")
+Traceback (most recent call last):
+  File "C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\BTP\Simulation\compare_routing.py", line 1344, in _run_paired_capture
+    res, cfs, route_cfs = run_paired_scenario(
+                          ^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\BTP\Simulation\compare_routing.py", line 1191, in run_paired_scenario
+    live_results = sim.run_fixed_departure_campaign(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\BTP\Simulation\simulate.py", line 1454, in run_fixed_departure_campaign
+    _mean_fuel = round(sum(_dq) / len(_dq), 1) if _dq else None
+                       ^^^^^^^^
+TypeError: unsupported operand type(s) for +: 'int' and 'tuple'
+[run_fixed_departure_campaign] fast_forward_target=19500.0 rcm.mode=grade rcm.activate_time=21300.0
+[ARM_CRASH] ours-augtime_2_2.0_21600.0: TypeError("unsupported operand type(s) for +: 'int' and 'tuple'")
+Traceback (most recent call last):
+  File "C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\BTP\Simulation\compare_routing.py", line 1344, in _run_paired_capture
+    res, cfs, route_cfs = run_paired_scenario(
+                          ^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\BTP\Simulation\compare_routing.py", line 1191, in run_paired_scenario
+    live_results = sim.run_fixed_departure_campaign(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\BTP\Simulation\simulate.py", line 1454, in run_fixed_departure_campaign
+    _mean_fuel = round(sum(_dq) / len(_dq), 1) if _dq else None
+                       ^^^^^^^^
+TypeError: unsupported operand type(s) for +: 'int' and 'tuple'
+[run_fixed_departure_campaign] fast_forward_target=19500.0 rcm.mode=grade rcm.activate_time=21300.0
+[ARM_CRASH] ablation_2_2.0_21600.0: TypeError("unsupported operand type(s) for +: 'int' and 'tuple'")
+Traceback (most recent call last):
+  File "C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\BTP\Simulation\compare_routing.py", line 1344, in _run_paired_capture
+    res, cfs, route_cfs = run_paired_scenario(
+                          ^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\BTP\Simulation\compare_routing.py", line 1191, in run_paired_scenario
+    live_results = sim.run_fixed_departure_campaign(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\BTP\Simulation\simulate.py", line 1454, in run_fixed_departure_campaign
+    _mean_fuel = round(sum(_dq) / len(_dq), 1) if _dq else None
+                       ^^^^^^^^
+TypeError: unsupported operand type(s) for +: 'int' and 'tuple'
+[run_fixed_departure_campaign] fast_forward_target=19500.0 rcm.mode=grade rcm.activate_time=21300.0
+[GRADE_ACTIVATE] edges=['-152780', '153331#1'] activate_time=21300.0 emission_class=HBEFA3/PC_G_EU0
+[FREEZE_BASELINE] -152780: baseline=1641.7992688068127 seed_buf=0 samples
+[FREEZE_BASELINE] 153331#1: baseline=1648.2374711629773 seed_buf=0 samples
+[FUEL_DEQUES_CLEARED] ['-152780', '153331#1']
+[GRADE_ACTIVATE] edges=['-152780', '153331#1'] activate_time=21300.0 emission_class=HBEFA3/PC_G_EU0
+[FREEZE_BASELINE] -152780: baseline=1641.7992688068127 seed_buf=0 samples
+[FREEZE_BASELINE] 153331#1: baseline=1648.2374711629773 seed_buf=0 samples
+[FUEL_DEQUES_CLEARED] ['-152780', '153331#1']
+[GRADE_ACTIVATE] edges=['-152780', '153331#1'] activate_time=21300.0 emission_class=HBEFA3/PC_G_EU0
+[FREEZE_BASELINE] -152780: baseline=1641.7992688068127 seed_buf=0 samples
+[FREEZE_BASELINE] 153331#1: baseline=1648.2374711629773 seed_buf=0 samples
+[FUEL_DEQUES_CLEARED] ['-152780', '153331#1']
+[ARM_CRASH] ours-fuel_3_2.0_21600.0: TypeError("unsupported operand type(s) for +: 'int' and 'tuple'")
+Traceback (most recent call last):
+  File "C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\BTP\Simulation\compare_routing.py", line 1344, in _run_paired_capture
+    res, cfs, route_cfs = run_paired_scenario(
+                          ^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\BTP\Simulation\compare_routing.py", line 1191, in run_paired_scenario
+    live_results = sim.run_fixed_departure_campaign(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\BTP\Simulation\simulate.py", line 1454, in run_fixed_departure_campaign
+    _mean_fuel = round(sum(_dq) / len(_dq), 1) if _dq else None
+                       ^^^^^^^^
+TypeError: unsupported operand type(s) for +: 'int' and 'tuple'
+[ARM_CRASH] ours-augtime_3_2.0_21600.0: TypeError("unsupported operand type(s) for +: 'int' and 'tuple'")
+Traceback (most recent call last):
+  File "C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\BTP\Simulation\compare_routing.py", line 1344, in _run_paired_capture
+    res, cfs, route_cfs = run_paired_scenario(
+                          ^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\BTP\Simulation\compare_routing.py", line 1191, in run_paired_scenario
+    live_results = sim.run_fixed_departure_campaign(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\BTP\Simulation\simulate.py", line 1454, in run_fixed_departure_campaign
+    _mean_fuel = round(sum(_dq) / len(_dq), 1) if _dq else None
+                       ^^^^^^^^
+TypeError: unsupported operand type(s) for +: 'int' and 'tuple'
+[run_fixed_departure_campaign] fast_forward_target=19500.0 rcm.mode=grade rcm.activate_time=21300.0
+[run_fixed_departure_campaign] fast_forward_target=19500.0 rcm.mode=grade rcm.activate_time=21300.0
+[ARM_CRASH] ablation_3_2.0_21600.0: TypeError("unsupported operand type(s) for +: 'int' and 'tuple'")
+Traceback (most recent call last):
+  File "C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\BTP\Simulation\compare_routing.py", line 1344, in _run_paired_capture
+    res, cfs, route_cfs = run_paired_scenario(
+                          ^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\BTP\Simulation\compare_routing.py", line 1191, in run_paired_scenario
+    live_results = sim.run_fixed_departure_campaign(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\BTP\Simulation\simulate.py", line 1454, in run_fixed_departure_campaign
+    _mean_fuel = round(sum(_dq) / len(_dq), 1) if _dq else None
+                       ^^^^^^^^
+TypeError: unsupported operand type(s) for +: 'int' and 'tuple'
+[run_fixed_departure_campaign] fast_forward_target=19500.0 rcm.mode=grade rcm.activate_time=21300.0
+[GRADE_ACTIVATE] edges=['-152780', '153331#1'] activate_time=21300.0 emission_class=HBEFA3/PC_G_EU0
+[FREEZE_BASELINE] -152780: baseline=1858.5365634514144 seed_buf=0 samples
+[FREEZE_BASELINE] 153331#1: baseline=1785.538343304795 seed_buf=0 samples
+[FUEL_DEQUES_CLEARED] ['-152780', '153331#1']
+[GRADE_ACTIVATE] edges=['-152780', '153331#1'] activate_time=21300.0 emission_class=HBEFA3/PC_G_EU0
+[FREEZE_BASELINE] -152780: baseline=1858.5365634514144 seed_buf=0 samples
+[FREEZE_BASELINE] 153331#1: baseline=1785.538343304795 seed_buf=0 samples
+[FUEL_DEQUES_CLEARED] ['-152780', '153331#1']
+[GRADE_ACTIVATE] edges=['-152780', '153331#1'] activate_time=21300.0 emission_class=HBEFA3/PC_G_EU0
+[FREEZE_BASELINE] -152780: baseline=1858.5365634514144 seed_buf=0 samples
+[FREEZE_BASELINE] 153331#1: baseline=1785.538343304795 seed_buf=0 samples
+[FUEL_DEQUES_CLEARED] ['-152780', '153331#1']
+[ARM_CRASH] ours-fuel_4_2.0_21600.0: TypeError("unsupported operand type(s) for +: 'int' and 'tuple'")
+Traceback (most recent call last):
+  File "C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\BTP\Simulation\compare_routing.py", line 1344, in _run_paired_capture
+    res, cfs, route_cfs = run_paired_scenario(
+                          ^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\BTP\Simulation\compare_routing.py", line 1191, in run_paired_scenario
+    live_results = sim.run_fixed_departure_campaign(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\BTP\Simulation\simulate.py", line 1454, in run_fixed_departure_campaign
+    _mean_fuel = round(sum(_dq) / len(_dq), 1) if _dq else None
+                       ^^^^^^^^
+TypeError: unsupported operand type(s) for +: 'int' and 'tuple'
+[run_fixed_departure_campaign] fast_forward_target=19500.0 rcm.mode=grade rcm.activate_time=21300.0
+[ARM_CRASH] ours-augtime_4_2.0_21600.0: TypeError("unsupported operand type(s) for +: 'int' and 'tuple'")
+Traceback (most recent call last):
+  File "C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\BTP\Simulation\compare_routing.py", line 1344, in _run_paired_capture
+    res, cfs, route_cfs = run_paired_scenario(
+                          ^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\BTP\Simulation\compare_routing.py", line 1191, in run_paired_scenario
+    live_results = sim.run_fixed_departure_campaign(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\BTP\Simulation\simulate.py", line 1454, in run_fixed_departure_campaign
+    _mean_fuel = round(sum(_dq) / len(_dq), 1) if _dq else None
+                       ^^^^^^^^
+TypeError: unsupported operand type(s) for +: 'int' and 'tuple'
+[run_fixed_departure_campaign] fast_forward_target=19500.0 rcm.mode=grade rcm.activate_time=21300.0
+[ARM_CRASH] ablation_4_2.0_21600.0: TypeError("unsupported operand type(s) for +: 'int' and 'tuple'")
+Traceback (most recent call last):
+  File "C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\BTP\Simulation\compare_routing.py", line 1344, in _run_paired_capture
+    res, cfs, route_cfs = run_paired_scenario(
+                          ^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\BTP\Simulation\compare_routing.py", line 1191, in run_paired_scenario
+    live_results = sim.run_fixed_departure_campaign(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\BTP\Simulation\simulate.py", line 1454, in run_fixed_departure_campaign
+    _mean_fuel = round(sum(_dq) / len(_dq), 1) if _dq else None
+                       ^^^^^^^^
+TypeError: unsupported operand type(s) for +: 'int' and 'tuple'
+[run_fixed_departure_campaign] fast_forward_target=19500.0 rcm.mode=grade rcm.activate_time=21300.0
+[GRADE_ACTIVATE] edges=['-152780', '153331#1'] activate_time=21300.0 emission_class=HBEFA3/PC_G_EU0
+[FREEZE_BASELINE] -152780: baseline=1818.284363029104 seed_buf=0 samples
+[FREEZE_BASELINE] 153331#1: baseline=1569.2611649869193 seed_buf=0 samples
+[FUEL_DEQUES_CLEARED] ['-152780', '153331#1']
+[GRADE_ACTIVATE] edges=['-152780', '153331#1'] activate_time=21300.0 emission_class=HBEFA3/PC_G_EU0
+[FREEZE_BASELINE] -152780: baseline=1818.284363029104 seed_buf=0 samples
+[FREEZE_BASELINE] 153331#1: baseline=1569.2611649869193 seed_buf=0 samples
+[FUEL_DEQUES_CLEARED] ['-152780', '153331#1']
+[GRADE_ACTIVATE] edges=['-152780', '153331#1'] activate_time=21300.0 emission_class=HBEFA3/PC_G_EU0
+[FREEZE_BASELINE] -152780: baseline=1818.284363029104 seed_buf=0 samples
+[FREEZE_BASELINE] 153331#1: baseline=1569.2611649869193 seed_buf=0 samples
+[FUEL_DEQUES_CLEARED] ['-152780', '153331#1']
+[ARM_CRASH] ours-fuel_5_2.0_21600.0: TypeError("unsupported operand type(s) for +: 'int' and 'tuple'")
+Traceback (most recent call last):
+  File "C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\BTP\Simulation\compare_routing.py", line 1344, in _run_paired_capture
+    res, cfs, route_cfs = run_paired_scenario(
+                          ^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\BTP\Simulation\compare_routing.py", line 1191, in run_paired_scenario
+    live_results = sim.run_fixed_departure_campaign(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\BTP\Simulation\simulate.py", line 1454, in run_fixed_departure_campaign
+    _mean_fuel = round(sum(_dq) / len(_dq), 1) if _dq else None
+                       ^^^^^^^^
+TypeError: unsupported operand type(s) for +: 'int' and 'tuple'
+[run_fixed_departure_campaign] fast_forward_target=19500.0 rcm.mode=grade rcm.activate_time=21300.0
+[ARM_CRASH] ours-augtime_5_2.0_21600.0: TypeError("unsupported operand type(s) for +: 'int' and 'tuple'")
+Traceback (most recent call last):
+  File "C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\BTP\Simulation\compare_routing.py", line 1344, in _run_paired_capture
+    res, cfs, route_cfs = run_paired_scenario(
+                          ^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\BTP\Simulation\compare_routing.py", line 1191, in run_paired_scenario
+    live_results = sim.run_fixed_departure_campaign(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\BTP\Simulation\simulate.py", line 1454, in run_fixed_departure_campaign
+    _mean_fuel = round(sum(_dq) / len(_dq), 1) if _dq else None
+                       ^^^^^^^^
+TypeError: unsupported operand type(s) for +: 'int' and 'tuple'
+[run_fixed_departure_campaign] fast_forward_target=19500.0 rcm.mode=grade rcm.activate_time=21300.0
+[ARM_CRASH] ablation_5_2.0_21600.0: TypeError("unsupported operand type(s) for +: 'int' and 'tuple'")
+Traceback (most recent call last):
+  File "C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\BTP\Simulation\compare_routing.py", line 1344, in _run_paired_capture
+    res, cfs, route_cfs = run_paired_scenario(
+                          ^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\BTP\Simulation\compare_routing.py", line 1191, in run_paired_scenario
+    live_results = sim.run_fixed_departure_campaign(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\BTP\Simulation\simulate.py", line 1454, in run_fixed_departure_campaign
+    _mean_fuel = round(sum(_dq) / len(_dq), 1) if _dq else None
+                       ^^^^^^^^
+TypeError: unsupported operand type(s) for +: 'int' and 'tuple'
+[run_fixed_departure_campaign] fast_forward_target=19500.0 rcm.mode=grade rcm.activate_time=21300.0
+[GRADE_ACTIVATE] edges=['-152780', '153331#1'] activate_time=21300.0 emission_class=HBEFA3/PC_G_EU0
+[FREEZE_BASELINE] -152780: baseline=1589.172460597826 seed_buf=0 samples
+[FREEZE_BASELINE] 153331#1: baseline=1506.5447293908855 seed_buf=0 samples
+[FUEL_DEQUES_CLEARED] ['-152780', '153331#1']
+[GRADE_ACTIVATE] edges=['-152780', '153331#1'] activate_time=21300.0 emission_class=HBEFA3/PC_G_EU0
+[FREEZE_BASELINE] -152780: baseline=1589.172460597826 seed_buf=0 samples
+[FREEZE_BASELINE] 153331#1: baseline=1506.5447293908855 seed_buf=0 samples
+[FUEL_DEQUES_CLEARED] ['-152780', '153331#1']
+[ARM_CRASH] ours-fuel_6_2.0_21600.0: TypeError("unsupported operand type(s) for +: 'int' and 'tuple'")
+Traceback (most recent call last):
+  File "C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\BTP\Simulation\compare_routing.py", line 1344, in _run_paired_capture
+    # FIX D: load the warmed traffic state at SUMO startup (not via a live
+                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\BTP\Simulation\compare_routing.py", line 1191, in run_paired_scenario
+  File "C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\BTP\Simulation\simulate.py", line 1454, in run_fixed_departure_campaign
+    self.rsu_manager.step(sim_time)
+                                   ^
+TypeError: unsupported operand type(s) for +: 'int' and 'tuple'
+[GRADE_ACTIVATE] edges=['-152780', '153331#1'] activate_time=21300.0 emission_class=HBEFA3/PC_G_EU0
+[FREEZE_BASELINE] -152780: baseline=1589.172460597826 seed_buf=0 samples
+[FREEZE_BASELINE] 153331#1: baseline=1506.5447293908855 seed_buf=0 samples
+[FUEL_DEQUES_CLEARED] ['-152780', '153331#1']
+[run_fixed_departure_campaign] fast_forward_target=19500.0 rcm.mode=grade rcm.activate_time=21300.0
+[ARM_CRASH] ours-augtime_6_2.0_21600.0: TypeError("unsupported operand type(s) for +: 'int' and 'tuple'")
+Traceback (most recent call last):
+  File "C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\BTP\Simulation\compare_routing.py", line 1344, in _run_paired_capture
+    # FIX D: load the warmed traffic state at SUMO startup (not via a live
+                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\BTP\Simulation\compare_routing.py", line 1191, in run_paired_scenario
+  File "C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\BTP\Simulation\simulate.py", line 1454, in run_fixed_departure_campaign
+    self.rsu_manager.step(sim_time)
+                                   ^
+TypeError: unsupported operand type(s) for +: 'int' and 'tuple'
+[run_fixed_departure_campaign] fast_forward_target=19500.0 rcm.mode=grade rcm.activate_time=21300.0
+[ARM_CRASH] ablation_6_2.0_21600.0: TypeError("unsupported operand type(s) for +: 'int' and 'tuple'")
+Traceback (most recent call last):
+  File "C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\BTP\Simulation\compare_routing.py", line 1344, in _run_paired_capture
+    # FIX D: load the warmed traffic state at SUMO startup (not via a live
+                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\BTP\Simulation\compare_routing.py", line 1191, in run_paired_scenario
+  File "C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\BTP\Simulation\simulate.py", line 1454, in run_fixed_departure_campaign
+    self.rsu_manager.step(sim_time)
+                                   ^
+TypeError: unsupported operand type(s) for +: 'int' and 'tuple'
+[run_fixed_departure_campaign] fast_forward_target=19500.0 rcm.mode=grade rcm.activate_time=21300.0
+[GRADE_ACTIVATE] edges=['-152780', '153331#1'] activate_time=21300.0 emission_class=HBEFA3/PC_G_EU0
+[FREEZE_BASELINE] -152780: baseline=1629.2416028859936 seed_buf=0 samples
+[FREEZE_BASELINE] 153331#1: baseline=1644.7563808257169 seed_buf=0 samples
+[FUEL_DEQUES_CLEARED] ['-152780', '153331#1']
+[GRADE_ACTIVATE] edges=['-152780', '153331#1'] activate_time=21300.0 emission_class=HBEFA3/PC_G_EU0
+[FREEZE_BASELINE] -152780: baseline=1629.2416028859936 seed_buf=0 samples
+[FREEZE_BASELINE] 153331#1: baseline=1644.7563808257169 seed_buf=0 samples
+[FUEL_DEQUES_CLEARED] ['-152780', '153331#1']

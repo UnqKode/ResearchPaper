@@ -1,0 +1,7 @@
+seed,trip,arm,origin,dest,arrived,fuel_abs,fuel_per_km,duration,CO2_abs,waitingTime,stops,timeLoss,routeLength,reroutes,bg_vcount_at_depart,bg_possum_at_depart
+1,0,ablation,152534#4,-152751#0,False,,,,,,,,,0,225,40225.2
+1,1,ablation,152534#6,152923,False,,,,,,,,,0,235,45240.0
+1,2,ablation,152534#7,153420#5,False,,,,,,,,,0,242,44383.8
+1,0,ours-fuel,152534#4,-152751#0,False,,,,,,,,,0,225,40225.2
+1,1,ours-fuel,152534#6,152923,False,,,,,,,,,0,235,45240.0
+1,2,ours-fuel,152534#7,153420#5,False,,,,,,,,,0,242,44383.8

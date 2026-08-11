@@ -1,0 +1,70 @@
+[CAMPAIGN] degrade_start=21000.0 (depart_start=21600.0 grade_lead=600.0)
+Building 3 OD pairs from C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in\most.net.xml (seed=42) ...
+  Got 3 routable pairs in 3 attempts.
+[AUTO_NONBOTTLENECK] 20 corridor candidates for per-seed gate: ['152535#4', '-152535#4', '-152534#2', '152534#2', '152535#2', '-152535#2', '-152534#4', '152534#4', '152714', '-152714', '-153479#11', '-152535#6', '-152330#0', '152330#0', '152574#0', '-152574#0', '152535#0', '-152535#0', '153037', '-153037']
+Building 3 OD pairs from C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in\most.net.xml (seed=42) ...
+  Got 3 routable pairs in 3 attempts.
+
+[Paired Mode] Running fixed-departure continuous fuel campaign.
+[arms] Using explicit --arms: ['ours-fuel', 'ours-augtime', 'ablation']
+
+=======================================================
+ SWEEP POINT: scale=2.0, depart=21600.0
+=======================================================
+[seed-parallelism] P=1, arms=3, total_workers=3
+
+--- Queuing SEED 1 ---
+[WARMUP] seed=1 warmup_buffer=1200.0 warmup_end=20400.0 degrade_start=21000.0
+[WARMUP] seed=1 begin=14400 end=20400.0 candidates=['152535#4', '-152535#4', '-152534#2', '152534#2', '152535#2', '-152535#2', '-152534#4', '152534#4', '152714', '-152714', '-153479#11', '-152535#6', '-152330#0', '152330#0', '152574#0', '-152574#0', '152535#0', '-152535#0', '153037', '-153037'] state=C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\BTP\ws_1_200_21600.xml.gz
+***Starting server on port 57300 ***
+Loading net-file from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/most.net.xml' ... done (3828ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.poly.xml' ... done (5149ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.busstops.add.xml' ... done (222ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.trainstops.add.xml' ... done (190ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.parking.allvisible.add.xml' ... done (499ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/basic.vType.xml' ... done (18ms).
+Loading route-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.commercial.rou.xml' ... done (3844ms).
+Loading route-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.highway.flows.xml' ... done (44ms).
+Loading done.
+Simulation version 1.27.0 started with time: 14400.00.
+Simulation ended at time: 20400.00.
+Reason: TraCI requested termination.
+Performance:
+ Duration: 128.96s
+ TraCI-Duration: 44.87s
+ Real time factor: 46.5257
+ UPS: 10537.984352
+Vehicles:
+ Inserted: 834 (Loaded: 7320)
+ Running: 175
+ Waiting: 0
+Statistics (avg of 659):
+ RouteLength: 7428.53
+ Speed: 19.52
+ Duration: 415.00
+ WaitingTime: 5.14
+ TimeLoss: 37.65
+ DepartDelay: 0.29
+DijkstraRouter answered 10885 queries and explored 820.35 edges on average.
+DijkstraRouter spent 8.91s answering queries (0.82ms on average).
+[WARMUP] state file verified: C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\BTP\ws_1_200_21600.xml.gz (379286 bytes)
+[CORRIDOR_GATE] FAILED edge=152535#4 ratio=0.996 occ=0.0000 (occ=0.0000<0.005(no traffic))
+[CORRIDOR_GATE] FAILED edge=-152535#4 ratio=1.000 occ=0.0000 (occ=0.0000<0.005(no traffic))
+[CORRIDOR_GATE] FAILED edge=-152534#2 ratio=1.000 occ=0.0000 (occ=0.0000<0.005(no traffic))
+[CORRIDOR_GATE] FAILED edge=152534#2 ratio=1.000 occ=0.0000 (occ=0.0000<0.005(no traffic))
+[CORRIDOR_GATE] FAILED edge=152535#2 ratio=0.999 occ=0.0000 (occ=0.0000<0.005(no traffic))
+[CORRIDOR_GATE] FAILED edge=-152535#2 ratio=1.000 occ=0.0000 (occ=0.0000<0.005(no traffic))
+[CORRIDOR_GATE] FAILED edge=-152534#4 ratio=1.000 occ=0.0000 (occ=0.0000<0.005(no traffic))
+[CORRIDOR_GATE] FAILED edge=152534#4 ratio=1.001 occ=0.0000 (occ=0.0000<0.005(no traffic))
+[CORRIDOR_GATE] FAILED edge=152714 ratio=0.991 occ=0.0000 (occ=0.0000<0.005(no traffic))
+[CORRIDOR_GATE] FAILED edge=-152714 ratio=1.000 occ=0.0000 (occ=0.0000<0.005(no traffic))
+[CORRIDOR_GATE] FAILED edge=-153479#11 ratio=0.999 occ=0.0000 (occ=0.0000<0.005(no traffic))
+[CORRIDOR_GATE] FAILED edge=-152535#6 ratio=1.000 occ=0.0000 (occ=0.0000<0.005(no traffic))
+[CORRIDOR_GATE] FAILED edge=-152330#0 ratio=0.923 occ=0.0000 (occ=0.0000<0.005(no traffic))
+[CORRIDOR_GATE] FAILED edge=152330#0 ratio=0.967 occ=0.0000 (occ=0.0000<0.005(no traffic))
+[CORRIDOR_GATE] FAILED edge=152574#0 ratio=1.000 occ=0.0000 (occ=0.0000<0.005(no traffic))
+[CORRIDOR_GATE] FAILED edge=-152574#0 ratio=1.000 occ=0.0000 (occ=0.0000<0.005(no traffic))
+[CORRIDOR_GATE] FAILED edge=152535#0 ratio=0.998 occ=0.0000 (occ=0.0000<0.005(no traffic))
+[CORRIDOR_GATE] FAILED edge=-152535#0 ratio=1.000 occ=0.0000 (occ=0.0000<0.005(no traffic))
+[CORRIDOR_GATE] FAILED edge=153037 ratio=1.000 occ=0.0000 (occ=0.0000<0.005(no traffic))
+[CORRIDOR_GATE] FAILED edge=-153037 ratio=0.999 occ=0.0000 (occ=0.0000<0.005(no traffic))

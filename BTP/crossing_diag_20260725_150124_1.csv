@@ -1,0 +1,5 @@
+ego_id,seed,arm,crossed,chosen_cost,bypass_cost,ratio
+ego_1,1,ablation,False,111.586,105.413,1.0586
+ego_1,1,ours-augtime,False,132.853,126.68,1.0487
+ego_1,1,ours-fuel,False,161222.894,117590.055,1.3711
+ego_0,1,ours-fuel,False,301547.601,253752.312,1.1884

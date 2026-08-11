@@ -1,0 +1,86 @@
+﻿{
+    "run_meta":  {
+                     "n":  25,
+                     "od_seed":  42,
+                     "seeds":  [
+                                   1,
+                                   2,
+                                   3,
+                                   4,
+                                   5,
+                                   6,
+                                   7,
+                                   8,
+                                   9,
+                                   10
+                               ],
+                     "scale":  2.0,
+                     "teleport":  300,
+                     "alpha":  1.0,
+                     "beta":  8.0,
+                     "gamma":  10.0,
+                     "depart_start":  21600.0,
+                     "depart_spacing":  120,
+                     "reroute_interval":  30,
+                     "use_hysteresis":  true,
+                     "baseline":  "ablation",
+                     "degraded_edges":  [
+
+                                        ],
+                     "road_condition":  "grade"
+                 },
+    "K_seeds":  4,
+    "fuel_sav_mean":  -14.753752787611962,
+    "dur_sav_mean":  -21.09407467651296,
+    "co2_sav_mean":  -14.755911581858342,
+    "fuel_stats":  {
+                       "t_test_p":  0.010771718406194945,
+                       "wilcoxon_p":  0.125,
+                       "cohen_dz":  -2.8439440035678945,
+                       "CI_95_pct":  [
+                                         -13.520278576213018,
+                                         -3.8188267287821915
+                                     ]
+                   },
+    "fuel_specificity":  {
+                             "per_seed_intercepts_pct":  [
+                                                             -1.125395920102187,
+                                                             -0.6310584524343699,
+                                                             -2.648748730590081,
+                                                             -2.5229200854511644
+                                                         ],
+                             "mean_intercept_pct":  -1.7320307971444506,
+                             "CI_95_intercept_seedlevel":  [
+                                                               -3.335413133106778,
+                                                               -0.12864846118212303
+                                                           ],
+                             "wilcoxon_p_intercepts":  0.125,
+                             "equal_time_subset":  {
+                                                       "n_egos":  64,
+                                                       "n_valid_seeds":  4,
+                                                       "mean_dfuel_pct":  -0.726099923166752,
+                                                       "t_p_seedlevel":  0.07655295961312955
+                                                   },
+                             "seedlevel_ols":  {
+                                                   "intercept_pct":  -3.4266609246995667,
+                                                   "slope":  0.5369797934547212,
+                                                   "se_intercept":  1.896649760705447,
+                                                   "CI_95_intercept":  [
+                                                                           -11.587286194977523,
+                                                                           4.733964345578389
+                                                                       ]
+                                               }
+                         },
+    "per_seed_corridor_gate":  {
+                                   "7":  "passed",
+                                   "9":  "passed",
+                                   "10":  "passed",
+                                   "3":  "passed",
+                                   "2":  "passed",
+                                   "1":  "passed",
+                                   "4":  "passed",
+                                   "6":  "passed",
+                                   "5":  "passed",
+                                   "8":  "passed"
+                               }
+}

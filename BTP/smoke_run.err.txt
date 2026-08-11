@@ -1,0 +1,48 @@
+[run_fixed_departure_campaign] fast_forward_target=19500.0 rcm.mode=grade rcm.activate_time=21300.0
+[run_fixed_departure_campaign] fast_forward_target=19500.0 rcm.mode=grade rcm.activate_time=21300.0
+[run_fixed_departure_campaign] fast_forward_target=19500.0 rcm.mode=grade rcm.activate_time=21300.0
+[PERF] seed=1 arm=ours-fuel sim_t=21125 steps/s=2.2 active_veh=0
+[PERF] seed=1 arm=ablation sim_t=21125 steps/s=2.1 active_veh=0
+[PERF] seed=1 arm=ours-augtime sim_t=21125 steps/s=2.1 active_veh=0
+[PERF] seed=1 arm=ours-fuel sim_t=21250 steps/s=2.2 active_veh=0
+[PERF] seed=1 arm=ablation sim_t=21250 steps/s=2.2 active_veh=0
+[PERF] seed=1 arm=ours-augtime sim_t=21250 steps/s=2.2 active_veh=0
+WARNING:root:WARNING: RoadConditionManager activating at 21300.0s but baselines are UNLOCKED for edges ['153327#0', '-152164']. The RSU will be blind to the extra fuel on these edges because it will absorb the degraded rate into the baseline.
+[GRADE_ACTIVATE] edges=['153327#0', '-152164'] activate_time=21300.0 emission_class=HBEFA3/PC_G_EU0
+[FREEZE_BASELINE] 153327#0: baseline=None seed_buf=0 samples
+[FREEZE_BASELINE] -152164: baseline=None seed_buf=0 samples
+[FUEL_DEQUES_CLEARED] ['153327#0', '-152164']
+WARNING:root:WARNING: RoadConditionManager activating at 21300.0s but baselines are UNLOCKED for edges ['153327#0', '-152164']. The RSU will be blind to the extra fuel on these edges because it will absorb the degraded rate into the baseline.
+[GRADE_ACTIVATE] edges=['153327#0', '-152164'] activate_time=21300.0 emission_class=HBEFA3/PC_G_EU0
+[FREEZE_BASELINE] 153327#0: baseline=None seed_buf=0 samples
+[FREEZE_BASELINE] -152164: baseline=None seed_buf=0 samples
+[FUEL_DEQUES_CLEARED] ['153327#0', '-152164']
+WARNING:root:WARNING: RoadConditionManager activating at 21300.0s but baselines are UNLOCKED for edges ['153327#0', '-152164']. The RSU will be blind to the extra fuel on these edges because it will absorb the degraded rate into the baseline.
+[GRADE_ACTIVATE] edges=['153327#0', '-152164'] activate_time=21300.0 emission_class=HBEFA3/PC_G_EU0
+[FREEZE_BASELINE] 153327#0: baseline=None seed_buf=0 samples
+[FREEZE_BASELINE] -152164: baseline=None seed_buf=0 samples
+[FUEL_DEQUES_CLEARED] ['153327#0', '-152164']
+[PERF] seed=1 arm=ours-fuel sim_t=21375 steps/s=2.0 active_veh=0
+[PERF] seed=1 arm=ablation sim_t=21375 steps/s=2.0 active_veh=0
+[PERF] seed=1 arm=ours-augtime sim_t=21375 steps/s=2.0 active_veh=0
+[PERF] seed=1 arm=ours-fuel sim_t=21500 steps/s=1.9 active_veh=0
+[PERF] seed=1 arm=ablation sim_t=21500 steps/s=1.9 active_veh=0
+[PERF] seed=1 arm=ours-augtime sim_t=21500 steps/s=1.9 active_veh=0
+[PERF] seed=1 arm=ours-fuel sim_t=21625 steps/s=1.8 active_veh=1
+[PERF] seed=1 arm=ablation sim_t=21625 steps/s=1.8 active_veh=1
+[PERF] seed=1 arm=ours-augtime sim_t=21625 steps/s=1.7 active_veh=1
+[PERF] seed=1 arm=ours-fuel sim_t=21750 steps/s=1.7 active_veh=2
+[PERF] seed=1 arm=ablation sim_t=21750 steps/s=1.7 active_veh=2
+[PERF] seed=1 arm=ours-augtime sim_t=21750 steps/s=1.7 active_veh=2
+[PERF] seed=1 arm=ours-fuel sim_t=21875 steps/s=1.7 active_veh=3
+[PERF] seed=1 arm=ablation sim_t=21875 steps/s=1.7 active_veh=3
+[PERF] seed=1 arm=ours-augtime sim_t=21875 steps/s=1.7 active_veh=3
+[PERF] seed=1 arm=ours-fuel sim_t=22000 steps/s=1.7 active_veh=2
+[PERF] seed=1 arm=ours-augtime sim_t=22000 steps/s=1.8 active_veh=2
+[PERF] seed=1 arm=ablation sim_t=22000 steps/s=1.7 active_veh=2
+[PERF] seed=1 arm=ours-fuel sim_t=22125 steps/s=1.6 active_veh=2
+[PERF] seed=1 arm=ours-augtime sim_t=22125 steps/s=1.6 active_veh=2
+[PERF] seed=1 arm=ablation sim_t=22125 steps/s=1.6 active_veh=2
+[PERF] seed=1 arm=ours-fuel sim_t=22250 steps/s=1.5 active_veh=1
+[PERF] seed=1 arm=ours-augtime sim_t=22250 steps/s=1.5 active_veh=1
+[PERF] seed=1 arm=ablation sim_t=22250 steps/s=1.5 active_veh=1

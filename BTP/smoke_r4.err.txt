@@ -1,0 +1,72 @@
+[run_fixed_departure_campaign] fast_forward_target=19200.0 rcm.mode=grade rcm.activate_time=21000.0
+[run_fixed_departure_campaign] fast_forward_target=19200.0 rcm.mode=grade rcm.activate_time=21000.0
+[run_fixed_departure_campaign] fast_forward_target=19200.0 rcm.mode=grade rcm.activate_time=21000.0
+[PERF] seed=1 arm=ours-fuel sim_t=20525 steps/s=1.7 active_veh=0
+[PERF] seed=1 arm=ours-augtime sim_t=20525 steps/s=1.7 active_veh=0
+[PERF] seed=1 arm=ablation sim_t=20525 steps/s=1.7 active_veh=0
+[PERF] seed=1 arm=ours-augtime sim_t=20650 steps/s=1.8 active_veh=0
+[PERF] seed=1 arm=ours-fuel sim_t=20650 steps/s=1.8 active_veh=0
+[PERF] seed=1 arm=ablation sim_t=20650 steps/s=1.8 active_veh=0
+[PERF] seed=1 arm=ours-fuel sim_t=20775 steps/s=1.8 active_veh=0
+[PERF] seed=1 arm=ours-augtime sim_t=20775 steps/s=1.8 active_veh=0
+[PERF] seed=1 arm=ablation sim_t=20775 steps/s=1.8 active_veh=0
+[PERF] seed=1 arm=ours-fuel sim_t=20900 steps/s=1.8 active_veh=0
+[PERF] seed=1 arm=ours-augtime sim_t=20900 steps/s=1.8 active_veh=0
+[PERF] seed=1 arm=ablation sim_t=20900 steps/s=1.8 active_veh=0
+[FREEZE_BASELINE] 153443: no observed data, pre-seeded from network-median=1235.2mg/s
+[FREEZE_BASELINE] 153443: baseline=1235.1954951540881 seed_buf=1 samples
+[FREEZE_BASELINE] -152164: no observed data, pre-seeded from network-median=1235.2mg/s
+[FREEZE_BASELINE] -152164: baseline=1235.1954951540881 seed_buf=0 samples
+[GRADE_ACTIVATE] edges=['153443', '-152164'] activate_time=21000.0 emission_class=HBEFA3/PC_G_EU0
+[FUEL_DEQUES_CLEARED] ['153443', '-152164']
+[FREEZE_BASELINE] 153443: no observed data, pre-seeded from network-median=1235.2mg/s
+[FREEZE_BASELINE] 153443: baseline=1235.1954951540881 seed_buf=1 samples
+[FREEZE_BASELINE] -152164: no observed data, pre-seeded from network-median=1235.2mg/s
+[FREEZE_BASELINE] -152164: baseline=1235.1954951540881 seed_buf=0 samples
+[GRADE_ACTIVATE] edges=['153443', '-152164'] activate_time=21000.0 emission_class=HBEFA3/PC_G_EU0
+[FUEL_DEQUES_CLEARED] ['153443', '-152164']
+[FREEZE_BASELINE] 153443: no observed data, pre-seeded from network-median=1235.2mg/s
+[FREEZE_BASELINE] 153443: baseline=1235.1954951540881 seed_buf=1 samples
+[FREEZE_BASELINE] -152164: no observed data, pre-seeded from network-median=1235.2mg/s
+[FREEZE_BASELINE] -152164: baseline=1235.1954951540881 seed_buf=0 samples
+[GRADE_ACTIVATE] edges=['153443', '-152164'] activate_time=21000.0 emission_class=HBEFA3/PC_G_EU0
+[FUEL_DEQUES_CLEARED] ['153443', '-152164']
+[PERF] seed=1 arm=ours-fuel sim_t=21025 steps/s=1.7 active_veh=0
+[PERF] seed=1 arm=ours-augtime sim_t=21025 steps/s=1.7 active_veh=0
+[PERF] seed=1 arm=ablation sim_t=21025 steps/s=1.7 active_veh=0
+[PERF] seed=1 arm=ours-fuel sim_t=21150 steps/s=1.7 active_veh=0
+[PERF] seed=1 arm=ours-augtime sim_t=21150 steps/s=1.7 active_veh=0
+[PERF] seed=1 arm=ablation sim_t=21150 steps/s=1.7 active_veh=0
+[PERF] seed=1 arm=ours-fuel sim_t=21275 steps/s=1.8 active_veh=0
+[PERF] seed=1 arm=ours-augtime sim_t=21275 steps/s=1.7 active_veh=0
+[PERF] seed=1 arm=ablation sim_t=21275 steps/s=1.7 active_veh=0
+[PERF] seed=1 arm=ours-fuel sim_t=21400 steps/s=1.7 active_veh=0
+[PERF] seed=1 arm=ours-augtime sim_t=21400 steps/s=1.7 active_veh=0
+[PERF] seed=1 arm=ablation sim_t=21400 steps/s=1.7 active_veh=0
+[PERF] seed=1 arm=ours-fuel sim_t=21525 steps/s=1.7 active_veh=0
+[PERF] seed=1 arm=ours-augtime sim_t=21525 steps/s=1.7 active_veh=0
+[PERF] seed=1 arm=ablation sim_t=21525 steps/s=1.7 active_veh=0
+[PERF] seed=1 arm=ours-fuel sim_t=21650 steps/s=1.7 active_veh=1
+[PERF] seed=1 arm=ours-augtime sim_t=21650 steps/s=1.7 active_veh=1
+[PERF] seed=1 arm=ablation sim_t=21650 steps/s=1.7 active_veh=1
+[PERF] seed=1 arm=ours-fuel sim_t=21775 steps/s=1.6 active_veh=2
+[PERF] seed=1 arm=ours-augtime sim_t=21775 steps/s=1.6 active_veh=2
+[PERF] seed=1 arm=ablation sim_t=21775 steps/s=1.6 active_veh=2
+[PERF] seed=1 arm=ours-fuel sim_t=21900 steps/s=1.6 active_veh=3
+[PERF] seed=1 arm=ours-augtime sim_t=21900 steps/s=1.6 active_veh=3
+[PERF] seed=1 arm=ablation sim_t=21900 steps/s=1.6 active_veh=3
+[PERF] seed=1 arm=ours-fuel sim_t=22025 steps/s=1.7 active_veh=2
+[PERF] seed=1 arm=ours-augtime sim_t=22025 steps/s=1.7 active_veh=2
+[PERF] seed=1 arm=ablation sim_t=22025 steps/s=1.7 active_veh=2
+[PERF] seed=1 arm=ours-fuel sim_t=22150 steps/s=2.1 active_veh=2
+[PERF] seed=1 arm=ours-augtime sim_t=22150 steps/s=2.1 active_veh=2
+[PERF] seed=1 arm=ablation sim_t=22150 steps/s=2.1 active_veh=2
+[PERF] seed=1 arm=ours-augtime sim_t=22275 steps/s=2.2 active_veh=1
+[PERF] seed=1 arm=ours-fuel sim_t=22275 steps/s=2.2 active_veh=1
+[PERF] seed=1 arm=ablation sim_t=22275 steps/s=2.3 active_veh=1
+[PERF_SUMMARY] arm=ours-augtime seed=1 total_steps=7930 mean_steps_s=1.8 peak_active_veh=3 wall_s=4321.0s
+[PERF_SUMMARY] projected k=10: ~12.0h total (10 seeds serial, 3 arms parallel/seed)
+[PERF_SUMMARY] arm=ours-fuel seed=1 total_steps=7930 mean_steps_s=1.8 peak_active_veh=3 wall_s=4321.9s
+[PERF_SUMMARY] projected k=10: ~12.0h total (10 seeds serial, 3 arms parallel/seed)
+[PERF_SUMMARY] arm=ablation seed=1 total_steps=7930 mean_steps_s=1.8 peak_active_veh=3 wall_s=4334.0s
+[PERF_SUMMARY] projected k=10: ~12.0h total (10 seeds serial, 3 arms parallel/seed)

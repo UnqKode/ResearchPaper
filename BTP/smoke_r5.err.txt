@@ -1,0 +1,16 @@
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\BTP\Simulation\compare_routing.py", line 2701, in <module>
+    main() 
+    ^^^^^^
+  File "C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\BTP\Simulation\compare_routing.py", line 2446, in main
+    seed_degraded, seed_warm_end = _run_warmup_phase(
+                                   ^^^^^^^^^^^^^^^^^^
+  File "C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\BTP\Simulation\compare_routing.py", line 1256, in _run_warmup_phase
+    degraded_edges = _corridor_gate(measurements, force_corridor=force_corridor,
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\BTP\Simulation\compare_routing.py", line 1307, in _corridor_gate
+    raise RuntimeError(
+RuntimeError: [CORRIDOR_GATE] only 0/2 candidates passed (seed=1); aborting (use --force-corridor to override).
+ERROR conda.cli.main_run:execute(142): `conda run python -u -m Simulation.compare_routing --paired --seeds 1 --n 3 --road-condition grade --degraded-edges auto-nonbottleneck --n-degraded 2 --targeted-od --scale 2.0 --depart-start 21600 --teleport 300 --arms ours-fuel,ours-augtime,ablation --baseline ablation --fuel-aggregator median --fuel-hysteresis 0.10 --junction-weight 1.0 --cost-mode fuel --use-hysteresis --warmup-savestate --vehicle-sample-mod 2 --warmup-buffer 1200 --grade-lead 600` failed. (See above for error)

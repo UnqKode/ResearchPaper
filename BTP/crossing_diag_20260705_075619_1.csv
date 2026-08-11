@@ -1,0 +1,11 @@
+ego_id,seed,arm,crossed,chosen_cost,bypass_cost,ratio
+ego_1,1,ablation,True,548.477,520.589,1.0536
+ego_2,1,ablation,True,511.087,503.077,1.0159
+ego_0,1,ablation,True,698.086,553.66,1.2609
+ego_4,1,ablation,True,400.57,410.435,0.976
+ego_6,1,ablation,True,333.726,336.502,0.9918
+ego_3,1,ablation,True,576.96,595.688,0.9686
+ego_7,1,ablation,True,474.801,551.636,0.8607
+ego_5,1,ablation,True,404.648,496.285,0.8154
+ego_8,1,ablation,True,584.872,587.259,0.9959
+ego_9,1,ablation,False,339.787,427.43,0.795

@@ -1,0 +1,776 @@
+Building 25 OD pairs from C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in\most.net.xml (seed=42) ...
+  Got 25 routable pairs in 28 attempts.
+[AUTO_NONBOTTLENECK] selected edges: ['-152780', '153331#1']
+Building 25 targeted OD pairs crossing ['-152780', '153331#1'] with viable bypass (detour <=1.25x)...
+  OD pair 1: trip=240.5s free-flow, corridor=15.6s (7%), bypass=289.6s (120%)
+  OD pair 2: trip=372.3s free-flow, corridor=15.6s (4%), bypass=421.4s (113%)
+  OD pair 3: trip=406.1s free-flow, corridor=8.4s (2%), bypass=416.4s (103%)
+  OD pair 4: trip=220.9s free-flow, corridor=15.6s (7%), bypass=245.3s (111%)
+  OD pair 5: trip=518.4s free-flow, corridor=8.4s (2%), bypass=522.7s (101%)
+  OD pair 6: trip=267.6s free-flow, corridor=8.4s (3%), bypass=292.8s (109%)
+  OD pair 7: trip=214.2s free-flow, corridor=15.6s (7%), bypass=222.6s (104%)
+  OD pair 8: trip=422.4s free-flow, corridor=8.4s (2%), bypass=439.7s (104%)
+  OD pair 9: trip=469.3s free-flow, corridor=8.4s (2%), bypass=478.8s (102%)
+  OD pair 10: trip=236.9s free-flow, corridor=15.6s (7%), bypass=245.3s (104%)
+  OD pair 11: trip=313.0s free-flow, corridor=7.2s (2%), bypass=331.3s (106%)
+  OD pair 12: trip=279.7s free-flow, corridor=15.6s (6%), bypass=281.8s (101%)
+  OD pair 13: trip=499.3s free-flow, corridor=8.4s (2%), bypass=508.9s (102%)
+  OD pair 14: trip=272.1s free-flow, corridor=15.6s (6%), bypass=280.5s (103%)
+  OD pair 15: trip=296.8s free-flow, corridor=7.2s (2%), bypass=302.2s (102%)
+  OD pair 16: trip=359.3s free-flow, corridor=8.4s (2%), bypass=384.5s (107%)
+  OD pair 17: trip=256.0s free-flow, corridor=8.4s (3%), bypass=257.4s (101%)
+  OD pair 18: trip=159.2s free-flow, corridor=7.2s (5%), bypass=166.3s (104%)
+  OD pair 19: trip=402.2s free-flow, corridor=8.4s (2%), bypass=411.9s (102%)
+  OD pair 20: trip=282.4s free-flow, corridor=15.6s (6%), bypass=290.7s (103%)
+  OD pair 21: trip=349.3s free-flow, corridor=7.2s (2%), bypass=373.2s (107%)
+  OD pair 22: trip=389.8s free-flow, corridor=8.4s (2%), bypass=415.1s (106%)
+  OD pair 23: trip=428.8s free-flow, corridor=15.6s (4%), bypass=429.9s (100%)
+  OD pair 24: trip=157.0s free-flow, corridor=7.2s (5%), bypass=180.8s (115%)
+  OD pair 25: trip=241.3s free-flow, corridor=15.6s (6%), bypass=290.4s (120%)
+  Got 25 targeted pairs with viable bypass in 318 attempts.
+
+[Paired Mode] Running fixed-departure continuous fuel campaign.
+[arms] Using explicit --arms: ['ours-fuel', 'ours-augtime', 'ablation']
+
+=======================================================
+ SWEEP POINT: scale=2.0, depart=21600.0
+=======================================================
+[seed-parallelism] P=1, arms=3, total_workers=3
+
+--- Queuing SEED 1 ---
+
+--- Queuing SEED 2 ---
+
+--- Queuing SEED 3 ---
+
+--- Queuing SEED 4 ---
+
+--- Queuing SEED 5 ---
+
+--- Queuing SEED 6 ---
+
+--- Queuing SEED 7 ---
+
+--- Queuing SEED 8 ---
+
+--- Queuing SEED 9 ---
+
+--- Queuing SEED 10 ---
+***Starting server on port 50569 ***
+***Starting server on port 50571 ***
+***Starting server on port 50572 ***
+Loading net-file from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/most.net.xml' ...Loading net-file from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/most.net.xml' ...Loading net-file from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/most.net.xml' ... done (4977ms).
+ done (4830ms).
+ done (4971ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.poly.xml' ...Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.poly.xml' ...Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.poly.xml' ... done (5259ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.busstops.add.xml' ... done (5335ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.busstops.add.xml' ... done (5297ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.busstops.add.xml' ... done (206ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.trainstops.add.xml' ... done (209ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.trainstops.add.xml' ... done (208ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.trainstops.add.xml' ... done (206ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.parking.allvisible.add.xml' ... done (198ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.parking.allvisible.add.xml' ... done (206ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.parking.allvisible.add.xml' ... done (537ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/basic.vType.xml' ... done (16ms).
+ done (533ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/basic.vType.xml' ... done (16ms).
+ done (514ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/basic.vType.xml' ... done (16ms).
+Loading route-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.commercial.rou.xml' ...Loading route-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.commercial.rou.xml' ...Loading route-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.commercial.rou.xml' ... done (3191ms).
+Loading route-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.highway.flows.xml' ... done (50ms).
+Loading done.
+Simulation version 1.27.0 started with time: 14400.00.
+ done (3264ms).
+Loading route-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.highway.flows.xml' ... done (63ms).
+Loading done.
+Simulation version 1.27.0 started with time: 14400.00.
+ done (3387ms).
+Loading route-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.highway.flows.xml' ... done (69ms).
+Loading done.
+Simulation version 1.27.0 started with time: 14400.00.
+Simulation ended at time: 21600.00.
+Reason: TraCI requested termination.
+Performance:
+ Duration: 9675.38s
+ TraCI-Duration: 9333.73s
+ Real time factor: 0.744157
+ UPS: 235.955664
+Vehicles:
+ Inserted: 1334 (Loaded: 7480)
+ Running: 225
+ Waiting: 0
+Statistics (avg of 1109):
+ RouteLength: 7432.55
+ Speed: 19.05
+ Duration: 428.98
+ WaitingTime: 5.54
+ TimeLoss: 39.22
+ DepartDelay: 0.30
+DijkstraRouter answered 17790 queries and explored 821.71 edges on average.
+DijkstraRouter spent 32.31s answering queries (1.82ms on average).
+
+# scenario 'ours-augtime_1_2.0_21600.0' (seed=1) finished in 9684.1s
+[ERROR] TypeError("unsupported operand type(s) for +: 'int' and 'tuple'")
+[SUMO_CMD] tag=ours-augtime_1_2.0_21600.0 seed=1 cmd=sumo -c C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\most.sumocfg --seed 1 --scale 2.0 --no-step-log true --no-warnings true --time-to-teleport 300 --end 30700 --output-prefix ours-augtime_1_2.0_21600.0. --tripinfo-output tripinfo.xml --log sim.log --error-log errors.log --device.rerouting.probability 1 --device.emissions.probability 1 --device.rerouting.period 30 --route-steps 0
+[RSU] coverage: 4329 / 4404 non-internal edges have an RSU (88 assigned via from_node fallback for dead-end terminations).
+[ours-augtime_1_2.0_21600.0] RoadConditionManager bound (mode=grade, edges=['-152780', '153331#1'])
+[RSU] subscribed 4329 edges (VEHICLE_ID_LIST + OCCUPANCY + HALTING_NUMBER).
+***Starting server on port 51630 ***
+Loading net-file from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/most.net.xml' ... done (4814ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.poly.xml' ... done (5254ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.busstops.add.xml' ... done (175ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.trainstops.add.xml' ... done (173ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.parking.allvisible.add.xml' ... done (397ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/basic.vType.xml' ... done (14ms).
+Loading route-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.commercial.rou.xml' ... done (2989ms).
+Loading route-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.highway.flows.xml' ... done (51ms).
+Loading done.
+Simulation version 1.27.0 started with time: 14400.00.
+Simulation ended at time: 21600.00.
+Reason: TraCI requested termination.
+Performance:
+ Duration: 9731.20s
+ TraCI-Duration: 9390.44s
+ Real time factor: 0.739888
+ UPS: 234.602080
+Vehicles:
+ Inserted: 1334 (Loaded: 7480)
+ Running: 225
+ Waiting: 0
+Statistics (avg of 1109):
+ RouteLength: 7432.55
+ Speed: 19.05
+ Duration: 428.98
+ WaitingTime: 5.54
+ TimeLoss: 39.22
+ DepartDelay: 0.30
+DijkstraRouter answered 17790 queries and explored 821.71 edges on average.
+DijkstraRouter spent 32.36s answering queries (1.82ms on average).
+
+# scenario 'ours-fuel_1_2.0_21600.0' (seed=1) finished in 9740.3s
+[ERROR] TypeError("unsupported operand type(s) for +: 'int' and 'tuple'")
+[SUMO_CMD] tag=ours-fuel_1_2.0_21600.0 seed=1 cmd=sumo -c C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\most.sumocfg --seed 1 --scale 2.0 --no-step-log true --no-warnings true --time-to-teleport 300 --end 30700 --output-prefix ours-fuel_1_2.0_21600.0. --tripinfo-output tripinfo.xml --log sim.log --error-log errors.log --device.rerouting.probability 1 --device.emissions.probability 1 --device.rerouting.period 30 --route-steps 0
+[RSU] coverage: 4329 / 4404 non-internal edges have an RSU (88 assigned via from_node fallback for dead-end terminations).
+[ours-fuel_1_2.0_21600.0] RoadConditionManager bound (mode=grade, edges=['-152780', '153331#1'])
+[RSU] subscribed 4329 edges (VEHICLE_ID_LIST + OCCUPANCY + HALTING_NUMBER).
+***Starting server on port 51636 ***
+Loading net-file from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/most.net.xml' ... done (5082ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.poly.xml' ... done (5830ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.busstops.add.xml' ... done (162ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.trainstops.add.xml' ... done (180ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.parking.allvisible.add.xml' ... done (510ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/basic.vType.xml' ... done (19ms).
+Loading route-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.commercial.rou.xml' ... done (3047ms).
+Loading route-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.highway.flows.xml' ... done (41ms).
+Loading done.
+Simulation version 1.27.0 started with time: 14400.00.
+Simulation ended at time: 21600.00.
+Reason: TraCI requested termination.
+Performance:
+ Duration: 9831.89s
+ TraCI-Duration: 9489.28s
+ Real time factor: 0.732311
+ UPS: 232.199482
+Vehicles:
+ Inserted: 1334 (Loaded: 7480)
+ Running: 225
+ Waiting: 0
+Statistics (avg of 1109):
+ RouteLength: 7432.55
+ Speed: 19.05
+ Duration: 428.98
+ WaitingTime: 5.54
+ TimeLoss: 39.22
+ DepartDelay: 0.30
+DijkstraRouter answered 17790 queries and explored 821.71 edges on average.
+DijkstraRouter spent 31.79s answering queries (1.79ms on average).
+
+# scenario 'ablation_1_2.0_21600.0' (seed=1) finished in 9840.9s
+[ERROR] TypeError("unsupported operand type(s) for +: 'int' and 'tuple'")
+[SUMO_CMD] tag=ablation_1_2.0_21600.0 seed=1 cmd=sumo -c C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\most.sumocfg --seed 1 --scale 2.0 --no-step-log true --no-warnings true --time-to-teleport 300 --end 30700 --output-prefix ablation_1_2.0_21600.0. --tripinfo-output tripinfo.xml --log sim.log --error-log errors.log --device.rerouting.probability 1 --device.emissions.probability 1 --device.rerouting.period 30 --route-steps 0
+[RSU] coverage: 4329 / 4404 non-internal edges have an RSU (88 assigned via from_node fallback for dead-end terminations).
+[ablation_1_2.0_21600.0] RoadConditionManager bound (mode=grade, edges=['-152780', '153331#1'])
+[RSU] subscribed 4329 edges (VEHICLE_ID_LIST + OCCUPANCY + HALTING_NUMBER).
+***Starting server on port 51644 ***
+Loading net-file from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/most.net.xml' ... done (5196ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.poly.xml' ... done (5245ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.busstops.add.xml' ... done (174ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.trainstops.add.xml' ... done (164ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.parking.allvisible.add.xml' ... done (545ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/basic.vType.xml' ... done (20ms).
+Loading route-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.commercial.rou.xml' ... done (2585ms).
+Loading route-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.highway.flows.xml' ... done (31ms).
+Loading done.
+Simulation version 1.27.0 started with time: 14400.00.
+Simulation ended at time: 21600.00.
+Reason: TraCI requested termination.
+Performance:
+ Duration: 9688.41s
+ TraCI-Duration: 9360.37s
+ Real time factor: 0.743156
+ UPS: 235.854253
+Vehicles:
+ Inserted: 1334 (Loaded: 7480)
+ Running: 225
+ Waiting: 0
+Statistics (avg of 1109):
+ RouteLength: 7425.66
+ Speed: 19.12
+ Duration: 428.35
+ WaitingTime: 5.54
+ TimeLoss: 38.57
+ DepartDelay: 0.31
+DijkstraRouter answered 17777 queries and explored 824.06 edges on average.
+DijkstraRouter spent 29.44s answering queries (1.66ms on average).
+
+# scenario 'ours-fuel_2_2.0_21600.0' (seed=2) finished in 9697.0s
+[ERROR] TypeError("unsupported operand type(s) for +: 'int' and 'tuple'")
+[SUMO_CMD] tag=ours-fuel_2_2.0_21600.0 seed=2 cmd=sumo -c C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\most.sumocfg --seed 2 --scale 2.0 --no-step-log true --no-warnings true --time-to-teleport 300 --end 30700 --output-prefix ours-fuel_2_2.0_21600.0. --tripinfo-output tripinfo.xml --log sim.log --error-log errors.log --device.rerouting.probability 1 --device.emissions.probability 1 --device.rerouting.period 30 --route-steps 0
+[RSU] coverage: 4329 / 4404 non-internal edges have an RSU (88 assigned via from_node fallback for dead-end terminations).
+[ours-fuel_2_2.0_21600.0] RoadConditionManager bound (mode=grade, edges=['-152780', '153331#1'])
+[RSU] subscribed 4329 edges (VEHICLE_ID_LIST + OCCUPANCY + HALTING_NUMBER).
+***Starting server on port 52402 ***
+Loading net-file from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/most.net.xml' ... done (5609ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.poly.xml' ... done (5670ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.busstops.add.xml' ... done (215ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.trainstops.add.xml' ... done (194ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.parking.allvisible.add.xml' ... done (532ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/basic.vType.xml' ... done (20ms).
+Loading route-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.commercial.rou.xml' ... done (3367ms).
+Loading route-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.highway.flows.xml' ... done (54ms).
+Loading done.
+Simulation version 1.27.0 started with time: 14400.00.
+Simulation ended at time: 21600.00.
+Reason: TraCI requested termination.
+Performance:
+ Duration: 9703.42s
+ TraCI-Duration: 9372.44s
+ Real time factor: 0.742006
+ UPS: 235.489319
+Vehicles:
+ Inserted: 1334 (Loaded: 7480)
+ Running: 225
+ Waiting: 0
+Statistics (avg of 1109):
+ RouteLength: 7425.66
+ Speed: 19.12
+ Duration: 428.35
+ WaitingTime: 5.54
+ TimeLoss: 38.57
+ DepartDelay: 0.31
+DijkstraRouter answered 17777 queries and explored 824.06 edges on average.
+DijkstraRouter spent 30.16s answering queries (1.70ms on average).
+
+# scenario 'ours-augtime_2_2.0_21600.0' (seed=2) finished in 9712.4s
+[ERROR] TypeError("unsupported operand type(s) for +: 'int' and 'tuple'")
+[SUMO_CMD] tag=ours-augtime_2_2.0_21600.0 seed=2 cmd=sumo -c C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\most.sumocfg --seed 2 --scale 2.0 --no-step-log true --no-warnings true --time-to-teleport 300 --end 30700 --output-prefix ours-augtime_2_2.0_21600.0. --tripinfo-output tripinfo.xml --log sim.log --error-log errors.log --device.rerouting.probability 1 --device.emissions.probability 1 --device.rerouting.period 30 --route-steps 0
+[RSU] coverage: 4329 / 4404 non-internal edges have an RSU (88 assigned via from_node fallback for dead-end terminations).
+[ours-augtime_2_2.0_21600.0] RoadConditionManager bound (mode=grade, edges=['-152780', '153331#1'])
+[RSU] subscribed 4329 edges (VEHICLE_ID_LIST + OCCUPANCY + HALTING_NUMBER).
+***Starting server on port 52411 ***
+Loading net-file from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/most.net.xml' ... done (5822ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.poly.xml' ... done (4958ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.busstops.add.xml' ... done (214ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.trainstops.add.xml' ... done (201ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.parking.allvisible.add.xml' ... done (457ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/basic.vType.xml' ... done (20ms).
+Loading route-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.commercial.rou.xml' ... done (3132ms).
+Loading route-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.highway.flows.xml' ... done (51ms).
+Loading done.
+Simulation version 1.27.0 started with time: 14400.00.
+Simulation ended at time: 21600.00.
+Reason: TraCI requested termination.
+Performance:
+ Duration: 9764.46s
+ TraCI-Duration: 9434.55s
+ Real time factor: 0.737368
+ UPS: 234.017314
+Vehicles:
+ Inserted: 1334 (Loaded: 7480)
+ Running: 225
+ Waiting: 0
+Statistics (avg of 1109):
+ RouteLength: 7425.66
+ Speed: 19.12
+ Duration: 428.35
+ WaitingTime: 5.54
+ TimeLoss: 38.57
+ DepartDelay: 0.31
+DijkstraRouter answered 17777 queries and explored 824.06 edges on average.
+DijkstraRouter spent 30.19s answering queries (1.70ms on average).
+
+# scenario 'ablation_2_2.0_21600.0' (seed=2) finished in 9772.8s
+[ERROR] TypeError("unsupported operand type(s) for +: 'int' and 'tuple'")
+[SUMO_CMD] tag=ablation_2_2.0_21600.0 seed=2 cmd=sumo -c C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\most.sumocfg --seed 2 --scale 2.0 --no-step-log true --no-warnings true --time-to-teleport 300 --end 30700 --output-prefix ablation_2_2.0_21600.0. --tripinfo-output tripinfo.xml --log sim.log --error-log errors.log --device.rerouting.probability 1 --device.emissions.probability 1 --device.rerouting.period 30 --route-steps 0
+[RSU] coverage: 4329 / 4404 non-internal edges have an RSU (88 assigned via from_node fallback for dead-end terminations).
+[ablation_2_2.0_21600.0] RoadConditionManager bound (mode=grade, edges=['-152780', '153331#1'])
+[RSU] subscribed 4329 edges (VEHICLE_ID_LIST + OCCUPANCY + HALTING_NUMBER).
+***Starting server on port 52424 ***
+Loading net-file from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/most.net.xml' ... done (4630ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.poly.xml' ... done (3924ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.busstops.add.xml' ... done (134ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.trainstops.add.xml' ... done (127ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.parking.allvisible.add.xml' ... done (343ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/basic.vType.xml' ... done (14ms).
+Loading route-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.commercial.rou.xml' ... done (3165ms).
+Loading route-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.highway.flows.xml' ... done (40ms).
+Loading done.
+Simulation version 1.27.0 started with time: 14400.00.
+Simulation ended at time: 21600.00.
+Reason: TraCI requested termination.
+Performance:
+ Duration: 9669.14s
+ TraCI-Duration: 9338.12s
+ Real time factor: 0.744637
+ UPS: 236.851438
+Vehicles:
+ Inserted: 1334 (Loaded: 7480)
+ Running: 219
+ Waiting: 0
+Statistics (avg of 1115):
+ RouteLength: 7431.48
+ Speed: 18.92
+ Duration: 431.06
+ WaitingTime: 5.69
+ TimeLoss: 39.44
+ DepartDelay: 0.31
+DijkstraRouter answered 17814 queries and explored 819.93 edges on average.
+DijkstraRouter spent 30.99s answering queries (1.74ms on average).
+
+# scenario 'ours-fuel_3_2.0_21600.0' (seed=3) finished in 9677.9s
+[ERROR] TypeError("unsupported operand type(s) for +: 'int' and 'tuple'")
+[SUMO_CMD] tag=ours-fuel_3_2.0_21600.0 seed=3 cmd=sumo -c C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\most.sumocfg --seed 3 --scale 2.0 --no-step-log true --no-warnings true --time-to-teleport 300 --end 30700 --output-prefix ours-fuel_3_2.0_21600.0. --tripinfo-output tripinfo.xml --log sim.log --error-log errors.log --device.rerouting.probability 1 --device.emissions.probability 1 --device.rerouting.period 30 --route-steps 0
+[RSU] coverage: 4329 / 4404 non-internal edges have an RSU (88 assigned via from_node fallback for dead-end terminations).
+[ours-fuel_3_2.0_21600.0] RoadConditionManager bound (mode=grade, edges=['-152780', '153331#1'])
+[RSU] subscribed 4329 edges (VEHICLE_ID_LIST + OCCUPANCY + HALTING_NUMBER).
+***Starting server on port 52934 ***
+Loading net-file from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/most.net.xml' ... done (5337ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.poly.xml' ... done (4942ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.busstops.add.xml' ... done (102ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.trainstops.add.xml' ... done (95ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.parking.allvisible.add.xml' ... done (266ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/basic.vType.xml' ... done (11ms).
+Simulation ended at time: 21600.00.
+Reason: TraCI requested termination.
+Performance:
+ Duration: 9617.45s
+ TraCI-Duration: 9289.25s
+ Real time factor: 0.748639
+ UPS: 238.124322
+Vehicles:
+ Inserted: 1334 (Loaded: 7480)
+ Running: 219
+ Waiting: 0
+Statistics (avg of 1115):
+ RouteLength: 7431.48
+ Speed: 18.92
+ Duration: 431.06
+ WaitingTime: 5.69
+ TimeLoss: 39.44
+ DepartDelay: 0.31
+Loading route-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.commercial.rou.xml' ...DijkstraRouter answered 17814 queries and explored 819.93 edges on average.
+DijkstraRouter spent 31.14s answering queries (1.75ms on average).
+
+# scenario 'ours-augtime_3_2.0_21600.0' (seed=3) finished in 9626.2s
+[ERROR] TypeError("unsupported operand type(s) for +: 'int' and 'tuple'")
+[SUMO_CMD] tag=ours-augtime_3_2.0_21600.0 seed=3 cmd=sumo -c C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\most.sumocfg --seed 3 --scale 2.0 --no-step-log true --no-warnings true --time-to-teleport 300 --end 30700 --output-prefix ours-augtime_3_2.0_21600.0. --tripinfo-output tripinfo.xml --log sim.log --error-log errors.log --device.rerouting.probability 1 --device.emissions.probability 1 --device.rerouting.period 30 --route-steps 0
+[RSU] coverage: 4329 / 4404 non-internal edges have an RSU (88 assigned via from_node fallback for dead-end terminations).
+[ours-augtime_3_2.0_21600.0] RoadConditionManager bound (mode=grade, edges=['-152780', '153331#1'])
+[RSU] subscribed 4329 edges (VEHICLE_ID_LIST + OCCUPANCY + HALTING_NUMBER).
+***Starting server on port 52950 ***
+Loading net-file from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/most.net.xml' ... done (3813ms).
+Loading route-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.highway.flows.xml' ... done (34ms).
+Loading done.
+Simulation version 1.27.0 started with time: 14400.00.
+ done (4741ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.poly.xml' ... done (4133ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.busstops.add.xml' ... done (165ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.trainstops.add.xml' ... done (150ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.parking.allvisible.add.xml' ... done (431ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/basic.vType.xml' ... done (17ms).
+Loading route-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.commercial.rou.xml' ... done (2863ms).
+Loading route-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.highway.flows.xml' ... done (47ms).
+Loading done.
+Simulation version 1.27.0 started with time: 14400.00.
+Simulation ended at time: 21600.00.
+Reason: TraCI requested termination.
+Performance:
+ Duration: 9616.96s
+ TraCI-Duration: 9294.61s
+ Real time factor: 0.748677
+ UPS: 238.136455
+Vehicles:
+ Inserted: 1334 (Loaded: 7480)
+ Running: 219
+ Waiting: 0
+Statistics (avg of 1115):
+ RouteLength: 7431.48
+ Speed: 18.92
+ Duration: 431.06
+ WaitingTime: 5.69
+ TimeLoss: 39.44
+ DepartDelay: 0.31
+DijkstraRouter answered 17814 queries and explored 819.93 edges on average.
+DijkstraRouter spent 30.63s answering queries (1.72ms on average).
+
+# scenario 'ablation_3_2.0_21600.0' (seed=3) finished in 9624.7s
+[ERROR] TypeError("unsupported operand type(s) for +: 'int' and 'tuple'")
+[SUMO_CMD] tag=ablation_3_2.0_21600.0 seed=3 cmd=sumo -c C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\most.sumocfg --seed 3 --scale 2.0 --no-step-log true --no-warnings true --time-to-teleport 300 --end 30700 --output-prefix ablation_3_2.0_21600.0. --tripinfo-output tripinfo.xml --log sim.log --error-log errors.log --device.rerouting.probability 1 --device.emissions.probability 1 --device.rerouting.period 30 --route-steps 0
+[RSU] coverage: 4329 / 4404 non-internal edges have an RSU (88 assigned via from_node fallback for dead-end terminations).
+[ablation_3_2.0_21600.0] RoadConditionManager bound (mode=grade, edges=['-152780', '153331#1'])
+[RSU] subscribed 4329 edges (VEHICLE_ID_LIST + OCCUPANCY + HALTING_NUMBER).
+***Starting server on port 52957 ***
+Loading net-file from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/most.net.xml' ... done (5204ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.poly.xml' ... done (5581ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.busstops.add.xml' ... done (171ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.trainstops.add.xml' ... done (173ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.parking.allvisible.add.xml' ... done (426ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/basic.vType.xml' ... done (17ms).
+Loading route-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.commercial.rou.xml' ... done (3359ms).
+Loading route-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.highway.flows.xml' ... done (40ms).
+Loading done.
+Simulation version 1.27.0 started with time: 14400.00.
+Simulation ended at time: 21600.00.
+Reason: TraCI requested termination.
+Performance:
+ Duration: 8942.78s
+ TraCI-Duration: 8653.58s
+ Real time factor: 0.805119
+ UPS: 256.071490
+Vehicles:
+ Inserted: 1334 (Loaded: 7480)
+ Running: 228
+ Waiting: 0
+Statistics (avg of 1106):
+ RouteLength: 7441.74
+ Speed: 18.96
+ Duration: 430.85
+ WaitingTime: 5.18
+ TimeLoss: 38.92
+ DepartDelay: 0.30
+DijkstraRouter answered 17802 queries and explored 821.39 edges on average.
+DijkstraRouter spent 27.34s answering queries (1.54ms on average).
+
+# scenario 'ours-fuel_4_2.0_21600.0' (seed=4) finished in 8951.3s
+[ERROR] TypeError("unsupported operand type(s) for +: 'int' and 'tuple'")
+[SUMO_CMD] tag=ours-fuel_4_2.0_21600.0 seed=4 cmd=sumo -c C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\most.sumocfg --seed 4 --scale 2.0 --no-step-log true --no-warnings true --time-to-teleport 300 --end 30700 --output-prefix ours-fuel_4_2.0_21600.0. --tripinfo-output tripinfo.xml --log sim.log --error-log errors.log --device.rerouting.probability 1 --device.emissions.probability 1 --device.rerouting.period 30 --route-steps 0
+[RSU] coverage: 4329 / 4404 non-internal edges have an RSU (88 assigned via from_node fallback for dead-end terminations).
+[ours-fuel_4_2.0_21600.0] RoadConditionManager bound (mode=grade, edges=['-152780', '153331#1'])
+[RSU] subscribed 4329 edges (VEHICLE_ID_LIST + OCCUPANCY + HALTING_NUMBER).
+***Starting server on port 53158 ***
+Loading net-file from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/most.net.xml' ... done (4023ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.poly.xml' ... done (3988ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.busstops.add.xml' ... done (212ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.trainstops.add.xml' ... done (207ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.parking.allvisible.add.xml' ... done (545ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/basic.vType.xml' ... done (28ms).
+Loading route-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.commercial.rou.xml' ... done (2726ms).
+Loading route-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.highway.flows.xml' ... done (40ms).
+Loading done.
+Simulation version 1.27.0 started with time: 14400.00.
+Simulation ended at time: 21600.00.
+Reason: TraCI requested termination.
+Performance:
+ Duration: 8995.73s
+ TraCI-Duration: 8703.72s
+ Real time factor: 0.80038
+ UPS: 254.564164
+Vehicles:
+ Inserted: 1334 (Loaded: 7480)
+ Running: 228
+ Waiting: 0
+Statistics (avg of 1106):
+ RouteLength: 7441.74
+ Speed: 18.96
+ Duration: 430.85
+ WaitingTime: 5.18
+ TimeLoss: 38.92
+ DepartDelay: 0.30
+DijkstraRouter answered 17802 queries and explored 821.39 edges on average.
+DijkstraRouter spent 27.99s answering queries (1.57ms on average).
+
+# scenario 'ours-augtime_4_2.0_21600.0' (seed=4) finished in 9003.6s
+[ERROR] TypeError("unsupported operand type(s) for +: 'int' and 'tuple'")
+[SUMO_CMD] tag=ours-augtime_4_2.0_21600.0 seed=4 cmd=sumo -c C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\most.sumocfg --seed 4 --scale 2.0 --no-step-log true --no-warnings true --time-to-teleport 300 --end 30700 --output-prefix ours-augtime_4_2.0_21600.0. --tripinfo-output tripinfo.xml --log sim.log --error-log errors.log --device.rerouting.probability 1 --device.emissions.probability 1 --device.rerouting.period 30 --route-steps 0
+[RSU] coverage: 4329 / 4404 non-internal edges have an RSU (88 assigned via from_node fallback for dead-end terminations).
+[ours-augtime_4_2.0_21600.0] RoadConditionManager bound (mode=grade, edges=['-152780', '153331#1'])
+[RSU] subscribed 4329 edges (VEHICLE_ID_LIST + OCCUPANCY + HALTING_NUMBER).
+***Starting server on port 53169 ***
+Loading net-file from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/most.net.xml' ... done (5631ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.poly.xml' ... done (4521ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.busstops.add.xml' ... done (194ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.trainstops.add.xml' ... done (174ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.parking.allvisible.add.xml' ... done (352ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/basic.vType.xml' ... done (14ms).
+Loading route-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.commercial.rou.xml' ... done (3250ms).
+Loading route-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.highway.flows.xml' ... done (54ms).
+Loading done.
+Simulation version 1.27.0 started with time: 14400.00.
+Simulation ended at time: 21600.00.
+Reason: TraCI requested termination.
+Performance:
+ Duration: 9065.69s
+ TraCI-Duration: 8771.63s
+ Real time factor: 0.794203
+ UPS: 252.599803
+Vehicles:
+ Inserted: 1334 (Loaded: 7480)
+ Running: 228
+ Waiting: 0
+Statistics (avg of 1106):
+ RouteLength: 7441.74
+ Speed: 18.96
+ Duration: 430.85
+ WaitingTime: 5.18
+ TimeLoss: 38.92
+ DepartDelay: 0.30
+DijkstraRouter answered 17802 queries and explored 821.39 edges on average.
+DijkstraRouter spent 27.51s answering queries (1.55ms on average).
+
+# scenario 'ablation_4_2.0_21600.0' (seed=4) finished in 9074.0s
+[ERROR] TypeError("unsupported operand type(s) for +: 'int' and 'tuple'")
+[SUMO_CMD] tag=ablation_4_2.0_21600.0 seed=4 cmd=sumo -c C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\most.sumocfg --seed 4 --scale 2.0 --no-step-log true --no-warnings true --time-to-teleport 300 --end 30700 --output-prefix ablation_4_2.0_21600.0. --tripinfo-output tripinfo.xml --log sim.log --error-log errors.log --device.rerouting.probability 1 --device.emissions.probability 1 --device.rerouting.period 30 --route-steps 0
+[RSU] coverage: 4329 / 4404 non-internal edges have an RSU (88 assigned via from_node fallback for dead-end terminations).
+[ablation_4_2.0_21600.0] RoadConditionManager bound (mode=grade, edges=['-152780', '153331#1'])
+[RSU] subscribed 4329 edges (VEHICLE_ID_LIST + OCCUPANCY + HALTING_NUMBER).
+***Starting server on port 53180 ***
+Loading net-file from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/most.net.xml' ... done (4924ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.poly.xml' ... done (5625ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.busstops.add.xml' ... done (252ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.trainstops.add.xml' ... done (224ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.parking.allvisible.add.xml' ... done (500ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/basic.vType.xml' ... done (23ms).
+Loading route-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.commercial.rou.xml' ... done (2900ms).
+Loading route-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.highway.flows.xml' ... done (40ms).
+Loading done.
+Simulation version 1.27.0 started with time: 14400.00.
+Simulation ended at time: 21600.00.
+Reason: TraCI requested termination.
+Performance:
+ Duration: 9550.94s
+ TraCI-Duration: 9229.75s
+ Real time factor: 0.753853
+ UPS: 238.429097
+Vehicles:
+ Inserted: 1334 (Loaded: 7480)
+ Running: 224
+ Waiting: 0
+Statistics (avg of 1110):
+ RouteLength: 7433.46
+ Speed: 19.19
+ Duration: 427.58
+ WaitingTime: 5.27
+ TimeLoss: 38.88
+ DepartDelay: 0.30
+DijkstraRouter answered 17715 queries and explored 820.88 edges on average.
+DijkstraRouter spent 29.38s answering queries (1.66ms on average).
+
+# scenario 'ours-fuel_5_2.0_21600.0' (seed=5) finished in 9560.4s
+[ERROR] TypeError("unsupported operand type(s) for +: 'int' and 'tuple'")
+[SUMO_CMD] tag=ours-fuel_5_2.0_21600.0 seed=5 cmd=sumo -c C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\most.sumocfg --seed 5 --scale 2.0 --no-step-log true --no-warnings true --time-to-teleport 300 --end 30700 --output-prefix ours-fuel_5_2.0_21600.0. --tripinfo-output tripinfo.xml --log sim.log --error-log errors.log --device.rerouting.probability 1 --device.emissions.probability 1 --device.rerouting.period 30 --route-steps 0
+ Retrying in 1 seconds
+[RSU] coverage: 4329 / 4404 non-internal edges have an RSU (88 assigned via from_node fallback for dead-end terminations).
+[ours-fuel_5_2.0_21600.0] RoadConditionManager bound (mode=grade, edges=['-152780', '153331#1'])
+[RSU] subscribed 4329 edges (VEHICLE_ID_LIST + OCCUPANCY + HALTING_NUMBER).
+***Starting server on port 53666 ***
+Loading net-file from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/most.net.xml' ... done (5346ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.poly.xml' ... done (4817ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.busstops.add.xml' ... done (220ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.trainstops.add.xml' ... done (186ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.parking.allvisible.add.xml' ... done (529ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/basic.vType.xml' ... done (29ms).
+Loading route-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.commercial.rou.xml' ... done (3249ms).
+Loading route-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.highway.flows.xml' ... done (42ms).
+Loading done.
+Simulation version 1.27.0 started with time: 14400.00.
+Simulation ended at time: 21600.00.
+Reason: TraCI requested termination.
+Performance:
+ Duration: 9563.35s
+ TraCI-Duration: 9242.65s
+ Real time factor: 0.752875
+ UPS: 238.119796
+Vehicles:
+ Inserted: 1334 (Loaded: 7480)
+ Running: 224
+ Waiting: 0
+Statistics (avg of 1110):
+ RouteLength: 7433.46
+ Speed: 19.19
+ Duration: 427.58
+ WaitingTime: 5.27
+ TimeLoss: 38.88
+ DepartDelay: 0.30
+DijkstraRouter answered 17715 queries and explored 820.88 edges on average.
+DijkstraRouter spent 29.81s answering queries (1.68ms on average).
+
+# scenario 'ours-augtime_5_2.0_21600.0' (seed=5) finished in 9572.2s
+[ERROR] TypeError("unsupported operand type(s) for +: 'int' and 'tuple'")
+[SUMO_CMD] tag=ours-augtime_5_2.0_21600.0 seed=5 cmd=sumo -c C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\most.sumocfg --seed 5 --scale 2.0 --no-step-log true --no-warnings true --time-to-teleport 300 --end 30700 --output-prefix ours-augtime_5_2.0_21600.0. --tripinfo-output tripinfo.xml --log sim.log --error-log errors.log --device.rerouting.probability 1 --device.emissions.probability 1 --device.rerouting.period 30 --route-steps 0
+[RSU] coverage: 4329 / 4404 non-internal edges have an RSU (88 assigned via from_node fallback for dead-end terminations).
+[ours-augtime_5_2.0_21600.0] RoadConditionManager bound (mode=grade, edges=['-152780', '153331#1'])
+[RSU] subscribed 4329 edges (VEHICLE_ID_LIST + OCCUPANCY + HALTING_NUMBER).
+***Starting server on port 53672 ***
+Loading net-file from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/most.net.xml' ... done (5400ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.poly.xml' ... done (5581ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.busstops.add.xml' ... done (159ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.trainstops.add.xml' ... done (160ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.parking.allvisible.add.xml' ... done (413ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/basic.vType.xml' ... done (19ms).
+Loading route-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.commercial.rou.xml' ... done (2801ms).
+Loading route-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.highway.flows.xml' ... done (41ms).
+Loading done.
+Simulation version 1.27.0 started with time: 14400.00.
+Simulation ended at time: 21600.00.
+Reason: TraCI requested termination.
+Performance:
+ Duration: 9694.89s
+ TraCI-Duration: 9372.29s
+ Real time factor: 0.742659
+ UPS: 234.888871
+Vehicles:
+ Inserted: 1334 (Loaded: 7480)
+ Running: 224
+ Waiting: 0
+Statistics (avg of 1110):
+ RouteLength: 7433.46
+ Speed: 19.19
+ Duration: 427.58
+ WaitingTime: 5.27
+ TimeLoss: 38.88
+ DepartDelay: 0.30
+DijkstraRouter answered 17715 queries and explored 820.88 edges on average.
+DijkstraRouter spent 29.71s answering queries (1.68ms on average).
+
+# scenario 'ablation_5_2.0_21600.0' (seed=5) finished in 9703.4s
+[ERROR] TypeError("unsupported operand type(s) for +: 'int' and 'tuple'")
+[SUMO_CMD] tag=ablation_5_2.0_21600.0 seed=5 cmd=sumo -c C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\most.sumocfg --seed 5 --scale 2.0 --no-step-log true --no-warnings true --time-to-teleport 300 --end 30700 --output-prefix ablation_5_2.0_21600.0. --tripinfo-output tripinfo.xml --log sim.log --error-log errors.log --device.rerouting.probability 1 --device.emissions.probability 1 --device.rerouting.period 30 --route-steps 0
+[RSU] coverage: 4329 / 4404 non-internal edges have an RSU (88 assigned via from_node fallback for dead-end terminations).
+[ablation_5_2.0_21600.0] RoadConditionManager bound (mode=grade, edges=['-152780', '153331#1'])
+[RSU] subscribed 4329 edges (VEHICLE_ID_LIST + OCCUPANCY + HALTING_NUMBER).
+***Starting server on port 53698 ***
+Loading net-file from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/most.net.xml' ... done (4899ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.poly.xml' ... done (5717ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.busstops.add.xml' ... done (228ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.trainstops.add.xml' ... done (242ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.parking.allvisible.add.xml' ... done (577ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/basic.vType.xml' ... done (19ms).
+Loading route-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.commercial.rou.xml' ... done (3299ms).
+Loading route-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.highway.flows.xml' ... done (52ms).
+Loading done.
+Simulation version 1.27.0 started with time: 14400.00.
+Simulation ended at time: 21600.00.
+Reason: TraCI requested termination.
+Performance:
+ Duration: 9785.01s
+ TraCI-Duration: 9463.16s
+ Real time factor: 0.73582
+ UPS: 234.707217
+Vehicles:
+ Inserted: 1334 (Loaded: 7480)
+ Running: 227
+ Waiting: 0
+Statistics (avg of 1107):
+ RouteLength: 7445.95
+ Speed: 19.04
+ Duration: 432.05
+ WaitingTime: 5.43
+ TimeLoss: 39.22
+ DepartDelay: 0.30
+DijkstraRouter answered 17853 queries and explored 821.63 edges on average.
+DijkstraRouter spent 30.17s answering queries (1.69ms on average).
+
+# scenario 'ours-fuel_6_2.0_21600.0' (seed=6) finished in 9794.5s
+[ERROR] TypeError("unsupported operand type(s) for +: 'int' and 'tuple'")
+[SUMO_CMD] tag=ours-fuel_6_2.0_21600.0 seed=6 cmd=sumo -c C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\most.sumocfg --seed 6 --scale 2.0 --no-step-log true --no-warnings true --time-to-teleport 300 --end 30700 --output-prefix ours-fuel_6_2.0_21600.0. --tripinfo-output tripinfo.xml --log sim.log --error-log errors.log --device.rerouting.probability 1 --device.emissions.probability 1 --device.rerouting.period 30 --route-steps 0
+[RSU] coverage: 4329 / 4404 non-internal edges have an RSU (88 assigned via from_node fallback for dead-end terminations).
+[ours-fuel_6_2.0_21600.0] RoadConditionManager bound (mode=grade, edges=['-152780', '153331#1'])
+[RSU] subscribed 4329 edges (VEHICLE_ID_LIST + OCCUPANCY + HALTING_NUMBER).
+***Starting server on port 54729 ***
+Loading net-file from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/most.net.xml' ... done (5367ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.poly.xml' ... done (4796ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.busstops.add.xml' ... done (211ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.trainstops.add.xml' ... done (236ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.parking.allvisible.add.xml' ... done (540ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/basic.vType.xml' ... done (19ms).
+Loading route-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.commercial.rou.xml' ... done (3368ms).
+Loading route-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.highway.flows.xml' ... done (52ms).
+Loading done.
+Simulation version 1.27.0 started with time: 14400.00.
+Simulation ended at time: 21600.00.
+Reason: TraCI requested termination.
+Performance:
+ Duration: 9784.30s
+ TraCI-Duration: 9465.78s
+ Real time factor: 0.735873
+ UPS: 234.724321
+Vehicles:
+ Inserted: 1334 (Loaded: 7480)
+ Running: 227
+ Waiting: 0
+Statistics (avg of 1107):
+ RouteLength: 7445.95
+ Speed: 19.04
+ Duration: 432.05
+ WaitingTime: 5.43
+ TimeLoss: 39.22
+ DepartDelay: 0.30
+DijkstraRouter answered 17853 queries and explored 821.63 edges on average.
+DijkstraRouter spent 29.55s answering queries (1.66ms on average).
+
+# scenario 'ours-augtime_6_2.0_21600.0' (seed=6) finished in 9793.6s
+[ERROR] TypeError("unsupported operand type(s) for +: 'int' and 'tuple'")
+[SUMO_CMD] tag=ours-augtime_6_2.0_21600.0 seed=6 cmd=sumo -c C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\most.sumocfg --seed 6 --scale 2.0 --no-step-log true --no-warnings true --time-to-teleport 300 --end 30700 --output-prefix ours-augtime_6_2.0_21600.0. --tripinfo-output tripinfo.xml --log sim.log --error-log errors.log --device.rerouting.probability 1 --device.emissions.probability 1 --device.rerouting.period 30 --route-steps 0
+[RSU] coverage: 4329 / 4404 non-internal edges have an RSU (88 assigned via from_node fallback for dead-end terminations).
+[ours-augtime_6_2.0_21600.0] RoadConditionManager bound (mode=grade, edges=['-152780', '153331#1'])
+[RSU] subscribed 4329 edges (VEHICLE_ID_LIST + OCCUPANCY + HALTING_NUMBER).
+***Starting server on port 54738 ***
+Loading net-file from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/most.net.xml' ... done (6000ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.poly.xml' ... done (5167ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.busstops.add.xml' ... done (164ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.trainstops.add.xml' ... done (182ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.parking.allvisible.add.xml' ... done (527ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/basic.vType.xml' ... done (15ms).
+Loading route-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.commercial.rou.xml' ... done (3382ms).
+Loading route-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.highway.flows.xml' ... done (54ms).
+Loading done.
+Simulation version 1.27.0 started with time: 14400.00.
+Simulation ended at time: 21600.00.
+Reason: TraCI requested termination.
+Performance:
+ Duration: 9912.07s
+ TraCI-Duration: 9590.34s
+ Real time factor: 0.726387
+ UPS: 231.698502
+Vehicles:
+ Inserted: 1334 (Loaded: 7480)
+ Running: 227
+ Waiting: 0
+Statistics (avg of 1107):
+ RouteLength: 7445.95
+ Speed: 19.04
+ Duration: 432.05
+ WaitingTime: 5.43
+ TimeLoss: 39.22
+ DepartDelay: 0.30
+DijkstraRouter answered 17853 queries and explored 821.63 edges on average.
+DijkstraRouter spent 30.20s answering queries (1.69ms on average).
+
+# scenario 'ablation_6_2.0_21600.0' (seed=6) finished in 9921.5s
+[ERROR] TypeError("unsupported operand type(s) for +: 'int' and 'tuple'")
+[SUMO_CMD] tag=ablation_6_2.0_21600.0 seed=6 cmd=sumo -c C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\most.sumocfg --seed 6 --scale 2.0 --no-step-log true --no-warnings true --time-to-teleport 300 --end 30700 --output-prefix ablation_6_2.0_21600.0. --tripinfo-output tripinfo.xml --log sim.log --error-log errors.log --device.rerouting.probability 1 --device.emissions.probability 1 --device.rerouting.period 30 --route-steps 0
+[RSU] coverage: 4329 / 4404 non-internal edges have an RSU (88 assigned via from_node fallback for dead-end terminations).
+[ablation_6_2.0_21600.0] RoadConditionManager bound (mode=grade, edges=['-152780', '153331#1'])
+[RSU] subscribed 4329 edges (VEHICLE_ID_LIST + OCCUPANCY + HALTING_NUMBER).
+***Starting server on port 54794 ***
+Loading net-file from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/most.net.xml' ... done (5746ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.poly.xml' ... done (5235ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.busstops.add.xml' ... done (164ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.trainstops.add.xml' ... done (188ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/most.parking.allvisible.add.xml' ... done (570ms).
+Loading additional-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/add/basic.vType.xml' ... done (18ms).
+Loading route-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.commercial.rou.xml' ... done (3306ms).
+Loading route-files from 'C:\Users\LNMIIT\Desktop\SumoSimulation\ResearchPaper\scenario\in/route/most.highway.flows.xml' ... done (40ms).
+Loading done.
+Simulation version 1.27.0 started with time: 14400.00.

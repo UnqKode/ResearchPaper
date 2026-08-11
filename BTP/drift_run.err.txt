@@ -1,0 +1,10 @@
+[run_fixed_departure_campaign] fast_forward_target=19500.0 rcm.mode=grade rcm.activate_time=21300.0
+[GRADE_ACTIVATE] edges=['153391#0', '153391#1'] activate_time=21300.0 emission_class=HBEFA3/PC_G_EU0
+[FREEZE_BASELINE] 153391#0: baseline=609.5589627359437 seed_buf=0 samples
+[FREEZE_BASELINE] 153391#1: baseline=133.8706466948629 seed_buf=0 samples
+[FUEL_DEQUES_CLEARED] ['153391#0', '153391#1']
+[run_fixed_departure_campaign] fast_forward_target=19500.0 rcm.mode=grade rcm.activate_time=21300.0
+[GRADE_ACTIVATE] edges=['153391#0', '153391#1'] activate_time=21300.0 emission_class=HBEFA3/PC_G_EU0
+[FREEZE_BASELINE] 153391#0: baseline=609.5589627359437 seed_buf=0 samples
+[FREEZE_BASELINE] 153391#1: baseline=133.8706466948629 seed_buf=0 samples
+[FUEL_DEQUES_CLEARED] ['153391#0', '153391#1']
